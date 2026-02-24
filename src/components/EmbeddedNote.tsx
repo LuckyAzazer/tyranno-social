@@ -9,6 +9,7 @@ import { nip19 } from 'nostr-tools';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Link } from 'react-router-dom';
+import { MediaContent } from '@/components/MediaContent';
 
 interface EmbeddedNoteProps {
   eventId: string;
@@ -82,17 +83,6 @@ export function EmbeddedNote({ eventId, depth = 0 }: EmbeddedNoteProps) {
   const timeAgo = formatDistanceToNow(new Date(event.created_at * 1000), {
     addSuffix: true,
   });
-
-  // Extract images
-  const imageUrls = event.content.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|bmp)/gi) || [];
-  const imetaImages = event.tags
-    .filter(([name]) => name === 'imeta')
-    .map(tag => {
-      const urlTag = tag.find(item => item.startsWith('url '));
-      return urlTag ? urlTag.replace('url ', '') : null;
-    })
-    .filter((url): url is string => url !== null);
-  const allImages = [...new Set([...imageUrls, ...imetaImages])];
 
   // Simple text rendering without recursive embedding if we've reached max depth
   const renderContent = () => {
@@ -193,32 +183,8 @@ export function EmbeddedNote({ eventId, depth = 0 }: EmbeddedNoteProps) {
           {renderContent()}
         </div>
 
-        {/* Image Display */}
-        {allImages.length > 0 && (
-          <div className={`grid gap-2 ${
-            allImages.length === 1 ? 'grid-cols-1' : 
-            allImages.length === 2 ? 'grid-cols-2' : 
-            'grid-cols-2'
-          }`}>
-            {allImages.slice(0, 4).map((url, index) => (
-              <div
-                key={index}
-                className="relative overflow-hidden rounded-lg bg-muted"
-              >
-                <img
-                  src={url}
-                  alt=""
-                  className="w-full h-auto object-cover"
-                  loading="lazy"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(url, '_blank');
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Media Display */}
+        <MediaContent event={event} />
       </CardContent>
     </Card>
   );

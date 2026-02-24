@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { NoteContent } from '@/components/NoteContent';
 import { EmojiReactionPicker } from '@/components/EmojiReactionPicker';
+import { MediaContent } from '@/components/MediaContent';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
 import { MessageCircle, Repeat2 } from 'lucide-react';
@@ -48,20 +49,6 @@ export function PostCard({ event, onClick }: PostCardProps) {
   // Reposter info
   const reposterMetadata: NostrMetadata | undefined = reposter.data?.metadata;
   const reposterName = reposterMetadata?.display_name || reposterMetadata?.name || genUserName(event.pubkey);
-
-  // Extract image URLs from content
-  const imageUrls = displayEvent.content.match(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|bmp)/gi) || [];
-  
-  // Extract URLs from imeta tags
-  const imetaImages = displayEvent.tags
-    .filter(([name]) => name === 'imeta')
-    .map(tag => {
-      const urlTag = tag.find(item => item.startsWith('url '));
-      return urlTag ? urlTag.replace('url ', '') : null;
-    })
-    .filter((url): url is string => url !== null);
-
-  const allImages = [...new Set([...imageUrls, ...imetaImages])];
 
   const replyCount = replies?.length || 0;
   const topReactions = reactions
@@ -127,35 +114,10 @@ export function PostCard({ event, onClick }: PostCardProps) {
           <NoteContent event={displayEvent} className="text-sm leading-relaxed" />
         </div>
 
-        {/* Image Display */}
-        {allImages.length > 0 && (
-          <div className={`grid gap-2 mb-4 ${
-            allImages.length === 1 ? 'grid-cols-1' : 
-            allImages.length === 2 ? 'grid-cols-2' : 
-            allImages.length === 3 ? 'grid-cols-3' : 
-            'grid-cols-2'
-          }`}>
-            {allImages.slice(0, 4).map((url, index) => (
-              <div
-                key={index}
-                className={`relative overflow-hidden rounded-lg bg-muted ${
-                  allImages.length === 3 && index === 0 ? 'col-span-3' : ''
-                }`}
-              >
-                <img
-                  src={url}
-                  alt=""
-                  className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
-                  loading="lazy"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(url, '_blank');
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Media Display (images, videos, link previews) */}
+        <div className="mb-4">
+          <MediaContent event={displayEvent} />
+        </div>
 
         {/* Reactions Display */}
         {topReactions.length > 0 && (
