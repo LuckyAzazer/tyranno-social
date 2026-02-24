@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, X, Download, ExternalLink } from 'lucide-react';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 interface ImageGalleryProps {
   images: string[];
@@ -71,6 +72,9 @@ export function ImageGallery({ images, initialIndex, open, onOpenChange }: Image
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0 bg-black/95 border-0">
+        <VisuallyHidden>
+          <DialogTitle>Image Gallery</DialogTitle>
+        </VisuallyHidden>
         <div className="relative w-full h-full flex items-center justify-center">
           {/* Close Button */}
           <Button
