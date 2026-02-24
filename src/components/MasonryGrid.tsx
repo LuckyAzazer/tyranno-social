@@ -35,19 +35,26 @@ export function MasonryGrid({ posts, columns: columnsProp, onPostClick }: Masonr
     4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
   }[columns] || 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
 
+  // For single column view, center the content with max width
+  const containerClasses = columns === 1 
+    ? 'max-w-2xl mx-auto w-full' 
+    : '';
+
   return (
-    <div className={`grid ${gridClasses} gap-4`}>
-      {columnPosts.map((columnItems, columnIndex) => (
-        <div key={columnIndex} className="flex flex-col gap-4">
-          {columnItems.map((post) => (
-            <PostCard 
-              key={post.id} 
-              event={post} 
-              onClick={() => onPostClick?.(post)}
-            />
-          ))}
-        </div>
-      ))}
+    <div className={containerClasses}>
+      <div className={`grid ${gridClasses} gap-4`}>
+        {columnPosts.map((columnItems, columnIndex) => (
+          <div key={columnIndex} className="flex flex-col gap-4">
+            {columnItems.map((post) => (
+              <PostCard 
+                key={post.id} 
+                event={post} 
+                onClick={() => onPostClick?.(post)}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
