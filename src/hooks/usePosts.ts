@@ -5,10 +5,9 @@ import { useAppContext } from '@/hooks/useAppContext';
 import { useFollows } from '@/hooks/useFollows';
 import type { NostrEvent } from '@nostrify/nostrify';
 
-export type FeedCategory = 'all' | 'following' | 'text' | 'articles' | 'photos' | 'music' | 'videos';
+export type FeedCategory = 'following' | 'text' | 'articles' | 'photos' | 'music' | 'videos';
 
 const categoryKinds: Record<FeedCategory, number[]> = {
-  all: [1, 30023, 31337, 34235],
   following: [1, 30023, 31337, 34235],
   text: [1],
   articles: [30023],
@@ -17,7 +16,7 @@ const categoryKinds: Record<FeedCategory, number[]> = {
   videos: [34235],
 };
 
-export function usePosts(category: FeedCategory = 'all', limit: number = 100) {
+export function usePosts(category: FeedCategory = 'following', limit: number = 100) {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { config } = useAppContext();
@@ -38,8 +37,8 @@ export function usePosts(category: FeedCategory = 'all', limit: number = 100) {
         ? nostr.group(relayUrls)
         : nostr;
 
-      // For 'following' category, filter by authors
-      const query = category === 'following' && followPubkeys.length > 0
+      // All categories now filter by follows - no firehose
+      const query = followPubkeys.length > 0
         ? {
             kinds,
             authors: followPubkeys,
@@ -47,7 +46,7 @@ export function usePosts(category: FeedCategory = 'all', limit: number = 100) {
           }
         : {
             kinds,
-            limit,
+            limit: 20, // Reduced limit when no follows
           };
 
       const events = await relayGroup.query([query]);
@@ -68,20 +67,10 @@ export function usePosts(category: FeedCategory = 'all', limit: number = 100) {
         });
       }
 
-      // Filter out replies for most categories
-      if (category !== 'all') {
-        filteredEvents = filteredEvents.filter(
-          (event) => !event.tags.some(([name]) => name === 'e')
-        );
-      } else {
-        // For 'all', still filter out replies from kind 1
-        filteredEvents = filteredEvents.filter((event) => {
-          if (event.kind === 1) {
-            return !event.tags.some(([name]) => name === 'e');
-          }
-          return true;
-        });
-      }
+      // Filter out replies from all categories
+      filteredEvents = filteredEvents.filter(
+        (event) => !event.tags.some(([name]) => name === 'e')
+      );
 
       return filteredEvents;
     },

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { usePosts, type FeedCategory } from '@/hooks/usePosts';
+import { useSearchPosts } from '@/hooks/useSearchPosts';
 import { MasonryGrid } from '@/components/MasonryGrid';
 import { ComposePost } from '@/components/ComposePost';
 import { PostDetailDialog } from '@/components/PostDetailDialog';
+import { SearchBar } from '@/components/SearchBar';
 import { LoginArea } from '@/components/auth/LoginArea';
 import { Sidebar } from '@/components/Sidebar';
 import { MobileSidebar } from '@/components/MobileSidebar';
@@ -13,14 +15,15 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Grid3x3, FileText, Image, Music, Video, Hash, Users } from 'lucide-react';
+import { Sparkles, Grid3x3, FileText, Image, Music, Video, Users } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 const Index = () => {
-  const [selectedCategory, setSelectedCategory] = useState<FeedCategory>('all');
+  const [selectedCategory, setSelectedCategory] = useState<FeedCategory>('following');
   const [columns, setColumns] = useLocalStorage<number>('masonry-columns', 3);
   const [selectedPost, setSelectedPost] = useState<NostrEvent | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useSeoMeta({
     title: 'Tyrannosocial - A Beautiful Nostr Experience',
@@ -28,10 +31,14 @@ const Index = () => {
   });
 
   const { user } = useCurrentUser();
-  const { data: posts, isLoading } = usePosts(selectedCategory);
+  const { data: feedPosts, isLoading: isLoadingFeed } = usePosts(selectedCategory);
+  const { data: searchPosts, isLoading: isLoadingSearch } = useSearchPosts(searchQuery);
+
+  // Use search results if searching, otherwise use feed
+  const posts = searchQuery.trim() ? searchPosts : feedPosts;
+  const isLoading = searchQuery.trim() ? isLoadingSearch : isLoadingFeed;
 
   const categoryIcons: Record<FeedCategory, typeof FileText> = {
-    all: Hash,
     following: Users,
     text: FileText,
     articles: FileText,
@@ -41,7 +48,6 @@ const Index = () => {
   };
 
   const categoryLabels: Record<FeedCategory, string> = {
-    all: 'All Posts',
     following: 'My Feed',
     text: 'Text Notes',
     articles: 'Articles',
@@ -97,32 +103,56 @@ const Index = () => {
         <div className="flex gap-6">
           {/* Feed Section */}
           <div className="flex-1 min-w-0 space-y-6">
+          {/* Search Bar */}
+          <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+            <SearchBar onSearch={setSearchQuery} />
+          </div>
+
           {/* Compose Section */}
-          {user && (
+          {user && !searchQuery && (
             <div className="animate-in fade-in slide-in-from-top-4 duration-700">
               <ComposePost />
             </div>
           )}
 
           {/* Category Badge and Column Selector */}
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-sm py-1.5 px-3">
-                <CategoryIcon className="h-4 w-4 mr-2" />
-                {categoryLabels[selectedCategory]}
-              </Badge>
-              {posts && (
-                <span className="text-sm text-muted-foreground">
-                  {posts.length} {posts.length === 1 ? 'post' : 'posts'}
-                </span>
-              )}
+          {!searchQuery && (
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-sm py-1.5 px-3">
+                  <CategoryIcon className="h-4 w-4 mr-2" />
+                  {categoryLabels[selectedCategory]}
+                </Badge>
+                {posts && (
+                  <span className="text-sm text-muted-foreground">
+                    {posts.length} {posts.length === 1 ? 'post' : 'posts'}
+                  </span>
+                )}
+              </div>
+              <ColumnSelector columns={columns} onColumnsChange={setColumns} />
             </div>
-            <ColumnSelector columns={columns} onColumnsChange={setColumns} />
-          </div>
+          )}
+
+          {/* Search Results Header */}
+          {searchQuery && (
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-sm py-1.5 px-3">
+                  Search Results
+                </Badge>
+                {posts && (
+                  <span className="text-sm text-muted-foreground">
+                    {posts.length} {posts.length === 1 ? 'result' : 'results'} for "{searchQuery}"
+                  </span>
+                )}
+              </div>
+              <ColumnSelector columns={columns} onColumnsChange={setColumns} />
+            </div>
+          )}
 
           {/* Posts */}
           <div className="space-y-4">
-            {!user && selectedCategory === 'all' && (
+            {!user && !searchQuery && (
               <Card className="border-dashed border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
                 <CardContent className="py-12 px-8 text-center">
                   <div className="max-w-md mx-auto space-y-4">
