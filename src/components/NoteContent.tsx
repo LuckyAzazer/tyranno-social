@@ -5,6 +5,7 @@ import { nip19 } from 'nostr-tools';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { cn } from '@/lib/utils';
+import { EmbeddedNote } from '@/components/EmbeddedNote';
 
 interface NoteContentProps {
   event: NostrEvent;
@@ -21,7 +22,7 @@ export function NoteContent({
     const text = event.content;
     
     // Regex to find URLs, Nostr references, and hashtags
-    const regex = /(https?:\/\/[^\s]+)|nostr:(npub1|note1|nprofile1|nevent1)([023456789acdefghjklmnpqrstuvwxyz]+)|(#\w+)/g;
+    const regex = /(https?:\/\/[^\s]+)|nostr:(npub1|note1|nprofile1|nevent1|naddr1)([023456789acdefghjklmnpqrstuvwxyz]+)|(#\w+)/g;
     
     const parts: React.ReactNode[] = [];
     let lastIndex = 0;
@@ -65,6 +66,22 @@ export function NoteContent({
             const pubkey = decoded.data.pubkey;
             parts.push(
               <NostrMention key={`mention-${keyCounter++}`} pubkey={pubkey} />
+            );
+          } else if (decoded.type === 'note') {
+            // Embed the note inline
+            const eventId = decoded.data;
+            parts.push(
+              <div key={`embed-${keyCounter++}`} className="my-3">
+                <EmbeddedNote eventId={eventId} />
+              </div>
+            );
+          } else if (decoded.type === 'nevent') {
+            // Embed the nevent inline
+            const eventId = decoded.data.id;
+            parts.push(
+              <div key={`embed-${keyCounter++}`} className="my-3">
+                <EmbeddedNote eventId={eventId} />
+              </div>
             );
           } else {
             // For other types, just show as a link
