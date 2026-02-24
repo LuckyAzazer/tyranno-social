@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSeoMeta } from '@unhead/react';
-import { usePosts, type FeedCategory } from '@/hooks/usePosts';
+import { type FeedCategory } from '@/hooks/usePosts';
+import { useInfinitePosts } from '@/hooks/useInfinitePosts';
 import { useSearchPosts } from '@/hooks/useSearchPosts';
 import { MasonryGrid } from '@/components/MasonryGrid';
 import { ComposePost } from '@/components/ComposePost';
@@ -15,7 +16,8 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, FileText, Image, Music, Video, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Sparkles, FileText, Image, Music, Video, Users, Loader2 } from 'lucide-react';
 import { TyrannoCoin } from '@/components/TyrannoCoin';
 import type { NostrEvent } from '@nostrify/nostrify';
 
@@ -32,12 +34,41 @@ const Index = () => {
   });
 
   const { user } = useCurrentUser();
-  const { data: feedPosts, isLoading: isLoadingFeed } = usePosts(selectedCategory);
+  const { 
+    data: infiniteData, 
+    isLoading: isLoadingFeed, 
+    fetchNextPage, 
+    hasNextPage,
+    isFetchingNextPage 
+  } = useInfinitePosts(selectedCategory);
   const { data: searchPosts, isLoading: isLoadingSearch } = useSearchPosts(searchQuery);
+
+  // Flatten infinite query pages
+  const feedPosts = infiniteData?.pages.flat() ?? [];
 
   // Use search results if searching, otherwise use feed
   const posts = searchQuery.trim() ? searchPosts : feedPosts;
   const isLoading = searchQuery.trim() ? isLoadingSearch : isLoadingFeed;
+
+  // Intersection observer for infinite scroll
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!loadMoreRef.current || searchQuery.trim()) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(loadMoreRef.current);
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, searchQuery]);
 
   const categoryIcons: Record<FeedCategory, typeof FileText> = {
     following: Users,
@@ -191,9 +222,35 @@ const Index = () => {
                 ))}
               </div>
             ) : posts && posts.length > 0 ? (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <MasonryGrid posts={posts} columns={columns} onPostClick={handlePostClick} />
-              </div>
+              <>
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                  <MasonryGrid posts={posts} columns={columns} onPostClick={handlePostClick} />
+                </div>
+
+                {/* Infinite scroll trigger and loading indicator */}
+                {!searchQuery && (
+                  <div ref={loadMoreRef} className="py-8 flex justify-center">
+                    {isFetchingNextPage ? (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span>Loading more posts...</span>
+                      </div>
+                    ) : hasNextPage ? (
+                      <Button 
+                        variant="outline" 
+                        onClick={() => fetchNextPage()}
+                        className="gap-2"
+                      >
+                        Load More
+                      </Button>
+                    ) : posts.length > 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        You've reached the end
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+              </>
             ) : (
               <Card className="border-dashed">
                 <CardContent className="py-12 px-8 text-center">
