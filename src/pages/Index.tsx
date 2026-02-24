@@ -1,21 +1,47 @@
+import { useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
-import { usePosts } from '@/hooks/usePosts';
+import { usePosts, type FeedCategory } from '@/hooks/usePosts';
 import { MasonryGrid } from '@/components/MasonryGrid';
 import { ComposePost } from '@/components/ComposePost';
 import { LoginArea } from '@/components/auth/LoginArea';
+import { Sidebar } from '@/components/Sidebar';
+import { MobileSidebar } from '@/components/MobileSidebar';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
-import { Sparkles, Grid3x3 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Sparkles, Grid3x3, FileText, Image, Music, Video, Hash } from 'lucide-react';
 
 const Index = () => {
+  const [selectedCategory, setSelectedCategory] = useState<FeedCategory>('all');
+
   useSeoMeta({
     title: 'Masonry Social - A Beautiful Nostr Experience',
     description: 'Discover and share moments in a stunning masonry grid layout. Built on Nostr, the decentralized social protocol.',
   });
 
   const { user } = useCurrentUser();
-  const { data: posts, isLoading } = usePosts();
+  const { data: posts, isLoading } = usePosts(selectedCategory);
+
+  const categoryIcons: Record<FeedCategory, typeof FileText> = {
+    all: Hash,
+    text: FileText,
+    articles: FileText,
+    photos: Image,
+    music: Music,
+    videos: Video,
+  };
+
+  const categoryLabels: Record<FeedCategory, string> = {
+    all: 'All Posts',
+    text: 'Text Notes',
+    articles: 'Articles',
+    photos: 'Photos',
+    music: 'Music',
+    videos: 'Videos',
+  };
+
+  const CategoryIcon = categoryIcons[selectedCategory];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -23,16 +49,16 @@ const Index = () => {
       <header className="relative border-b border-border/50 bg-background/80 backdrop-blur-lg">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10 -z-10" />
         <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-3">
-              <div className="relative">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="relative shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/50 blur-xl opacity-50" />
                 <div className="relative bg-gradient-to-br from-primary to-primary/80 p-3 rounded-2xl shadow-lg">
                   <Grid3x3 className="h-8 w-8 text-primary-foreground" />
                 </div>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              <div className="min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent truncate">
                   Masonry Social
                 </h1>
                 <p className="text-sm text-muted-foreground flex items-center gap-1">
@@ -41,14 +67,22 @@ const Index = () => {
                 </p>
               </div>
             </div>
-            <LoginArea className="max-w-60" />
+            <div className="flex items-center gap-2 shrink-0">
+              <LoginArea className="max-w-60 hidden sm:flex" />
+              <MobileSidebar
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+              />
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="max-w-7xl mx-auto flex gap-6">
+          {/* Feed Section */}
+          <div className="flex-1 min-w-0 space-y-6">
           {/* Compose Section */}
           {user && (
             <div className="animate-in fade-in slide-in-from-top-4 duration-700">
@@ -56,9 +90,22 @@ const Index = () => {
             </div>
           )}
 
-          {/* Feed Section */}
+          {/* Category Badge */}
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-sm py-1.5 px-3">
+              <CategoryIcon className="h-4 w-4 mr-2" />
+              {categoryLabels[selectedCategory]}
+            </Badge>
+            {posts && (
+              <span className="text-sm text-muted-foreground">
+                {posts.length} {posts.length === 1 ? 'post' : 'posts'}
+              </span>
+            )}
+          </div>
+
+          {/* Posts */}
           <div className="space-y-4">
-            {!user && (
+            {!user && selectedCategory === 'all' && (
               <Card className="border-dashed border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
                 <CardContent className="py-12 px-8 text-center">
                   <div className="max-w-md mx-auto space-y-4">
@@ -111,6 +158,13 @@ const Index = () => {
               </Card>
             )}
           </div>
+          </div>
+
+          {/* Sidebar */}
+          <Sidebar
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+          />
         </div>
       </main>
 
