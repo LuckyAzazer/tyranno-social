@@ -130,12 +130,19 @@ export function ImageGallery({ images, initialIndex, open, onOpenChange }: Image
 
           {/* Image */}
           <div className="relative w-full h-full flex items-center justify-center p-16">
-            <img
-              src={currentImage}
-              alt={`Image ${currentIndex + 1} of ${images.length}`}
-              className="max-w-full max-h-full object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
+            <div className="relative w-full h-full flex items-center justify-center">
+              <img
+                src={currentImage}
+                alt={`Image ${currentIndex + 1} of ${images.length}`}
+                className="max-w-full max-h-full object-contain"
+                style={{ 
+                  height: 'calc(100vh - 200px)',
+                  width: 'auto',
+                  maxWidth: '100%'
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
           </div>
 
           {/* Next Button */}
