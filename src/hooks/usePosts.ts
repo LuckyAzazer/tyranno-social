@@ -1,5 +1,7 @@
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useAppContext } from '@/hooks/useAppContext';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 export type FeedCategory = 'all' | 'text' | 'articles' | 'photos' | 'music' | 'videos';
@@ -15,13 +17,25 @@ const categoryKinds: Record<FeedCategory, number[]> = {
 
 export function usePosts(category: FeedCategory = 'all', limit: number = 100) {
   const { nostr } = useNostr();
+  const { user } = useCurrentUser();
+  const { config } = useAppContext();
 
   return useQuery({
-    queryKey: ['posts', category, limit],
+    queryKey: ['posts', category, limit, user?.pubkey, config.relayMetadata.updatedAt],
     queryFn: async () => {
       const kinds = categoryKinds[category];
       
-      const events = await nostr.query([
+      // Get relay URLs from user's configuration
+      const relayUrls = config.relayMetadata.relays
+        .filter(r => r.read)
+        .map(r => r.url);
+
+      // Create a relay group to query from user's relays
+      const relayGroup = relayUrls.length > 0 
+        ? nostr.group(relayUrls)
+        : nostr;
+
+      const events = await relayGroup.query([
         {
           kinds,
           limit,

@@ -1,14 +1,26 @@
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
+import { useAppContext } from '@/hooks/useAppContext';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 export function useProfile(pubkey: string) {
   const { nostr } = useNostr();
+  const { config } = useAppContext();
 
   return useQuery({
-    queryKey: ['profile', pubkey],
+    queryKey: ['profile', pubkey, config.relayMetadata.updatedAt],
     queryFn: async () => {
-      const events = await nostr.query([
+      // Get relay URLs from user's configuration
+      const relayUrls = config.relayMetadata.relays
+        .filter(r => r.read)
+        .map(r => r.url);
+
+      // Create a relay group to query from user's relays
+      const relayGroup = relayUrls.length > 0 
+        ? nostr.group(relayUrls)
+        : nostr;
+
+      const events = await relayGroup.query([
         {
           kinds: [0],
           authors: [pubkey],
@@ -32,11 +44,22 @@ export function useProfile(pubkey: string) {
 
 export function useUserPosts(pubkey: string, limit: number = 50) {
   const { nostr } = useNostr();
+  const { config } = useAppContext();
 
   return useQuery({
-    queryKey: ['user-posts', pubkey, limit],
+    queryKey: ['user-posts', pubkey, limit, config.relayMetadata.updatedAt],
     queryFn: async () => {
-      const events = await nostr.query([
+      // Get relay URLs from user's configuration
+      const relayUrls = config.relayMetadata.relays
+        .filter(r => r.read)
+        .map(r => r.url);
+
+      // Create a relay group to query from user's relays
+      const relayGroup = relayUrls.length > 0 
+        ? nostr.group(relayUrls)
+        : nostr;
+
+      const events = await relayGroup.query([
         {
           kinds: [1],
           authors: [pubkey],

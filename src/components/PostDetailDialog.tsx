@@ -20,7 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { NoteContent } from '@/components/NoteContent';
 import { EmojiReactionPicker } from '@/components/EmojiReactionPicker';
-import { Heart, MessageCircle, Repeat2, Send } from 'lucide-react';
+import { MessageCircle, Repeat2, Send } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
 import { useState } from 'react';
@@ -167,13 +167,6 @@ export function PostDetailDialog({ event, open, onOpenChange }: PostDetailDialog
 
               {/* Action Buttons */}
               <div className="flex items-center gap-1 pt-2 border-t border-border/50">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                >
-                  <Heart className="h-4 w-4" />
-                </Button>
                 <Button
                   variant="ghost"
                   size="sm"

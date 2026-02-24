@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { NoteContent } from '@/components/NoteContent';
 import { genUserName } from '@/lib/genUserName';
-import { ArrowLeft, Heart, MessageCircle, Repeat2 } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Repeat2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
@@ -122,14 +122,6 @@ export function NotePage({ eventId }: NotePageProps) {
                 <NoteContent event={event} />
               </div>
               <div className="flex items-center gap-2 pt-4 border-t border-border/50">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-                >
-                  <Heart className="h-5 w-5 mr-2" />
-                  Like
-                </Button>
                 <Button
                   variant="ghost"
                   size="sm"

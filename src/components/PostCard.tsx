@@ -10,7 +10,7 @@ import { NoteContent } from '@/components/NoteContent';
 import { EmojiReactionPicker } from '@/components/EmojiReactionPicker';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
-import { Heart, MessageCircle, Repeat2 } from 'lucide-react';
+import { MessageCircle, Repeat2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface PostCardProps {
@@ -107,17 +107,6 @@ export function PostCard({ event, onClick }: PostCardProps) {
         )}
 
         <div className="flex items-center gap-1 pt-2 border-t border-border/50">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              // Add like functionality if needed
-            }}
-          >
-            <Heart className="h-4 w-4" />
-          </Button>
           <Button
             variant="ghost"
             size="sm"
