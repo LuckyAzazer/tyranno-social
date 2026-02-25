@@ -31,6 +31,7 @@ import { Separator } from '@/components/ui/separator';
 import { NoteContent } from '@/components/NoteContent';
 import { EmojiReactionPicker } from '@/components/EmojiReactionPicker';
 import { MediaContent } from '@/components/MediaContent';
+import { ZapButton } from '@/components/ZapButton';
 import { MessageCircle, Repeat2, Send, Bookmark, MoreHorizontal, Copy, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
@@ -261,6 +262,11 @@ export function PostDetailDialog({ event, open, onOpenChange }: PostDetailDialog
                   >
                     <Repeat2 className="h-4 w-4" />
                   </Button>
+                  <ZapButton
+                    target={displayEvent as any}
+                    className="h-8 px-2 text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10 transition-colors flex items-center gap-1"
+                    showCount={true}
+                  />
                   <Button
                     variant="ghost"
                     size="sm"

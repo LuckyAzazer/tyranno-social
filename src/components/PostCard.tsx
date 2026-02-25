@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { NoteContent } from '@/components/NoteContent';
 import { EmojiReactionPicker } from '@/components/EmojiReactionPicker';
 import { MediaContent } from '@/components/MediaContent';
+import { ZapButton } from '@/components/ZapButton';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
 import { MessageCircle, Repeat2, Bookmark, MoreHorizontal, Copy, User } from 'lucide-react';
@@ -195,6 +196,11 @@ export function PostCard({ event, onClick }: PostCardProps) {
             >
               <Repeat2 className="h-4 w-4" />
             </Button>
+            <ZapButton
+              target={displayEvent as any}
+              className="h-8 px-2 text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10 transition-colors flex items-center gap-1"
+              showCount={true}
+            />
             <Button
               variant="ghost"
               size="sm"
