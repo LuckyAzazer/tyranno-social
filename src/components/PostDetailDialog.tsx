@@ -32,6 +32,7 @@ import { NoteContent } from '@/components/NoteContent';
 import { EmojiReactionPicker } from '@/components/EmojiReactionPicker';
 import { MediaContent } from '@/components/MediaContent';
 import { ZapButton } from '@/components/ZapButton';
+import { BookmarkDialog } from '@/components/BookmarkDialog';
 import { MessageCircle, Repeat2, Send, Bookmark, MoreHorizontal, Copy, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
@@ -91,6 +92,7 @@ export function PostDetailDialog({ event, open, onOpenChange }: PostDetailDialog
   const { mutate: publishEvent, isPending } = useNostrPublish();
   const { toast } = useToast();
   const [replyContent, setReplyContent] = useState('');
+  const [bookmarkDialogOpen, setBookmarkDialogOpen] = useState(false);
 
   // Check if this is a repost
   const isRepost = event && (event.kind === 6 || event.kind === 16);
@@ -159,7 +161,17 @@ export function PostDetailDialog({ event, open, onOpenChange }: PostDetailDialog
   };
 
   const handleBookmarkClick = () => {
-    toggleBookmark.mutate({ eventId: displayEvent.id, isPrivate: false });
+    if (isBookmarked) {
+      // If already bookmarked, remove it directly
+      toggleBookmark.mutate({ eventId: displayEvent.id, isPrivate: false });
+    } else {
+      // If not bookmarked, show dialog to choose public/private
+      setBookmarkDialogOpen(true);
+    }
+  };
+
+  const handleBookmarkConfirm = (isPrivate: boolean) => {
+    toggleBookmark.mutate({ eventId: displayEvent.id, isPrivate });
   };
 
   const copyToClipboard = async (text: string, label: string) => {
@@ -399,6 +411,14 @@ export function PostDetailDialog({ event, open, onOpenChange }: PostDetailDialog
           </div>
         </ScrollArea>
       </DialogContent>
+
+      {/* Bookmark Dialog */}
+      <BookmarkDialog
+        open={bookmarkDialogOpen}
+        onOpenChange={setBookmarkDialogOpen}
+        onConfirm={handleBookmarkConfirm}
+        isBookmarked={!!isBookmarked}
+      />
     </Dialog>
   );
 }
