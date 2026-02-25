@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { LinkPreview } from './LinkPreview';
 import { ImageGallery } from './ImageGallery';
+import { VideoPlayer } from './VideoPlayer';
 
 interface MediaContentProps {
   event: NostrEvent;
@@ -137,25 +138,10 @@ export function MediaContent({ event }: MediaContentProps) {
       {videos.length > 0 && (
         <div className="space-y-2">
           {videos.map((item, index) => (
-            <div
+            <VideoPlayer
               key={`vid-${index}`}
-              className="relative overflow-hidden rounded-lg bg-black"
-            >
-              <video
-                src={item.url}
-                controls
-                className="w-full h-auto max-h-96 object-contain"
-                preload="none"
-                playsInline
-                onClick={(e) => e.stopPropagation()}
-                onError={(e) => {
-                  console.warn('Video load error:', item.url);
-                  e.currentTarget.style.display = 'none';
-                }}
-              >
-                Your browser does not support the video tag.
-              </video>
-            </div>
+              src={item.url}
+            />
           ))}
         </div>
       )}
