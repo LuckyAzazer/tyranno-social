@@ -22,7 +22,11 @@ import { NSchema as n, type NostrMetadata } from '@nostrify/nostrify';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUploadFile } from '@/hooks/useUploadFile';
 
-export const EditProfileForm: React.FC = () => {
+interface EditProfileFormProps {
+  onSuccess?: () => void;
+}
+
+export const EditProfileForm: React.FC<EditProfileFormProps> = ({ onSuccess }) => {
   const queryClient = useQueryClient();
 
   const { user, metadata } = useCurrentUser();
@@ -114,6 +118,9 @@ export const EditProfileForm: React.FC = () => {
         title: 'Success',
         description: 'Your profile has been updated',
       });
+
+      // Call onSuccess callback if provided
+      onSuccess?.();
     } catch (error) {
       console.error('Failed to update profile:', error);
       toast({

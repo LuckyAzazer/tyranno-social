@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { useProfile, useUserPosts } from '@/hooks/useProfile';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { MasonryGrid } from '@/components/MasonryGrid';
 import { PostDetailDialog } from '@/components/PostDetailDialog';
 import { ColumnSelector } from '@/components/ColumnSelector';
@@ -8,11 +9,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { genUserName } from '@/lib/genUserName';
-import { ArrowLeft, MapPin, Link as LinkIcon, Calendar, Mail, Zap, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, MapPin, Link as LinkIcon, Calendar, Mail, Zap, CheckCircle2, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
+import { EditProfileForm } from '@/components/EditProfileForm';
 import type { NostrMetadata, NostrEvent } from '@nostrify/nostrify';
 import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -23,11 +26,16 @@ interface ProfilePageProps {
 
 export function ProfilePage({ pubkey }: ProfilePageProps) {
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
   const [columns, setColumns] = useLocalStorage<number>('masonry-columns', 3);
   const [selectedPost, setSelectedPost] = useState<NostrEvent | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
   const { data: profileData, isLoading: isLoadingProfile } = useProfile(pubkey);
   const { data: posts, isLoading: isLoadingPosts } = useUserPosts(pubkey);
+
+  // Check if this is the current user's own profile
+  const isOwnProfile = user?.pubkey === pubkey;
 
   const metadata: NostrMetadata | undefined = profileData?.metadata;
   const displayName = metadata?.display_name || metadata?.name || genUserName(pubkey);
@@ -94,14 +102,15 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    <div className="flex items-start gap-4 flex-wrap">
-                      <Avatar className="h-24 w-24 ring-4 ring-background shadow-lg">
-                        <AvatarImage src={profileImage} alt={displayName} />
-                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-3xl">
-                          {displayName[0]?.toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <div className="flex items-start gap-4 flex-1 min-w-0">
+                        <Avatar className="h-24 w-24 ring-4 ring-background shadow-lg">
+                          <AvatarImage src={profileImage} alt={displayName} />
+                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-3xl">
+                            {displayName[0]?.toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-3 mb-2 flex-wrap">
                           <div>
                             <h1 className="text-2xl font-bold">{displayName}</h1>
@@ -155,7 +164,20 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
                             </code>
                           </div>
                         </div>
+                        </div>
                       </div>
+                      
+                      {/* Edit Profile Button - only show on own profile */}
+                      {isOwnProfile && (
+                        <Button
+                          onClick={() => setEditProfileOpen(true)}
+                          variant="outline"
+                          className="gap-2 shrink-0"
+                        >
+                          <Edit className="h-4 w-4" />
+                          Edit Profile
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -208,6 +230,16 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
       />
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+          </DialogHeader>
+          <EditProfileForm onSuccess={() => setEditProfileOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
