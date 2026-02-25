@@ -103,7 +103,7 @@ const Index = () => {
         <div className="px-4 py-4">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             {/* Logo and Title */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-1 sm:flex-initial">
               <div className="relative shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-yellow-600 via-red-900 to-yellow-700 blur-xl opacity-50 animate-pulse" />
                 <div className="relative p-1">
@@ -121,13 +121,12 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Search Bar - Desktop */}
-            <div className="hidden md:flex flex-1 max-w-md">
-              <SearchBar onSearch={setSearchQuery} />
-            </div>
-
-            {/* Right Side - Login and Mobile Menu */}
+            {/* Right Side - Search, Login and Mobile Menu */}
             <div className="flex items-center gap-2 shrink-0">
+              {/* Search Bar - Desktop */}
+              <div className="hidden md:block w-64 lg:w-80">
+                <SearchBar onSearch={setSearchQuery} />
+              </div>
               <LoginArea className="max-w-60 hidden sm:flex" />
               <MobileSidebar
                 selectedCategory={selectedCategory}
