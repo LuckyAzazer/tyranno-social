@@ -97,28 +97,36 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      {/* Hero Header */}
-      <header className="relative border-b border-border/50 bg-background/80 backdrop-blur-lg">
+      {/* Hero Header - Sticky */}
+      <header className="sticky top-0 z-40 relative border-b border-border/50 bg-background/95 backdrop-blur-lg shadow-sm">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10 -z-10" />
-        <div className="px-4 py-8">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="px-4 py-4">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            {/* Logo and Title */}
+            <div className="flex items-center gap-3">
               <div className="relative shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-yellow-600 via-red-900 to-yellow-700 blur-xl opacity-50 animate-pulse" />
                 <div className="relative p-1">
-                  <TyrannoCoin className="h-14 w-14 sm:h-16 sm:w-16 drop-shadow-2xl filter brightness-110" />
+                  <TyrannoCoin className="h-12 w-12 sm:h-14 sm:w-14 drop-shadow-2xl filter brightness-110" />
                 </div>
               </div>
-              <div className="min-w-0">
-                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent truncate">
+              <div className="hidden sm:block">
+                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                   Tyrannosocial
                 </h1>
-                <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Sparkles className="h-3 w-3" />
                   Powered by Nostr
                 </p>
               </div>
             </div>
+
+            {/* Search Bar - Desktop */}
+            <div className="hidden md:flex flex-1 max-w-md">
+              <SearchBar onSearch={setSearchQuery} />
+            </div>
+
+            {/* Right Side - Login and Mobile Menu */}
             <div className="flex items-center gap-2 shrink-0">
               <LoginArea className="max-w-60 hidden sm:flex" />
               <MobileSidebar
@@ -126,6 +134,11 @@ const Index = () => {
                 onCategoryChange={setSelectedCategory}
               />
             </div>
+          </div>
+
+          {/* Search Bar - Mobile (below header on small screens) */}
+          <div className="md:hidden mt-4">
+            <SearchBar onSearch={setSearchQuery} />
           </div>
         </div>
       </header>
@@ -135,11 +148,6 @@ const Index = () => {
         <div className="flex gap-6">
           {/* Feed Section */}
           <div className="flex-1 min-w-0 space-y-6">
-          {/* Search Bar */}
-          <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-            <SearchBar onSearch={setSearchQuery} />
-          </div>
-
           {/* Compose Section */}
           {user && !searchQuery && (
             <div className="animate-in fade-in slide-in-from-top-4 duration-700">
