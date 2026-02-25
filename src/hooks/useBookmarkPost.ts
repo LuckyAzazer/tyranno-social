@@ -65,7 +65,7 @@ export function useBookmarkPost() {
 
   // Toggle bookmark
   const toggleBookmark = useMutation({
-    mutationFn: async ({ eventId, isPrivate = false }: { eventId: string; isPrivate?: boolean }) => {
+    mutationFn: async ({ eventId, isPrivate = false }: { eventId: string; isPrivate?: boolean }): Promise<{ action: 'added' | 'removed'; event: NostrEvent }> => {
       if (!user) {
         throw new Error('Must be logged in to bookmark');
       }
@@ -138,22 +138,40 @@ export function useBookmarkPost() {
         );
       }
 
-      // Publish updated bookmark list
+      // Publish updated bookmark list to all write relays
       console.log('Publishing bookmark list with', publicTags.length, 'public tags and', privateTags.length, 'private tags');
+      console.log('Write relays:', config.relayMetadata.relays.filter(r => r.write).map(r => r.url));
       
-      await nostr.event({
+      const writeRelayUrls = config.relayMetadata.relays
+        .filter(r => r.write)
+        .map(r => r.url);
+
+      const writeRelayGroup = writeRelayUrls.length > 0
+        ? nostr.group(writeRelayUrls)
+        : nostr;
+
+      const publishedEvent = await writeRelayGroup.event({
         kind: 10003,
         content: encryptedContent,
         tags: publicTags,
       });
 
-      console.log('Bookmark', action, 'successfully');
-      return action;
+      console.log('Bookmark event published:', publishedEvent.id, 'created_at:', publishedEvent.created_at);
+      console.log('Action:', action);
+      return { action, event: publishedEvent };
     },
-    onSuccess: (action, variables) => {
-      // Invalidate bookmark queries
-      queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
-      queryClient.invalidateQueries({ queryKey: ['is-bookmarked', variables.eventId] });
+    onSuccess: async (result, variables) => {
+      const { action } = result;
+
+      // Wait a bit for relay to propagate the event
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Invalidate and refetch bookmark queries
+      await queryClient.invalidateQueries({ queryKey: ['bookmarks'] });
+      await queryClient.invalidateQueries({ queryKey: ['is-bookmarked', variables.eventId] });
+      
+      // Force refetch bookmarks
+      await queryClient.refetchQueries({ queryKey: ['bookmarks'] });
 
       toast({
         title: action === 'added' ? 'Bookmarked!' : 'Removed from bookmarks',

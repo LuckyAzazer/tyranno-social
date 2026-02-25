@@ -26,28 +26,37 @@ export function useBookmarks() {
 
       console.log('Fetching bookmarks for user:', user.pubkey);
 
-      // Get relay URLs from user's configuration
+      // Get relay URLs from user's configuration (read from both read and write relays)
       const relayUrls = config.relayMetadata.relays
-        .filter(r => r.read)
+        .filter(r => r.read || r.write)
         .map(r => r.url);
+
+      console.log('Querying bookmarks from relays:', relayUrls);
 
       // Create a relay group to query from user's relays
       const relayGroup = relayUrls.length > 0 
         ? nostr.group(relayUrls)
         : nostr;
 
-      // Fetch bookmark lists (kind 10003)
+      // Fetch bookmark lists (kind 10003) - replaceable event
       const bookmarkLists = await relayGroup.query([
         {
           kinds: [10003],
           authors: [user.pubkey],
-          limit: 1,
+          limit: 10, // Fetch more to ensure we get the latest
         },
       ]);
+
+      // Sort by created_at to get the most recent
+      bookmarkLists.sort((a, b) => b.created_at - a.created_at);
 
       const bookmarkItems: BookmarkItem[] = [];
 
       console.log('Found', bookmarkLists.length, 'bookmark lists');
+      if (bookmarkLists.length > 0) {
+        console.log('Latest bookmark list created_at:', new Date(bookmarkLists[0].created_at * 1000).toISOString());
+        console.log('Latest bookmark list tags count:', bookmarkLists[0].tags.length);
+      }
 
       if (bookmarkLists.length > 0) {
         const list = bookmarkLists[0];
@@ -127,5 +136,8 @@ export function useBookmarks() {
       return { items: bookmarkItems, events };
     },
     enabled: !!user,
+    staleTime: 0, // Always refetch to get latest bookmarks
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 }
