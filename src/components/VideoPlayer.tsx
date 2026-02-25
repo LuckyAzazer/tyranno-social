@@ -27,16 +27,22 @@ export function VideoPlayer({ src, className = '' }: VideoPlayerProps) {
       
       if (!context) return;
 
-      // Set canvas dimensions to match video
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      try {
+        // Set canvas dimensions to match video
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
 
-      // Draw the current frame
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Draw the current frame
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Convert to data URL
-      const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.7);
-      setThumbnail(thumbnailUrl);
+        // Convert to data URL
+        const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.7);
+        setThumbnail(thumbnailUrl);
+      } catch (error) {
+        // CORS error or other security error - use placeholder
+        console.warn('Unable to generate video thumbnail (CORS):', error);
+        setThumbnail('placeholder');
+      }
 
       // Remove event listener after generating thumbnail
       video.removeEventListener('loadeddata', generateThumbnail);
@@ -73,6 +79,7 @@ export function VideoPlayer({ src, className = '' }: VideoPlayerProps) {
         className="w-full h-auto max-h-96 object-contain"
         preload="metadata"
         playsInline
+        crossOrigin="anonymous"
         onPause={handlePause}
         onEnded={handlePause}
         onClick={(e) => e.stopPropagation()}
@@ -93,12 +100,20 @@ export function VideoPlayer({ src, className = '' }: VideoPlayerProps) {
             handlePlay();
           }}
         >
-          {/* Thumbnail */}
-          <img 
-            src={thumbnail} 
-            alt="Video thumbnail"
-            className="w-full h-full object-cover"
-          />
+          {/* Thumbnail or placeholder */}
+          {thumbnail !== 'placeholder' ? (
+            <img 
+              src={thumbnail} 
+              alt="Video thumbnail"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+              <div className="text-white/30 text-center p-8">
+                <Play className="h-24 w-24 mx-auto mb-4 opacity-30" />
+              </div>
+            </div>
+          )}
           
           {/* Dark overlay */}
           <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
