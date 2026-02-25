@@ -1,18 +1,24 @@
 import { useState } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { useAppContext } from '@/hooks/useAppContext';
+import { useBookmarks } from '@/hooks/useBookmarks';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import { RelayListManager } from '@/components/RelayListManager';
+import { PostCard } from '@/components/PostCard';
+import { PostDetailDialog } from '@/components/PostDetailDialog';
+import type { NostrEvent } from '@nostrify/nostrify';
 import {
   Moon,
   Sun,
   Wifi,
   Bell,
+  Bookmark,
   FileText,
   Image,
   Music,
@@ -41,10 +47,19 @@ interface SidebarProps {
 export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
   const { theme, setTheme } = useTheme();
   const { config } = useAppContext();
+  const { data: bookmarksData, isLoading: isLoadingBookmarks } = useBookmarks();
   const [relaysOpen, setRelaysOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [bookmarksOpen, setBookmarksOpen] = useState(false);
+  const [selectedBookmark, setSelectedBookmark] = useState<NostrEvent | null>(null);
+  const [bookmarkDialogOpen, setBookmarkDialogOpen] = useState(false);
 
   const isDark = theme === 'dark';
+
+  const handleBookmarkClick = (event: NostrEvent) => {
+    setSelectedBookmark(event);
+    setBookmarkDialogOpen(true);
+  };
 
   const categories: Array<{ id: FeedCategory; label: string; icon: typeof FileText; kinds: number[] }> = [
     { id: 'following', label: 'My Feed', icon: Users, kinds: [1] },
@@ -221,7 +236,92 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
           </CardContent>
         </Card>
 
+        {/* Bookmarks */}
+        <Card className="border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Bookmark className="h-5 w-5 text-primary" />
+              Bookmarks
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Sheet open={bookmarksOpen} onOpenChange={setBookmarksOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="w-full">
+                  <Bookmark className="h-4 w-4 mr-2" />
+                  Saved Posts
+                  <Badge variant="secondary" className="ml-auto">
+                    {bookmarksData?.events.length || 0}
+                  </Badge>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:w-[540px]">
+                <SheetHeader>
+                  <SheetTitle className="flex items-center gap-2">
+                    <Bookmark className="h-5 w-5 text-primary" />
+                    Bookmarks
+                  </SheetTitle>
+                  <SheetDescription>
+                    Your saved posts (public and private)
+                  </SheetDescription>
+                </SheetHeader>
+                <Separator className="my-4" />
+                <ScrollArea className="h-[calc(100vh-140px)] pr-4">
+                  {isLoadingBookmarks ? (
+                    <div className="space-y-4">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <Card key={i} className="overflow-hidden">
+                          <div className="p-4 space-y-3">
+                            <div className="flex items-start gap-3">
+                              <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                              <div className="space-y-2 flex-1">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-3 w-16" />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Skeleton className="h-4 w-full" />
+                              <Skeleton className="h-4 w-4/5" />
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : bookmarksData && bookmarksData.events.length > 0 ? (
+                    <div className="space-y-3">
+                      {bookmarksData.events.map((event) => (
+                        <PostCard
+                          key={event.id}
+                          event={event}
+                          onClick={() => handleBookmarkClick(event)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-64">
+                      <div className="text-center space-y-2">
+                        <Bookmark className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">No bookmarks yet</p>
+                        <p className="text-xs text-muted-foreground">
+                          Save posts to read them later
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
+          </CardContent>
+        </Card>
+
       </div>
+
+      {/* Bookmark Detail Dialog */}
+      <PostDetailDialog
+        event={selectedBookmark}
+        open={bookmarkDialogOpen}
+        onOpenChange={setBookmarkDialogOpen}
+      />
     </aside>
   );
 }
