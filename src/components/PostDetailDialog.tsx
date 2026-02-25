@@ -6,6 +6,8 @@ import { useRepostedEvent } from '@/hooks/useRepostedEvent';
 import { useFollows } from '@/hooks/useFollows';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
+import { useBookmarkPost } from '@/hooks/useBookmarkPost';
+import { useToast } from '@/hooks/useToast';
 import { genUserName } from '@/lib/genUserName';
 import {
   Dialog,
@@ -13,6 +15,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,7 +31,7 @@ import { Separator } from '@/components/ui/separator';
 import { NoteContent } from '@/components/NoteContent';
 import { EmojiReactionPicker } from '@/components/EmojiReactionPicker';
 import { MediaContent } from '@/components/MediaContent';
-import { MessageCircle, Repeat2, Send } from 'lucide-react';
+import { MessageCircle, Repeat2, Send, Bookmark, MoreHorizontal, Copy, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
 import { useState } from 'react';
@@ -80,6 +88,7 @@ function ReplyItem({ reply, isFollowing }: { reply: NostrEvent; isFollowing?: bo
 export function PostDetailDialog({ event, open, onOpenChange }: PostDetailDialogProps) {
   const { user } = useCurrentUser();
   const { mutate: publishEvent, isPending } = useNostrPublish();
+  const { toast } = useToast();
   const [replyContent, setReplyContent] = useState('');
 
   // Check if this is a repost
@@ -95,6 +104,10 @@ export function PostDetailDialog({ event, open, onOpenChange }: PostDetailDialog
   const { data: reactions, isLoading: isLoadingReactions } = useReactions(displayEvent?.id || '');
   const { data: replies, isLoading: isLoadingReplies } = useReplies(displayEvent?.id || '');
   const { data: followPubkeys = [] } = useFollows(user?.pubkey);
+
+  // Bookmarks
+  const { toggleBookmark, useIsBookmarked } = useBookmarkPost();
+  const { data: isBookmarked } = useIsBookmarked(displayEvent?.id || '');
 
   if (!event || !displayEvent) return null;
 
@@ -142,6 +155,27 @@ export function PostDetailDialog({ event, open, onOpenChange }: PostDetailDialog
         },
       }
     );
+  };
+
+  const handleBookmarkClick = () => {
+    toggleBookmark.mutate({ eventId: displayEvent.id, isPrivate: false });
+  };
+
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: 'Copied!',
+        description: `${label} copied to clipboard`,
+      });
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to copy to clipboard',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -210,26 +244,84 @@ export function PostDetailDialog({ event, open, onOpenChange }: PostDetailDialog
               )}
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-1 pt-2 border-t border-border/50">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
-                >
-                  <MessageCircle className="h-4 w-4 mr-1" />
-                  {replies?.length || 0}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 px-2 text-muted-foreground hover:text-green-500 hover:bg-green-500/10 transition-colors"
-                >
-                  <Repeat2 className="h-4 w-4" />
-                </Button>
-                <EmojiReactionPicker
-                  eventId={displayEvent.id}
-                  className="h-8 px-2 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-colors"
-                />
+              <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-1" />
+                    {replies?.length || 0}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-muted-foreground hover:text-green-500 hover:bg-green-500/10 transition-colors"
+                  >
+                    <Repeat2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`h-8 px-2 transition-colors ${
+                      isBookmarked 
+                        ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-500/10' 
+                        : 'text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10'
+                    }`}
+                    onClick={handleBookmarkClick}
+                    title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+                  >
+                    <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-current' : ''}`} />
+                  </Button>
+                  <EmojiReactionPicker
+                    eventId={displayEvent.id}
+                    className="h-8 px-2 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-colors"
+                  />
+                </div>
+
+                {/* More options menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => copyToClipboard(displayEvent.id, 'Event ID')}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copy Event ID
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => copyToClipboard(displayEvent.pubkey, 'User ID')}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <User className="h-4 w-4" />
+                      Copy User ID
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => copyToClipboard(nip19.noteEncode(displayEvent.id), 'Note ID (note1)')}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copy Note ID
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => copyToClipboard(npub, 'User npub')}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <User className="h-4 w-4" />
+                      Copy User npub
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 

@@ -3,6 +3,8 @@ import { useAuthor } from '@/hooks/useAuthor';
 import { useReactions } from '@/hooks/useReactions';
 import { useReplies } from '@/hooks/useReplies';
 import { useRepostedEvent } from '@/hooks/useRepostedEvent';
+import { useBookmarkPost } from '@/hooks/useBookmarkPost';
+import { useToast } from '@/hooks/useToast';
 import { genUserName } from '@/lib/genUserName';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,8 +15,15 @@ import { EmojiReactionPicker } from '@/components/EmojiReactionPicker';
 import { MediaContent } from '@/components/MediaContent';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
-import { MessageCircle, Repeat2 } from 'lucide-react';
+import { MessageCircle, Repeat2, Bookmark, MoreHorizontal, Copy, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface PostCardProps {
   event: NostrEvent;
@@ -34,6 +43,11 @@ export function PostCard({ event, onClick }: PostCardProps) {
   const metadata: NostrMetadata | undefined = author.data?.metadata;
   const { data: reactions } = useReactions(displayEvent.id);
   const { data: replies } = useReplies(displayEvent.id);
+
+  // Bookmarks
+  const { toggleBookmark, useIsBookmarked } = useBookmarkPost();
+  const { data: isBookmarked } = useIsBookmarked(displayEvent.id);
+  const { toast } = useToast();
 
   const displayName = metadata?.display_name || metadata?.name || genUserName(displayEvent.pubkey);
   const username = metadata?.name || genUserName(displayEvent.pubkey);
@@ -63,6 +77,28 @@ export function PostCard({ event, onClick }: PostCardProps) {
       return;
     }
     onClick?.();
+  };
+
+  const handleBookmarkClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleBookmark.mutate({ eventId: displayEvent.id, isPrivate: false });
+  };
+
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: 'Copied!',
+        description: `${label} copied to clipboard`,
+      });
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to copy to clipboard',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (
@@ -134,34 +170,105 @@ export function PostCard({ event, onClick }: PostCardProps) {
           </div>
         )}
 
-        <div className="flex items-center gap-1 pt-2 border-t border-border/50">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick?.();
-            }}
-          >
-            <MessageCircle className="h-4 w-4 mr-1" />
-            {replyCount > 0 && <span className="text-xs">{replyCount}</span>}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 text-muted-foreground hover:text-green-500 hover:bg-green-500/10 transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              // Add repost functionality if needed
-            }}
-          >
-            <Repeat2 className="h-4 w-4" />
-          </Button>
-          <EmojiReactionPicker
-            eventId={displayEvent.id}
-            className="h-8 px-2 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-colors"
-          />
+        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClick?.();
+              }}
+            >
+              <MessageCircle className="h-4 w-4 mr-1" />
+              {replyCount > 0 && <span className="text-xs">{replyCount}</span>}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 text-muted-foreground hover:text-green-500 hover:bg-green-500/10 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Add repost functionality if needed
+              }}
+            >
+              <Repeat2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`h-8 px-2 transition-colors ${
+                isBookmarked 
+                  ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-500/10' 
+                  : 'text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10'
+              }`}
+              onClick={handleBookmarkClick}
+              title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+            >
+              <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-current' : ''}`} />
+            </Button>
+            <EmojiReactionPicker
+              eventId={displayEvent.id}
+              className="h-8 px-2 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-colors"
+            />
+          </div>
+
+          {/* More options menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-muted-foreground hover:text-foreground transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyToClipboard(displayEvent.id, 'Event ID');
+                }}
+                className="gap-2 cursor-pointer"
+              >
+                <Copy className="h-4 w-4" />
+                Copy Event ID
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyToClipboard(displayEvent.pubkey, 'User ID');
+                }}
+                className="gap-2 cursor-pointer"
+              >
+                <User className="h-4 w-4" />
+                Copy User ID
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyToClipboard(noteId, 'Note ID (note1)');
+                }}
+                className="gap-2 cursor-pointer"
+              >
+                <Copy className="h-4 w-4" />
+                Copy Note ID
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyToClipboard(npub, 'User npub');
+                }}
+                className="gap-2 cursor-pointer"
+              >
+                <User className="h-4 w-4" />
+                Copy User npub
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardContent>
     </Card>
