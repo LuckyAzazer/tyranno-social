@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useBookmarks } from '@/hooks/useBookmarks';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -12,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { RelayListManager } from '@/components/RelayListManager';
 import { PostCard } from '@/components/PostCard';
 import { PostDetailDialog } from '@/components/PostDetailDialog';
+import { NotificationItem } from '@/components/NotificationItem';
 import type { NostrEvent } from '@nostrify/nostrify';
 import {
   Moon,
@@ -47,7 +50,9 @@ interface SidebarProps {
 export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
   const { theme, setTheme } = useTheme();
   const { config } = useAppContext();
+  const { user } = useCurrentUser();
   const { data: bookmarksData, isLoading: isLoadingBookmarks } = useBookmarks();
+  const { data: notifications, isLoading: isLoadingNotifications } = useNotifications();
   const [relaysOpen, setRelaysOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
@@ -204,9 +209,11 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
                 <Button variant="outline" size="sm" className="w-full">
                   <Bell className="h-4 w-4 mr-2" />
                   View Notifications
-                  <Badge variant="destructive" className="ml-auto">
-                    0
-                  </Badge>
+                  {notifications && notifications.length > 0 && (
+                    <Badge variant="destructive" className="ml-auto">
+                      {notifications.length > 99 ? '99+' : notifications.length}
+                    </Badge>
+                  )}
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-full sm:w-[540px]">
@@ -221,15 +228,52 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
                 </SheetHeader>
                 <Separator className="my-4" />
                 <ScrollArea className="h-[calc(100vh-140px)] pr-4">
-                  <div className="flex items-center justify-center h-64">
-                    <div className="text-center space-y-2">
-                      <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">No notifications yet</p>
-                      <p className="text-xs text-muted-foreground">
-                        You'll see mentions and replies here
-                      </p>
+                  {!user ? (
+                    <div className="flex items-center justify-center h-64">
+                      <div className="text-center space-y-2">
+                        <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">Log in to see notifications</p>
+                        <p className="text-xs text-muted-foreground">
+                          You'll see mentions, replies, and reactions
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  ) : isLoadingNotifications ? (
+                    <div className="space-y-3">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Card key={i} className="overflow-hidden">
+                          <div className="p-4 space-y-3">
+                            <div className="flex items-start gap-3">
+                              <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                              <div className="space-y-2 flex-1">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-3 w-24" />
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : notifications && notifications.length > 0 ? (
+                    <div className="space-y-3">
+                      {notifications.map((notification) => (
+                        <NotificationItem
+                          key={notification.id}
+                          notification={notification}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-64">
+                      <div className="text-center space-y-2">
+                        <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">No notifications yet</p>
+                        <p className="text-xs text-muted-foreground">
+                          You'll see mentions, replies, and reactions here
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </ScrollArea>
               </SheetContent>
             </Sheet>

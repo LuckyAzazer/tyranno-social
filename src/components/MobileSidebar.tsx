@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { useAppContext } from '@/hooks/useAppContext';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card } from '@/components/ui/card';
 import { RelayListManager } from '@/components/RelayListManager';
+import { NotificationItem } from '@/components/NotificationItem';
 import {
   Moon,
   Sun,
@@ -41,6 +46,8 @@ interface MobileSidebarProps {
 export function MobileSidebar({ selectedCategory, onCategoryChange }: MobileSidebarProps) {
   const { theme, setTheme } = useTheme();
   const { config } = useAppContext();
+  const { user } = useCurrentUser();
+  const { data: notifications, isLoading: isLoadingNotifications } = useNotifications();
   const [open, setOpen] = useState(false);
 
   const isDark = theme === 'dark';
@@ -157,15 +164,52 @@ export function MobileSidebar({ selectedCategory, onCategoryChange }: MobileSide
               </TabsContent>
 
               <TabsContent value="notifications" className="space-y-4 mt-0">
-                <div className="flex items-center justify-center h-64">
-                  <div className="text-center space-y-2">
-                    <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No notifications yet</p>
-                    <p className="text-xs text-muted-foreground">
-                      You'll see mentions and replies here
-                    </p>
+                {!user ? (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-center space-y-2">
+                      <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">Log in to see notifications</p>
+                      <p className="text-xs text-muted-foreground">
+                        You'll see mentions, replies, and reactions
+                      </p>
+                    </div>
                   </div>
-                </div>
+                ) : isLoadingNotifications ? (
+                  <div className="space-y-3">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Card key={i} className="overflow-hidden">
+                        <div className="p-4 space-y-3">
+                          <div className="flex items-start gap-3">
+                            <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                            <div className="space-y-2 flex-1">
+                              <Skeleton className="h-4 w-32" />
+                              <Skeleton className="h-3 w-24" />
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : notifications && notifications.length > 0 ? (
+                  <div className="space-y-3">
+                    {notifications.map((notification) => (
+                      <NotificationItem
+                        key={notification.id}
+                        notification={notification}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-center space-y-2">
+                      <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No notifications yet</p>
+                      <p className="text-xs text-muted-foreground">
+                        You'll see mentions, replies, and reactions here
+                      </p>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
 
 
