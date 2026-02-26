@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { type NostrEvent } from '@nostrify/nostrify';
 import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -6,6 +6,8 @@ import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { cn } from '@/lib/utils';
 import { EmbeddedNote } from '@/components/EmbeddedNote';
+import { Button } from '@/components/ui/button';
+import { MoreHorizontal } from 'lucide-react';
 
 interface NoteContentProps {
   event: NostrEvent;
@@ -16,7 +18,9 @@ interface NoteContentProps {
 export function NoteContent({
   event, 
   className, 
-}: NoteContentProps) {  
+}: NoteContentProps) {
+  const [showHiddenLinks, setShowHiddenLinks] = useState(false);
+
   // Get mentioned pubkeys from p tags for replacements
   const mentionedPubkeys = useMemo(() => {
     return event.tags
@@ -24,8 +28,38 @@ export function NoteContent({
       .map(([_, pubkey]) => pubkey);
   }, [event.tags]);
 
+  // Extract media URLs to hide them from content
+  const mediaUrls = useMemo(() => {
+    const urls = new Set<string>();
+    
+    // Get URLs from imeta tags
+    event.tags
+      .filter(([name]) => name === 'imeta')
+      .forEach(tag => {
+        const urlTag = tag.find(item => item.startsWith('url '));
+        if (urlTag) {
+          const url = urlTag.replace('url ', '');
+          urls.add(url);
+        }
+      });
+
+    // Get image/video URLs from content
+    const imageMatches = event.content.matchAll(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?[^\s]*)?\b/gi);
+    const videoMatches = event.content.matchAll(/https?:\/\/[^\s]+\.(mp4|webm|ogv|mov)(\?[^\s]*)?\b/gi);
+
+    for (const match of imageMatches) {
+      urls.add(match[0]);
+    }
+    
+    for (const match of videoMatches) {
+      urls.add(match[0]);
+    }
+
+    return urls;
+  }, [event.content, event.tags]);
+
   // Process the content to render mentions, links, etc.
-  const content = useMemo(() => {
+  const processedContent = useMemo(() => {
     const text = event.content;
     
     // Regex to find URLs, Nostr references, hashtags, and indexed mentions (#[0], #[1], etc.)
@@ -35,6 +69,7 @@ export function NoteContent({
     let lastIndex = 0;
     let match: RegExpExecArray | null;
     let keyCounter = 0;
+    let hiddenCount = 0;
     
     while ((match = regex.exec(text)) !== null) {
       const [fullMatch, url, nostrPrefix, nostrData, hashtag, indexedMention, mentionIndex] = match;
@@ -57,19 +92,31 @@ export function NoteContent({
           parts.push(fullMatch);
         }
       } else if (url) {
-        // Handle URLs
-        parts.push(
-          <a 
-            key={`url-${keyCounter++}`}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:text-primary/80 hover:underline break-all transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {url}
-          </a>
-        );
+        // Check if this URL is a media URL that's already displayed
+        const isMediaUrl = mediaUrls.has(url);
+        
+        if (isMediaUrl && !showHiddenLinks) {
+          // Hide media URLs since they're shown as thumbnails
+          hiddenCount++;
+          // Don't add the URL to parts
+        } else {
+          // Handle non-media URLs or show hidden links if toggled
+          parts.push(
+            <a 
+              key={`url-${keyCounter++}`}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "hover:underline break-all transition-colors",
+                isMediaUrl ? "text-muted-foreground text-xs" : "text-primary hover:text-primary/80"
+              )}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {url}
+            </a>
+          );
+        }
       } else if (nostrPrefix && nostrData) {
         // Handle Nostr references
         try {
@@ -147,12 +194,31 @@ export function NoteContent({
       parts.push(text);
     }
     
-    return parts;
-  }, [event.content, mentionedPubkeys]);
+    return { content: parts, hiddenLinkCount: hiddenCount };
+  }, [event.content, mentionedPubkeys, mediaUrls, showHiddenLinks]);
+
+  const { content, hiddenLinkCount } = processedContent;
 
   return (
     <div className={cn("whitespace-pre-wrap break-words", className)}>
       {content.length > 0 ? content : event.content}
+      
+      {hiddenLinkCount > 0 && !showHiddenLinks && (
+        <div className="mt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowHiddenLinks(true);
+            }}
+            className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <MoreHorizontal className="h-3 w-3 mr-1" />
+            Show {hiddenLinkCount} hidden {hiddenLinkCount === 1 ? 'link' : 'links'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
