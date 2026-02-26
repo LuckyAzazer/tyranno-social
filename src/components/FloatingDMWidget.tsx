@@ -145,11 +145,11 @@ function ConversationWindow({ pubkey, isMinimized, onClose, onToggleMinimize }: 
   const [isSending, setIsSending] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<Array<{ content: string; timestamp: number }>>([]);
 
-  const displayName = metadata?.display_name || metadata?.name || genUserName(pubkey);
+  const displayName = metadata?.display_name || metadata?.name || genUserName(pubkey) || 'Unknown';
   const profileImage = metadata?.picture;
-  const hasDMRelays = config?.dmInboxRelays && config.dmInboxRelays.relays.length > 0;
+  const hasDMRelays = Boolean(config?.dmInboxRelays?.relays?.length);
 
-  const conversationData = messages.get(pubkey);
+  const conversationData = messages?.get?.(pubkey);
   const conversationMessages = conversationData?.messages || [];
   
   console.log('[FloatingDM] Rendering conversation with', pubkey);
@@ -225,7 +225,7 @@ function ConversationWindow({ pubkey, isMinimized, onClose, onToggleMinimize }: 
           <Avatar className="h-8 w-8 ring-2 ring-background">
             <AvatarImage src={profileImage} alt={displayName} />
             <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-xs">
-              {displayName[0]?.toUpperCase()}
+              {displayName.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
