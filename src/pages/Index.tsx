@@ -11,6 +11,7 @@ import { LoginArea } from '@/components/auth/LoginArea';
 import { Sidebar } from '@/components/Sidebar';
 import { MobileSidebar } from '@/components/MobileSidebar';
 import { ColumnSelector } from '@/components/ColumnSelector';
+import { ColorThemeSelector } from '@/components/ColorThemeSelector';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -171,7 +172,10 @@ const Index = () => {
                   </span>
                 )}
               </div>
-              <ColumnSelector columns={columns} onColumnsChange={setColumns} />
+              <div className="flex items-center gap-2">
+                <ColorThemeSelector />
+                <ColumnSelector columns={columns} onColumnsChange={setColumns} />
+              </div>
             </div>
           )}
 
@@ -188,7 +192,10 @@ const Index = () => {
                   </span>
                 )}
               </div>
-              <ColumnSelector columns={columns} onColumnsChange={setColumns} />
+              <div className="flex items-center gap-2">
+                <ColorThemeSelector />
+                <ColumnSelector columns={columns} onColumnsChange={setColumns} />
+              </div>
             </div>
           )}
 

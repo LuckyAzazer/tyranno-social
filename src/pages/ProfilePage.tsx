@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/useToast';
 import { MasonryGrid } from '@/components/MasonryGrid';
 import { PostDetailDialog } from '@/components/PostDetailDialog';
 import { ColumnSelector } from '@/components/ColumnSelector';
+import { ColorThemeSelector } from '@/components/ColorThemeSelector';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -218,7 +219,10 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-4 flex-wrap px-2">
               <h2 className="text-xl font-semibold">Posts</h2>
-              <ColumnSelector columns={columns} onColumnsChange={setColumns} />
+              <div className="flex items-center gap-2">
+                <ColorThemeSelector />
+                <ColumnSelector columns={columns} onColumnsChange={setColumns} />
+              </div>
             </div>
             {isLoadingPosts ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
