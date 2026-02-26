@@ -31,12 +31,13 @@ export function FloatingDMSidebar({ onOpenConversation, onCloseConversation, ope
   }
 
   // Create a combined list: recent DMs first, then remaining following
+  // Filter out self from conversations
   const recentDMPubkeys = conversations
-    .filter(c => c.lastMessage) // Only conversations with messages
+    .filter(c => c.lastMessage && c.pubkey !== user.pubkey) // Only conversations with messages, exclude self
     .map(c => c.pubkey);
 
   const followingNotInRecent = followingPubkeys.filter(
-    pubkey => !recentDMPubkeys.includes(pubkey)
+    pubkey => !recentDMPubkeys.includes(pubkey) && pubkey !== user.pubkey // Exclude self
   );
 
   const combinedList = [...recentDMPubkeys, ...followingNotInRecent];
@@ -65,30 +66,71 @@ export function FloatingDMSidebar({ onOpenConversation, onCloseConversation, ope
 
           {/* User List */}
           <ScrollArea className="flex-1">
-            <div className="p-2 space-y-1">
+            <div className="p-2">
               {combinedList.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground text-sm px-4">
                   No contacts yet. Follow users to chat with them!
                 </div>
               ) : (
-                combinedList.map((pubkey) => {
-                  const isRecent = recentDMPubkeys.includes(pubkey);
-                  const isOpen = openConversations.includes(pubkey);
-                  const conversation = conversations.find(c => c.pubkey === pubkey);
-                  const hasUnread = conversation?.lastMessage && !conversation.lastMessageFromUser;
+                <>
+                  {/* Recent DMs Section */}
+                  {recentDMPubkeys.length > 0 && (
+                    <div className="mb-3">
+                      <div className="px-2 py-1 mb-1">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          Recent
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        {recentDMPubkeys.map((pubkey) => {
+                          const isOpen = openConversations.includes(pubkey);
+                          const conversation = conversations.find(c => c.pubkey === pubkey);
+                          const hasUnread = conversation?.lastMessage && !conversation.lastMessageFromUser;
 
-                  return (
-                    <UserListItem
-                      key={pubkey}
-                      pubkey={pubkey}
-                      isRecent={isRecent}
-                      isOpen={isOpen}
-                      hasUnread={hasUnread || false}
-                      onOpen={() => onOpenConversation(pubkey)}
-                      onClose={() => onCloseConversation(pubkey)}
-                    />
-                  );
-                })
+                          return (
+                            <UserListItem
+                              key={pubkey}
+                              pubkey={pubkey}
+                              isRecent={true}
+                              isOpen={isOpen}
+                              hasUnread={hasUnread || false}
+                              onOpen={() => onOpenConversation(pubkey)}
+                              onClose={() => onCloseConversation(pubkey)}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Following Section */}
+                  {followingNotInRecent.length > 0 && (
+                    <div>
+                      <div className="px-2 py-1 mb-1">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                          Following
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        {followingNotInRecent.map((pubkey) => {
+                          const isOpen = openConversations.includes(pubkey);
+
+                          return (
+                            <UserListItem
+                              key={pubkey}
+                              pubkey={pubkey}
+                              isRecent={false}
+                              isOpen={isOpen}
+                              hasUnread={false}
+                              onOpen={() => onOpenConversation(pubkey)}
+                              onClose={() => onCloseConversation(pubkey)}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </ScrollArea>
@@ -164,11 +206,6 @@ function UserListItem({ pubkey, isRecent, isOpen, hasUnread, onOpen, onClose }: 
             @{username}
           </p>
         </div>
-        {isRecent && (
-          <Badge variant="secondary" className="text-xs shrink-0">
-            Recent
-          </Badge>
-        )}
       </button>
 
       {/* Close button - only show when chat is open */}
