@@ -183,8 +183,8 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
                             )}
                           </div>
                           {nip05 && (
-                            <Badge variant="secondary" className="gap-1 mt-1">
-                              <CheckCircle2 className="h-3 w-3 text-green-600 dark:text-green-500" />
+                            <Badge variant="secondary" className="gap-1 mt-1 bg-green-100 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800">
+                              <CheckCircle2 className="h-3 w-3" />
                               <span className="text-xs">{nip05}</span>
                             </Badge>
                           )}
