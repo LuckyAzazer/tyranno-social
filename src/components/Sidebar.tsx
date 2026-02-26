@@ -42,6 +42,7 @@ import {
   FolderOpen,
   RefreshCw,
   CheckCheck,
+  AlertTriangle,
 } from 'lucide-react';
 import {
   Sheet,
