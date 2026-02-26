@@ -1,5 +1,11 @@
 import { Button } from '@/components/ui/button';
-import { Square, LayoutGrid, Grid2x2, Grid3x3 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Square, LayoutGrid, Grid2x2, Grid3x3, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ColumnSelectorProps {
@@ -9,36 +15,45 @@ interface ColumnSelectorProps {
 
 export function ColumnSelector({ columns, onColumnsChange }: ColumnSelectorProps) {
   const options = [
-    { value: 1, icon: Square, label: 'Single' },
-    { value: 2, icon: Grid2x2, label: 'Two' },
-    { value: 3, icon: Grid3x3, label: 'Three' },
-    { value: 4, icon: LayoutGrid, label: 'Four' },
+    { value: 1, icon: Square, label: 'Single Column' },
+    { value: 2, icon: Grid2x2, label: 'Two Columns' },
+    { value: 3, icon: Grid3x3, label: 'Three Columns' },
+    { value: 4, icon: LayoutGrid, label: 'Four Columns' },
   ];
 
-  return (
-    <div className="flex items-center gap-2 p-1 bg-muted rounded-lg">
-      {options.map((option) => {
-        const Icon = option.icon;
-        const isActive = columns === option.value;
+  const currentOption = options.find(opt => opt.value === columns) || options[2];
+  const CurrentIcon = currentOption.icon;
 
-        return (
-          <Button
-            key={option.value}
-            variant="ghost"
-            size="sm"
-            onClick={() => onColumnsChange(option.value)}
-            className={cn(
-              'h-8 px-3 transition-all',
-              isActive
-                ? 'bg-background text-primary shadow-sm hover:bg-background'
-                : 'hover:bg-background/50'
-            )}
-          >
-            <Icon className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">{option.label}</span>
-          </Button>
-        );
-      })}
-    </div>
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="h-9 gap-2">
+          <CurrentIcon className="h-4 w-4" />
+          <span className="hidden sm:inline">{currentOption.label}</span>
+          <span className="sm:hidden">{currentOption.value}</span>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {options.map((option) => {
+          const Icon = option.icon;
+          const isActive = columns === option.value;
+
+          return (
+            <DropdownMenuItem
+              key={option.value}
+              onClick={() => onColumnsChange(option.value)}
+              className={cn(
+                'cursor-pointer',
+                isActive && 'bg-accent'
+              )}
+            >
+              <Icon className="h-4 w-4 mr-2" />
+              {option.label}
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
