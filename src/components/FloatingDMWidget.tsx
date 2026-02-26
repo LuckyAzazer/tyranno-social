@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MessageCircle, X, Minimize2, Maximize2, Send } from 'lucide-react';
+import { MessageCircle, X, Minimize2, Maximize2, Send, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -10,10 +10,12 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useDMContext } from '@/hooks/useDMContext';
 import { useFloatingDM } from '@/contexts/FloatingDMContext';
 import { useAuthor } from '@/hooks/useAuthor';
+import { useAppContext } from '@/hooks/useAppContext';
 import { genUserName } from '@/lib/genUserName';
 import { formatConversationTime } from '@/lib/dmUtils';
 import { FloatingDMSidebar } from '@/components/FloatingDMSidebar';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 import type { NostrMetadata } from '@nostrify/nostrify';
 
 export function FloatingDMWidget() {
@@ -134,9 +136,11 @@ interface ConversationWindowProps {
 
 function ConversationWindow({ pubkey, isMinimized, onClose, onToggleMinimize }: ConversationWindowProps) {
   const { user } = useCurrentUser();
+  const { config } = useAppContext();
   const { messages, sendMessage } = useDMContext();
   const author = useAuthor(pubkey);
   const metadata: NostrMetadata | undefined = author.data?.metadata;
+  const navigate = useNavigate();
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [optimisticMessages, setOptimisticMessages] = useState<Array<{ content: string; timestamp: number }>>([]);
@@ -144,6 +148,7 @@ function ConversationWindow({ pubkey, isMinimized, onClose, onToggleMinimize }: 
 
   const displayName = metadata?.display_name || metadata?.name || genUserName(pubkey);
   const profileImage = metadata?.picture;
+  const hasDMRelays = config.dmInboxRelays && config.dmInboxRelays.relays.length > 0;
 
   const conversationData = messages.get(pubkey);
   const conversationMessages = conversationData?.messages || [];
@@ -151,6 +156,7 @@ function ConversationWindow({ pubkey, isMinimized, onClose, onToggleMinimize }: 
   console.log('[FloatingDM] Rendering conversation with', pubkey);
   console.log('[FloatingDM] Messages in state:', conversationMessages.length);
   console.log('[FloatingDM] Optimistic messages:', optimisticMessages.length);
+  console.log('[FloatingDM] Has DM relays configured:', hasDMRelays);
 
   // Auto-scroll to bottom when messages change
   const scrollToBottom = () => {
@@ -191,10 +197,12 @@ function ConversationWindow({ pubkey, isMinimized, onClose, onToggleMinimize }: 
       });
       console.log('[FloatingDM] Message sent successfully');
       
-      // Remove optimistic message after 5 seconds (real message should arrive by then)
+      // Remove optimistic message after 30 seconds (give more time for relays to process)
+      // If DM relays aren't configured, keep the optimistic message longer
+      const timeout = hasDMRelays ? 30000 : 60000;
       setTimeout(() => {
         setOptimisticMessages(prev => prev.filter(m => m.timestamp !== timestamp));
-      }, 5000);
+      }, timeout);
       
       setTimeout(scrollToBottom, 200);
     } catch (error) {
@@ -258,7 +266,32 @@ function ConversationWindow({ pubkey, isMinimized, onClose, onToggleMinimize }: 
       {/* Message Area - Only show when not minimized */}
       {!isMinimized && (
         <>
-          <ScrollArea className="h-[calc(100%-120px)] p-3" data-conversation={pubkey}>
+          {/* DM Relay Warning */}
+          {!hasDMRelays && (
+            <div className="px-3 pt-3">
+              <div className="flex items-start gap-2 p-2 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800">
+                <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-500 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-yellow-900 dark:text-yellow-200 font-medium mb-1">
+                    Configure DM Relays
+                  </p>
+                  <p className="text-xs text-yellow-800 dark:text-yellow-300 mb-2">
+                    Messages won't sync until you set up DM inbox relays.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate('/messages')}
+                    className="h-6 text-xs border-yellow-600/50 hover:bg-yellow-100 dark:hover:bg-yellow-950/40"
+                  >
+                    Set Up Now
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <ScrollArea className={cn("p-3", hasDMRelays ? "h-[calc(100%-120px)]" : "h-[calc(100%-220px)]")} data-conversation={pubkey}>
             {conversationMessages.length === 0 && optimisticMessages.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground text-sm">
                 No messages yet. Start the conversation!
