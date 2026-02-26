@@ -15,7 +15,7 @@ const categoryKinds: Record<FeedCategory, number[]> = {
   videos: [34235],
 };
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 100; // Increased to ensure enough posts for all columns
 
 export function useInfinitePosts(category: FeedCategory = 'following') {
   const { nostr } = useNostr();

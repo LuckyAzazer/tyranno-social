@@ -62,7 +62,10 @@ const Index = () => {
           fetchNextPage();
         }
       },
-      { threshold: 0.1 }
+      { 
+        threshold: 0.1,
+        rootMargin: '400px' // Load more posts 400px before reaching the trigger
+      }
     );
 
     observer.observe(loadMoreRef.current);
