@@ -1,8 +1,9 @@
 import { useNostr } from '@nostrify/react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useAppContext } from '@/hooks/useAppContext';
 import type { NostrEvent } from '@nostrify/nostrify';
+import { useEffect, useRef } from 'react';
 
 interface BookmarkItem {
   type: 'event' | 'article';
@@ -11,12 +12,72 @@ interface BookmarkItem {
   isPrivate: boolean;
 }
 
+async function parseBookmarkList(
+  list: NostrEvent,
+  user: { pubkey: string; signer: { nip44?: { decrypt: (pubkey: string, content: string) => Promise<string> } } }
+): Promise<BookmarkItem[]> {
+  const bookmarkItems: BookmarkItem[] = [];
+
+  // Extract public bookmarks from tags
+  for (const tag of list.tags) {
+    if (tag[0] === 'e') {
+      // Event bookmark
+      bookmarkItems.push({
+        type: 'event',
+        id: tag[1],
+        relay: tag[2],
+        isPrivate: false,
+      });
+    } else if (tag[0] === 'a') {
+      // Article bookmark
+      bookmarkItems.push({
+        type: 'article',
+        id: tag[1],
+        relay: tag[2],
+        isPrivate: false,
+      });
+    }
+  }
+
+  // Decrypt private bookmarks if content exists
+  if (list.content && user.signer.nip44) {
+    try {
+      const decrypted = await user.signer.nip44.decrypt(user.pubkey, list.content);
+      const privateItems = JSON.parse(decrypted) as string[][];
+
+      for (const tag of privateItems) {
+        if (tag[0] === 'e') {
+          bookmarkItems.push({
+            type: 'event',
+            id: tag[1],
+            relay: tag[2],
+            isPrivate: true,
+          });
+        } else if (tag[0] === 'a') {
+          bookmarkItems.push({
+            type: 'article',
+            id: tag[1],
+            relay: tag[2],
+            isPrivate: true,
+          });
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to decrypt private bookmarks:', error);
+    }
+  }
+
+  return bookmarkItems;
+}
+
 export function useBookmarks() {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { config } = useAppContext();
+  const queryClient = useQueryClient();
+  const subscriptionRef = useRef<{ close: () => void } | null>(null);
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['bookmarks', user?.pubkey, config.relayMetadata.updatedAt],
     queryFn: async () => {
       if (!user) {
@@ -62,54 +123,8 @@ export function useBookmarks() {
         const list = bookmarkLists[0];
         console.log('Bookmark list:', list);
 
-        // Extract public bookmarks from tags
-        for (const tag of list.tags) {
-          if (tag[0] === 'e') {
-            // Event bookmark
-            bookmarkItems.push({
-              type: 'event',
-              id: tag[1],
-              relay: tag[2],
-              isPrivate: false,
-            });
-          } else if (tag[0] === 'a') {
-            // Article bookmark
-            bookmarkItems.push({
-              type: 'article',
-              id: tag[1],
-              relay: tag[2],
-              isPrivate: false,
-            });
-          }
-        }
-
-        // Decrypt private bookmarks if content exists
-        if (list.content && user.signer.nip44) {
-          try {
-            const decrypted = await user.signer.nip44.decrypt(user.pubkey, list.content);
-            const privateItems = JSON.parse(decrypted) as string[][];
-
-            for (const tag of privateItems) {
-              if (tag[0] === 'e') {
-                bookmarkItems.push({
-                  type: 'event',
-                  id: tag[1],
-                  relay: tag[2],
-                  isPrivate: true,
-                });
-              } else if (tag[0] === 'a') {
-                bookmarkItems.push({
-                  type: 'article',
-                  id: tag[1],
-                  relay: tag[2],
-                  isPrivate: true,
-                });
-              }
-            }
-          } catch (error) {
-            console.warn('Failed to decrypt private bookmarks:', error);
-          }
-        }
+        const parsedItems = await parseBookmarkList(list, user);
+        bookmarkItems.push(...parsedItems);
       }
 
       // Fetch the actual bookmarked events
@@ -140,4 +155,79 @@ export function useBookmarks() {
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
+
+  // Set up realtime subscription for bookmark updates
+  useEffect(() => {
+    if (!user) return;
+
+    const relayUrls = config.relayMetadata.relays
+      .filter(r => r.read || r.write)
+      .map(r => r.url);
+
+    const relayGroup = relayUrls.length > 0 
+      ? nostr.group(relayUrls)
+      : nostr;
+
+    console.log('Setting up realtime bookmark subscription for user:', user.pubkey);
+
+    // Subscribe to bookmark list updates
+    const sub = relayGroup.req(
+      [
+        {
+          kinds: [10003],
+          authors: [user.pubkey],
+          limit: 1,
+        },
+      ],
+      {
+        onevent: async (event: NostrEvent) => {
+          console.log('Received realtime bookmark update:', event.id, 'created_at:', event.created_at);
+
+          // Parse the new bookmark list
+          const bookmarkItems = await parseBookmarkList(event, user);
+
+          // Fetch the actual bookmarked events
+          const eventIds = bookmarkItems
+            .filter(item => item.type === 'event')
+            .map(item => item.id);
+
+          const events: NostrEvent[] = [];
+
+          if (eventIds.length > 0) {
+            const bookmarkedEvents = await relayGroup.query([
+              {
+                ids: eventIds,
+                limit: eventIds.length,
+              },
+            ]);
+            events.push(...bookmarkedEvents);
+          }
+
+          // Update the query cache with the new data
+          queryClient.setQueryData(
+            ['bookmarks', user.pubkey, config.relayMetadata.updatedAt],
+            { items: bookmarkItems, events }
+          );
+
+          console.log('Updated bookmark cache with', bookmarkItems.length, 'items and', events.length, 'events');
+        },
+        oneose: () => {
+          console.log('Bookmark subscription EOSE received');
+        },
+      }
+    );
+
+    subscriptionRef.current = sub;
+
+    // Cleanup subscription on unmount
+    return () => {
+      if (subscriptionRef.current) {
+        console.log('Closing bookmark subscription');
+        subscriptionRef.current.close();
+        subscriptionRef.current = null;
+      }
+    };
+  }, [user?.pubkey, config.relayMetadata.updatedAt, nostr, queryClient]);
+
+  return query;
 }
