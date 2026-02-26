@@ -9,11 +9,29 @@ export interface RelayMetadata {
   updatedAt: number;
 }
 
+export interface DMInboxRelays {
+  /** List of relay URLs for receiving DMs (kind 10050) */
+  relays: string[];
+  /** Unix timestamp of when the DM relay list was last updated */
+  updatedAt: number;
+}
+
+export interface PrivateHomeRelays {
+  /** List of relay URLs for private content (kind 10013) */
+  relays: string[];
+  /** Unix timestamp of when the private relay list was last updated */
+  updatedAt: number;
+}
+
 export interface AppConfig {
   /** Current theme */
   theme: Theme;
   /** NIP-65 relay list metadata */
   relayMetadata: RelayMetadata;
+  /** NIP-17 DM inbox relays (kind 10050) */
+  dmInboxRelays?: DMInboxRelays;
+  /** NIP-37 Private home relays (kind 10013) */
+  privateHomeRelays?: PrivateHomeRelays;
   /** Show content warnings (true = blur/hide, false = always show) */
   showContentWarnings: boolean;
 }

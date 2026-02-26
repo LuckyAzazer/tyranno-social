@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from 'react';
 import { z } from 'zod';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { AppContext, type AppConfig, type AppContextType, type Theme, type RelayMetadata } from '@/contexts/AppContext';
+import { AppContext, type AppConfig, type AppContextType, type Theme, type RelayMetadata, type DMInboxRelays, type PrivateHomeRelays } from '@/contexts/AppContext';
 
 interface AppProviderProps {
   children: ReactNode;
@@ -21,10 +21,24 @@ const RelayMetadataSchema = z.object({
   updatedAt: z.number(),
 }) satisfies z.ZodType<RelayMetadata>;
 
+// Zod schema for DMInboxRelays validation
+const DMInboxRelaysSchema = z.object({
+  relays: z.array(z.url()),
+  updatedAt: z.number(),
+}) satisfies z.ZodType<DMInboxRelays>;
+
+// Zod schema for PrivateHomeRelays validation
+const PrivateHomeRelaysSchema = z.object({
+  relays: z.array(z.url()),
+  updatedAt: z.number(),
+}) satisfies z.ZodType<PrivateHomeRelays>;
+
 // Zod schema for AppConfig validation
 const AppConfigSchema = z.object({
   theme: z.enum(['dark', 'light', 'system']),
   relayMetadata: RelayMetadataSchema,
+  dmInboxRelays: DMInboxRelaysSchema.optional(),
+  privateHomeRelays: PrivateHomeRelaysSchema.optional(),
   showContentWarnings: z.boolean().optional().default(true),
 }) satisfies z.ZodType<AppConfig>;
 
