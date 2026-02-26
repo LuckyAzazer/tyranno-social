@@ -66,11 +66,16 @@ export function ColorThemeSelector() {
 
     darkModeStyle.textContent = `
       .dark {
+        --background: ${darkHue} 0% 12%;
+        --card: ${darkHue} 0% 8%;
+        --popover: ${darkHue} 0% 8%;
         --primary: ${darkHue} 60% 55%;
         --ring: ${darkHue} 60% 55%;
         --accent: ${darkHue} 50% 20%;
-        --border: ${darkHue} 15% 20%;
-        --input: ${darkHue} 15% 20%;
+        --border: ${darkHue} 0% 15%;
+        --input: ${darkHue} 0% 15%;
+        --secondary: ${darkHue} 0% 14%;
+        --muted: ${darkHue} 0% 14%;
       }
     `;
   }, [lightHue, darkHue]);
