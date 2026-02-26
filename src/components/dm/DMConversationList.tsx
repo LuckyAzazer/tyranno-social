@@ -1,17 +1,22 @@
 import { useMemo, useState, memo } from 'react';
-import { AlertTriangle, Info, Loader2 } from 'lucide-react';
+import { AlertTriangle, Info, Loader2, Search, Users } from 'lucide-react';
 import { useDMContext } from '@/hooks/useDMContext';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useFollowing } from '@/hooks/useFollowers';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { formatConversationTime, formatFullDateTime } from '@/lib/dmUtils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { LOADING_PHASES } from '@/lib/dmConstants';
+import type { NostrMetadata } from '@nostrify/nostrify';
 
 interface DMConversationListProps {
   selectedPubkey: string | null;
@@ -118,6 +123,81 @@ const ConversationItemComponent = ({
 const ConversationItem = memo(ConversationItemComponent);
 ConversationItem.displayName = 'ConversationItem';
 
+interface FollowingUserListProps {
+  pubkeys: string[];
+  searchQuery: string;
+  selectedPubkey: string | null;
+  onSelectUser: (pubkey: string) => void;
+}
+
+function FollowingUserList({ pubkeys, searchQuery, selectedPubkey, onSelectUser }: FollowingUserListProps) {
+  const filteredPubkeys = pubkeys.filter(pubkey => {
+    if (!searchQuery.trim()) return true;
+    const author = useAuthor(pubkey);
+    const metadata = author.data?.metadata;
+    const displayName = metadata?.display_name || metadata?.name || genUserName(pubkey);
+    const username = metadata?.name || genUserName(pubkey);
+    const query = searchQuery.toLowerCase();
+    return displayName.toLowerCase().includes(query) || username.toLowerCase().includes(query);
+  });
+
+  if (filteredPubkeys.length === 0) {
+    return null;
+  }
+
+  return (
+    <>
+      {filteredPubkeys.map(pubkey => (
+        <FollowingUserItem
+          key={pubkey}
+          pubkey={pubkey}
+          isSelected={selectedPubkey === pubkey}
+          onClick={() => onSelectUser(pubkey)}
+        />
+      ))}
+    </>
+  );
+}
+
+interface FollowingUserItemProps {
+  pubkey: string;
+  isSelected: boolean;
+  onClick: () => void;
+}
+
+function FollowingUserItem({ pubkey, isSelected, onClick }: FollowingUserItemProps) {
+  const author = useAuthor(pubkey);
+  const metadata: NostrMetadata | undefined = author.data?.metadata;
+
+  const displayName = metadata?.display_name || metadata?.name || genUserName(pubkey);
+  const username = metadata?.name || genUserName(pubkey);
+  const avatarUrl = metadata?.picture;
+  const initials = displayName.slice(0, 2).toUpperCase();
+
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-full text-left p-3 rounded-lg transition-colors hover:bg-accent block overflow-hidden",
+        isSelected && "bg-accent"
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <Avatar className="h-9 w-9 flex-shrink-0 ring-2 ring-background">
+          <AvatarImage src={avatarUrl} alt={displayName} />
+          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-xs">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm truncate">{displayName}</p>
+          <p className="text-xs text-muted-foreground truncate">@{username}</p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 const ConversationListSkeleton = () => {
   return (
     <div className="space-y-2 p-4">
@@ -143,8 +223,11 @@ export const DMConversationList = ({
   className,
   onStatusClick
 }: DMConversationListProps) => {
+  const { user } = useCurrentUser();
   const { conversations, isLoading, loadingPhase } = useDMContext();
+  const { data: followingPubkeys = [] } = useFollowing(user?.pubkey || '');
   const [activeTab, setActiveTab] = useState<'known' | 'requests'>('known');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Filter conversations by type
   const { knownConversations, requestConversations } = useMemo(() => {
@@ -153,6 +236,20 @@ export const DMConversationList = ({
       requestConversations: conversations.filter(c => c.isRequest),
     };
   }, [conversations]);
+
+  // Get users with recent DMs (exclude self)
+  const recentDMPubkeys = useMemo(() => {
+    return conversations
+      .filter(c => c.lastMessage && c.pubkey !== user?.pubkey)
+      .map(c => c.pubkey);
+  }, [conversations, user?.pubkey]);
+
+  // Get following users without recent DMs (exclude self)
+  const followingWithoutDMs = useMemo(() => {
+    return followingPubkeys.filter(
+      pubkey => !recentDMPubkeys.includes(pubkey) && pubkey !== user?.pubkey
+    );
+  }, [followingPubkeys, recentDMPubkeys, user?.pubkey]);
 
   // Get the current list based on active tab
   const currentConversations = activeTab === 'known' ? knownConversations : requestConversations;
@@ -228,35 +325,101 @@ export const DMConversationList = ({
         </div>
       </div>
       
+      {/* Search Bar */}
+      <div className="px-3 py-2 border-b flex-shrink-0">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 h-9 text-sm"
+          />
+        </div>
+      </div>
+
       {/* Content area - show skeleton during initial load, otherwise show conversations */}
-      <div className="flex-1 min-h-0 mt-2 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {(isLoading || isInitialLoad) ? (
           <ConversationListSkeleton />
-        ) : conversations.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-center text-muted-foreground px-4">
-            <div>
-              <p className="text-sm">No conversations yet</p>
-              <p className="text-xs mt-1">Start a new conversation to get started</p>
-            </div>
-          </div>
-        ) : currentConversations.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-center text-muted-foreground px-4">
-            <p className="text-sm">No {activeTab} conversations</p>
-          </div>
         ) : (
-          <ScrollArea className="h-full block">
-            <div className="block w-full px-2 py-2 space-y-1">
-              {currentConversations.map((conversation) => (
-                <ConversationItem
-                  key={conversation.pubkey}
-                  pubkey={conversation.pubkey}
-                  isSelected={selectedPubkey === conversation.pubkey}
-                  onClick={() => onSelectConversation(conversation.pubkey)}
-                  lastMessage={conversation.lastMessage}
-                  lastActivity={conversation.lastActivity}
-                  hasNIP4Messages={conversation.hasNIP4Messages}
-                />
-              ))}
+          <ScrollArea className="h-full">
+            <div className="px-2 py-2">
+              {/* Recent DMs Section */}
+              {currentConversations.length > 0 && (
+                <div className="mb-4">
+                  <div className="px-2 py-1 mb-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Recent Conversations
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    {currentConversations
+                      .filter(conversation => {
+                        if (!searchQuery.trim()) return true;
+                        // Filter by search
+                        const author = useAuthor(conversation.pubkey);
+                        const metadata = author.data?.metadata;
+                        const displayName = metadata?.display_name || metadata?.name || genUserName(conversation.pubkey);
+                        const username = metadata?.name || genUserName(conversation.pubkey);
+                        const query = searchQuery.toLowerCase();
+                        return displayName.toLowerCase().includes(query) || username.toLowerCase().includes(query);
+                      })
+                      .map((conversation) => (
+                        <ConversationItem
+                          key={conversation.pubkey}
+                          pubkey={conversation.pubkey}
+                          isSelected={selectedPubkey === conversation.pubkey}
+                          onClick={() => onSelectConversation(conversation.pubkey)}
+                          lastMessage={conversation.lastMessage}
+                          lastActivity={conversation.lastActivity}
+                          hasNIP4Messages={conversation.hasNIP4Messages}
+                        />
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Following Section - Users to start conversations with */}
+              {followingWithoutDMs.length > 0 && (
+                <div>
+                  {currentConversations.length > 0 && <Separator className="my-3" />}
+                  <div className="px-2 py-1 mb-1">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                      <Users className="h-3 w-3" />
+                      Following
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <FollowingUserList
+                      pubkeys={followingWithoutDMs}
+                      searchQuery={searchQuery}
+                      selectedPubkey={selectedPubkey}
+                      onSelectUser={onSelectConversation}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Empty state */}
+              {currentConversations.length === 0 && followingWithoutDMs.length === 0 && !searchQuery && (
+                <div className="flex items-center justify-center h-full text-center text-muted-foreground px-4 py-8">
+                  <div>
+                    <p className="text-sm">No conversations yet</p>
+                    <p className="text-xs mt-1">Follow users to start conversations</p>
+                  </div>
+                </div>
+              )}
+
+              {/* No search results */}
+              {searchQuery && currentConversations.length === 0 && followingWithoutDMs.length === 0 && (
+                <div className="flex items-center justify-center h-full text-center text-muted-foreground px-4 py-8">
+                  <div>
+                    <p className="text-sm">No users found</p>
+                    <p className="text-xs mt-1">Try a different search term</p>
+                  </div>
+                </div>
+              )}
             </div>
           </ScrollArea>
         )}
