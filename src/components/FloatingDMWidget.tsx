@@ -135,6 +135,12 @@ interface ConversationWindowProps {
 }
 
 function ConversationWindow({ pubkey, isMinimized, onClose, onToggleMinimize }: ConversationWindowProps) {
+  // Early return if no pubkey
+  if (!pubkey) {
+    console.error('[FloatingDM] ConversationWindow rendered with invalid pubkey');
+    return null;
+  }
+
   const { user } = useCurrentUser();
   const { config } = useAppContext();
   const { messages, sendMessage } = useDMContext();
