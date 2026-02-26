@@ -13,6 +13,7 @@ import { NostrLoginProvider } from '@nostrify/react/login';
 import { AppProvider } from '@/components/AppProvider';
 import { NWCProvider } from '@/contexts/NWCContext';
 import { DMProvider } from '@/components/DMProvider';
+import { FloatingDMProvider } from '@/contexts/FloatingDMContext';
 import { FloatingDMWidget } from '@/components/FloatingDMWidget';
 import { AppConfig } from '@/contexts/AppContext';
 import AppRouter from './AppRouter';
@@ -54,13 +55,15 @@ export function App() {
               <NostrSync />
               <NWCProvider>
                 <DMProvider>
-                  <TooltipProvider>
-                    <Toaster />
-                    <Suspense>
-                      <AppRouter />
-                    </Suspense>
-                    <FloatingDMWidget />
-                  </TooltipProvider>
+                  <FloatingDMProvider>
+                    <TooltipProvider>
+                      <Toaster />
+                      <Suspense>
+                        <AppRouter />
+                      </Suspense>
+                      <FloatingDMWidget />
+                    </TooltipProvider>
+                  </FloatingDMProvider>
                 </DMProvider>
               </NWCProvider>
             </NostrProvider>

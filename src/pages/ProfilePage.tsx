@@ -3,6 +3,7 @@ import { useSeoMeta } from '@unhead/react';
 import { useProfile, useUserPosts } from '@/hooks/useProfile';
 import { useFollowStats } from '@/hooks/useFollowers';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useFloatingDM } from '@/contexts/FloatingDMContext';
 import { useToast } from '@/hooks/useToast';
 import { MasonryGrid } from '@/components/MasonryGrid';
 import { PostDetailDialog } from '@/components/PostDetailDialog';
@@ -33,6 +34,7 @@ interface ProfilePageProps {
 export function ProfilePage({ pubkey }: ProfilePageProps) {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
+  const { openConversation } = useFloatingDM();
   const { toast } = useToast();
   const [columns, setColumns] = useLocalStorage<number>('masonry-columns', 3);
   const [selectedPost, setSelectedPost] = useState<NostrEvent | null>(null);
@@ -105,7 +107,8 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
       });
       return;
     }
-    navigate('/messages');
+    // Open the floating DM window for this user
+    openConversation(pubkey);
   };
 
   // Create a profile event for zapping

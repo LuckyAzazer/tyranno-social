@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { MessageCircle, X, Minimize2, Maximize2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -8,21 +8,18 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useDMContext } from '@/hooks/useDMContext';
+import { useFloatingDM } from '@/contexts/FloatingDMContext';
 import { useAuthor } from '@/hooks/useAuthor';
 import { genUserName } from '@/lib/genUserName';
 import { formatConversationTime } from '@/lib/dmUtils';
+import { FloatingDMSidebar } from '@/components/FloatingDMSidebar';
 import { cn } from '@/lib/utils';
 import type { NostrMetadata } from '@nostrify/nostrify';
-
-interface OpenConversation {
-  pubkey: string;
-  isMinimized: boolean;
-}
 
 export function FloatingDMWidget() {
   const { user } = useCurrentUser();
   const { conversations } = useDMContext();
-  const [openConversations, setOpenConversations] = useState<OpenConversation[]>([]);
+  const { openConversations, openConversation, closeConversation, toggleMinimize } = useFloatingDM();
   const [showConversationList, setShowConversationList] = useState(false);
 
   // Don't show widget if user is not logged in
@@ -31,22 +28,8 @@ export function FloatingDMWidget() {
   }
 
   const handleOpenConversation = (pubkey: string) => {
-    if (!openConversations.find(c => c.pubkey === pubkey)) {
-      setOpenConversations([...openConversations, { pubkey, isMinimized: false }]);
-    }
+    openConversation(pubkey);
     setShowConversationList(false);
-  };
-
-  const handleCloseConversation = (pubkey: string) => {
-    setOpenConversations(openConversations.filter(c => c.pubkey !== pubkey));
-  };
-
-  const handleToggleMinimize = (pubkey: string) => {
-    setOpenConversations(
-      openConversations.map(c =>
-        c.pubkey === pubkey ? { ...c, isMinimized: !c.isMinimized } : c
-      )
-    );
   };
 
   // Get unread count from conversations
@@ -56,77 +39,89 @@ export function FloatingDMWidget() {
     !c.lastMessageFromUser
   ).length;
 
+  const openPubkeys = openConversations.map(c => c.pubkey);
+
   return (
-    <div className="fixed bottom-0 right-4 z-50 flex items-end gap-2">
-      {/* Open Conversation Windows */}
-      {openConversations.map((conversation) => (
-        <ConversationWindow
-          key={conversation.pubkey}
-          pubkey={conversation.pubkey}
-          isMinimized={conversation.isMinimized}
-          onClose={() => handleCloseConversation(conversation.pubkey)}
-          onToggleMinimize={() => handleToggleMinimize(conversation.pubkey)}
-        />
-      ))}
+    <>
+      {/* Left Sidebar */}
+      <FloatingDMSidebar
+        onOpenConversation={handleOpenConversation}
+        onCloseConversation={closeConversation}
+        openConversations={openPubkeys}
+      />
 
-      {/* Conversation List Popup */}
-      {showConversationList && (
-        <Card className="w-80 h-96 shadow-2xl border-border/50 dark:border-transparent mb-2 animate-in slide-in-from-bottom-4">
-          <CardHeader className="pb-3 border-b">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold flex items-center gap-2">
-                <MessageCircle className="h-4 w-4 text-primary" />
-                Messages
-              </h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowConversationList(false)}
-                className="h-6 w-6"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <ScrollArea className="h-[calc(100%-60px)]">
-            <CardContent className="p-2">
-              {conversations.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  No conversations yet
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {conversations.slice(0, 10).map((conversation) => (
-                    <ConversationListItem
-                      key={conversation.pubkey}
-                      pubkey={conversation.pubkey}
-                      lastMessage={conversation.lastMessage}
-                      lastActivity={conversation.lastActivity}
-                      onClick={() => handleOpenConversation(conversation.pubkey)}
-                      isOpen={openConversations.some(c => c.pubkey === conversation.pubkey)}
-                    />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </ScrollArea>
-        </Card>
-      )}
+      {/* Bottom Right Chat Windows */}
+      <div className="fixed bottom-0 right-4 z-50 flex items-end gap-2">
+        {/* Open Conversation Windows */}
+        {openConversations.map((conversation) => (
+          <ConversationWindow
+            key={conversation.pubkey}
+            pubkey={conversation.pubkey}
+            isMinimized={conversation.isMinimized}
+            onClose={() => closeConversation(conversation.pubkey)}
+            onToggleMinimize={() => toggleMinimize(conversation.pubkey)}
+          />
+        ))}
 
-      {/* Main Chat Button */}
-      <Button
-        onClick={() => setShowConversationList(!showConversationList)}
-        className="h-14 w-14 rounded-full shadow-2xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 mb-2 relative"
-        size="icon"
-      >
-        <MessageCircle className="h-6 w-6" />
-        {unreadCount > 0 && (
-          <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1.5 bg-red-500 hover:bg-red-500 text-white border-2 border-background">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </Badge>
+        {/* Conversation List Popup */}
+        {showConversationList && (
+          <Card className="w-80 h-96 shadow-2xl border-border/50 dark:border-transparent mb-2 animate-in slide-in-from-bottom-4">
+            <CardHeader className="pb-3 border-b">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4 text-primary" />
+                  Messages
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowConversationList(false)}
+                  className="h-6 w-6"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <ScrollArea className="h-[calc(100%-60px)]">
+              <CardContent className="p-2">
+                {conversations.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground text-sm">
+                    No conversations yet
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {conversations.slice(0, 10).map((conversation) => (
+                      <ConversationListItem
+                        key={conversation.pubkey}
+                        pubkey={conversation.pubkey}
+                        lastMessage={conversation.lastMessage}
+                        lastActivity={conversation.lastActivity}
+                        onClick={() => handleOpenConversation(conversation.pubkey)}
+                        isOpen={openConversations.some(c => c.pubkey === conversation.pubkey)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </ScrollArea>
+          </Card>
         )}
-      </Button>
-    </div>
+
+        {/* Main Chat Button */}
+        <Button
+          onClick={() => setShowConversationList(!showConversationList)}
+          className="h-14 w-14 rounded-full shadow-2xl bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 mb-2 relative"
+          size="icon"
+        >
+          <MessageCircle className="h-6 w-6" />
+          {unreadCount > 0 && (
+            <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1.5 bg-red-500 hover:bg-red-500 text-white border-2 border-background">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </Badge>
+          )}
+        </Button>
+      </div>
+    </>
   );
 }
 
@@ -191,7 +186,10 @@ function ConversationWindow({ pubkey, isMinimized, onClose, onToggleMinimize }: 
           <Button
             variant="ghost"
             size="icon"
-            onClick={onToggleMinimize}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleMinimize();
+            }}
             className="h-6 w-6"
           >
             {isMinimized ? (
@@ -203,7 +201,10 @@ function ConversationWindow({ pubkey, isMinimized, onClose, onToggleMinimize }: 
           <Button
             variant="ghost"
             size="icon"
-            onClick={onClose}
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
             className="h-6 w-6 hover:text-destructive"
           >
             <X className="h-3 w-3" />
