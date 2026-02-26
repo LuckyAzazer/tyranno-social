@@ -66,13 +66,25 @@ export function ColorThemeSelector() {
 
     darkModeStyle.textContent = `
       .dark {
-        --background: ${darkHue} 5% 13%;
-        --card: ${darkHue} 8% 9%;
-        --primary: ${darkHue} 60% 55%;
-        --ring: ${darkHue} 60% 55%;
-        --accent: ${darkHue} 50% 20%;
-        --border: ${darkHue} 15% 20%;
-        --input: ${darkHue} 15% 20%;
+        /* Apply custom hue to primary and accent colors only */
+        --primary: ${darkHue} 70% 60%;
+        --ring: ${darkHue} 70% 60%;
+        --destructive: ${darkHue === 0 ? '0' : darkHue} 70% 50%;
+        --sidebar-primary: ${darkHue} 70% 60%;
+        --sidebar-ring: ${darkHue} 70% 60%;
+        
+        /* Keep backgrounds, cards, and borders neutral gray */
+        --background: 0 0% 7%;
+        --card: 0 0% 10%;
+        --popover: 0 0% 10%;
+        --secondary: 0 0% 15%;
+        --muted: 0 0% 14%;
+        --accent: 0 0% 16%;
+        --border: 0 0% 18%;
+        --input: 0 0% 18%;
+        --sidebar-background: 0 0% 8%;
+        --sidebar-accent: 0 0% 14%;
+        --sidebar-border: 0 0% 16%;
       }
     `;
   }, [lightHue, darkHue]);
