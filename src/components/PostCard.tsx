@@ -4,6 +4,7 @@ import { useReactions } from '@/hooks/useReactions';
 import { useReplies } from '@/hooks/useReplies';
 import { useRepostedEvent } from '@/hooks/useRepostedEvent';
 import { useBookmarkPost } from '@/hooks/useBookmarkPost';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useToast } from '@/hooks/useToast';
 import { genUserName } from '@/lib/genUserName';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -36,6 +37,7 @@ interface PostCardProps {
 
 export function PostCard({ event, onClick }: PostCardProps) {
   const [bookmarkDialogOpen, setBookmarkDialogOpen] = useState(false);
+  const { user } = useCurrentUser();
   
   // Check if this is a repost
   const isRepost = event.kind === 6 || event.kind === 16;
@@ -71,10 +73,28 @@ export function PostCard({ event, onClick }: PostCardProps) {
   const reposterName = reposterMetadata?.display_name || reposterMetadata?.name || genUserName(event.pubkey);
 
   const replyCount = replies?.length || 0;
+  
+  // Get user's reaction if they reacted
+  const userReaction = reactions && user
+    ? Object.entries(reactions).find(([emoji, data]) => data.pubkeys.includes(user.pubkey))
+    : null;
+
+  // Get top reactions, ensuring user's reaction is included
   const topReactions = reactions
-    ? Object.entries(reactions)
-        .sort((a, b) => b[1].count - a[1].count)
-        .slice(0, 3)
+    ? (() => {
+        const sorted = Object.entries(reactions).sort((a, b) => b[1].count - a[1].count);
+        
+        // If user reacted and their reaction isn't in top 3, include it
+        if (userReaction) {
+          const userReactionInTop = sorted.slice(0, 3).some(([emoji]) => emoji === userReaction[0]);
+          if (!userReactionInTop) {
+            // Replace the 3rd reaction with user's reaction
+            return [sorted[0], sorted[1], userReaction].filter(Boolean);
+          }
+        }
+        
+        return sorted.slice(0, 3);
+      })()
     : [];
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -176,15 +196,20 @@ export function PostCard({ event, onClick }: PostCardProps) {
         {/* Reactions Display */}
         {topReactions.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
-            {topReactions.map(([emoji, data]) => (
-              <Badge
-                key={emoji}
-                variant="secondary"
-                className="text-xs px-2 py-0.5 cursor-default"
-              >
-                {emoji} {data.count}
-              </Badge>
-            ))}
+            {topReactions.map(([emoji, data]) => {
+              const isUserReaction = user && data.pubkeys.includes(user.pubkey);
+              return (
+                <Badge
+                  key={emoji}
+                  variant={isUserReaction ? "default" : "secondary"}
+                  className={`text-xs px-2 py-0.5 cursor-default ${
+                    isUserReaction ? 'ring-2 ring-primary/50' : ''
+                  }`}
+                >
+                  {emoji} {data.count}
+                </Badge>
+              );
+            })}
           </div>
         )}
 

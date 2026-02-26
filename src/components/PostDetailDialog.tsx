@@ -245,15 +245,20 @@ export function PostDetailDialog({ event, open, onOpenChange }: PostDetailDialog
               {/* Reactions */}
               {!isLoadingReactions && reactions && Object.keys(reactions).length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {Object.entries(reactions).map(([emoji, data]) => (
-                    <Badge
-                      key={emoji}
-                      variant="secondary"
-                      className="text-base px-3 py-1 cursor-default"
-                    >
-                      {emoji} {data.count}
-                    </Badge>
-                  ))}
+                  {Object.entries(reactions).map(([emoji, data]) => {
+                    const isUserReaction = user && data.pubkeys.includes(user.pubkey);
+                    return (
+                      <Badge
+                        key={emoji}
+                        variant={isUserReaction ? "default" : "secondary"}
+                        className={`text-base px-3 py-1 cursor-default ${
+                          isUserReaction ? 'ring-2 ring-primary/50' : ''
+                        }`}
+                      >
+                        {emoji} {data.count}
+                      </Badge>
+                    );
+                  })}
                 </div>
               )}
 
