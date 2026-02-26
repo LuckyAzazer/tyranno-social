@@ -119,7 +119,7 @@ function BookmarkSetContent({ setId }: { setId: string }) {
 
 export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
   const { theme, setTheme } = useTheme();
-  const { config } = useAppContext();
+  const { config, updateConfig } = useAppContext();
   const { user } = useCurrentUser();
   const { data: bookmarkSets, isLoading: isLoadingBookmarks, refetch: refetchBookmarks } = useBookmarkSets();
   const { data: notifications, isLoading: isLoadingNotifications } = useNotifications();
@@ -172,12 +172,19 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
     setTheme(isDark ? 'light' : 'dark');
   };
 
+  const toggleContentWarnings = () => {
+    updateConfig((current) => ({
+      ...current,
+      showContentWarnings: !config.showContentWarnings,
+    }));
+  };
+
   return (
     <aside className="w-80 shrink-0 hidden lg:block">
       <div className="sticky top-4 space-y-4">
         {/* Theme Toggle */}
         <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-rose-50/30 dark:from-card dark:to-card">
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {isDark ? (
@@ -193,6 +200,20 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
                 id="theme-toggle"
                 checked={isDark}
                 onCheckedChange={toggleTheme}
+                className="data-[state=checked]:bg-primary"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-primary" />
+                <Label htmlFor="content-warnings-toggle" className="cursor-pointer font-medium">
+                  Content Warnings
+                </Label>
+              </div>
+              <Switch
+                id="content-warnings-toggle"
+                checked={config.showContentWarnings}
+                onCheckedChange={toggleContentWarnings}
                 className="data-[state=checked]:bg-primary"
               />
             </div>

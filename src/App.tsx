@@ -39,6 +39,7 @@ const defaultConfig: AppConfig = {
     ],
     updatedAt: 0,
   },
+  showContentWarnings: true,
 };
 
 export function App() {

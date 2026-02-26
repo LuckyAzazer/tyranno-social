@@ -16,6 +16,7 @@ import { EmojiReactionPicker } from '@/components/EmojiReactionPicker';
 import { MediaContent } from '@/components/MediaContent';
 import { ZapButton } from '@/components/ZapButton';
 import { BookmarkListsDialog } from '@/components/BookmarkListsDialog';
+import { ContentWarningWrapper } from '@/components/ContentWarningWrapper';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
 import { MessageCircle, Repeat2, Bookmark, MoreHorizontal, Copy, User } from 'lucide-react';
@@ -195,7 +196,9 @@ export function PostCard({ event, onClick }: PostCardProps) {
 
         {/* Media Display (images, videos, link previews) */}
         <div className="mb-4">
-          <MediaContent event={displayEvent} />
+          <ContentWarningWrapper event={displayEvent} mediaOnly={true}>
+            <MediaContent event={displayEvent} />
+          </ContentWarningWrapper>
         </div>
 
         {/* Reactions Display */}

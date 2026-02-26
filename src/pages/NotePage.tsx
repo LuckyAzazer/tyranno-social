@@ -18,6 +18,7 @@ import { EmojiReactionPicker } from '@/components/EmojiReactionPicker';
 import { ZapButton } from '@/components/ZapButton';
 import { BookmarkListsDialog } from '@/components/BookmarkListsDialog';
 import { CommentsSection } from '@/components/comments/CommentsSection';
+import { ContentWarningWrapper } from '@/components/ContentWarningWrapper';
 import { genUserName } from '@/lib/genUserName';
 import { ArrowLeft, MessageCircle, Repeat2, Bookmark, MoreHorizontal, Copy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -244,7 +245,9 @@ export function NotePage({ eventId }: NotePageProps) {
               </div>
 
               {/* Media content */}
-              <MediaContent event={event} />
+              <ContentWarningWrapper event={event} mediaOnly={true}>
+                <MediaContent event={event} />
+              </ContentWarningWrapper>
 
               {/* Reaction badges */}
               {topReactions.length > 0 && (

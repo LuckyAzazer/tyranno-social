@@ -33,6 +33,7 @@ import { EmojiReactionPicker } from '@/components/EmojiReactionPicker';
 import { MediaContent } from '@/components/MediaContent';
 import { ZapButton } from '@/components/ZapButton';
 import { BookmarkListsDialog } from '@/components/BookmarkListsDialog';
+import { ContentWarningWrapper } from '@/components/ContentWarningWrapper';
 import { MessageCircle, Repeat2, Send, Bookmark, MoreHorizontal, Copy, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
@@ -81,7 +82,9 @@ function ReplyItem({ reply, isFollowing }: { reply: NostrEvent; isFollowing?: bo
           <div className="text-sm whitespace-pre-wrap break-words">
             <NoteContent event={reply} />
           </div>
-          <MediaContent event={reply} />
+          <ContentWarningWrapper event={reply} mediaOnly={true}>
+            <MediaContent event={reply} />
+          </ContentWarningWrapper>
         </div>
       </div>
     </div>
@@ -229,7 +232,9 @@ export function PostDetailDialog({ event, open, onOpenChange }: PostDetailDialog
                 </div>
                 
                 {/* Media Content */}
-                <MediaContent event={displayEvent} />
+                <ContentWarningWrapper event={displayEvent} mediaOnly={true}>
+                  <MediaContent event={displayEvent} />
+                </ContentWarningWrapper>
               </div>
 
               {/* Reactions */}

@@ -14,6 +14,8 @@ export interface AppConfig {
   theme: Theme;
   /** NIP-65 relay list metadata */
   relayMetadata: RelayMetadata;
+  /** Show content warnings (true = blur/hide, false = always show) */
+  showContentWarnings: boolean;
 }
 
 export interface AppContextType {
