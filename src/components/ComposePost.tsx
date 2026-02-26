@@ -54,7 +54,7 @@ export function ComposePost() {
   if (!user) return null;
 
   return (
-    <Card className="border-border/50 shadow-md bg-gradient-to-br from-card via-rose-50/30 to-pink-50/20 dark:from-card dark:via-card dark:to-card">
+    <Card className="border-border/50 dark:border-transparent shadow-md bg-gradient-to-br from-card via-rose-50/30 to-pink-50/20 dark:from-card dark:via-card dark:to-card">
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit}>
           <div className="flex gap-3">

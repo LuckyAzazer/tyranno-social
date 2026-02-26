@@ -107,7 +107,7 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
               Back
             </Button>
 
-            <Card className="border-border/50 shadow-lg">
+            <Card className="border-border/50 dark:border-transparent shadow-lg">
               <CardContent className="pt-6">
                 {isLoadingProfile ? (
                   <div className="space-y-4">

@@ -155,7 +155,7 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
     <aside className="w-80 shrink-0 hidden lg:block">
       <div className="sticky top-4 space-y-4">
         {/* Theme Toggle */}
-        <Card className="border-border/50 bg-gradient-to-br from-card to-rose-50/30 dark:from-card dark:to-card">
+        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-rose-50/30 dark:from-card dark:to-card">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -179,7 +179,7 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
         </Card>
 
         {/* Feed Categories */}
-        <Card className="border-border/50 bg-gradient-to-br from-card to-orange-50/20 dark:from-card dark:to-card">
+        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-orange-50/20 dark:from-card dark:to-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <Hash className="h-5 w-5 text-primary" />
@@ -214,7 +214,7 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
         </Card>
 
         {/* Relays */}
-        <Card className="border-border/50 bg-gradient-to-br from-card to-blue-50/20 dark:from-card dark:to-card">
+        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-blue-50/20 dark:from-card dark:to-card">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -270,7 +270,7 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
         </Card>
 
         {/* Notifications */}
-        <Card className="border-border/50 bg-gradient-to-br from-card to-purple-50/20 dark:from-card dark:to-card">
+        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-purple-50/20 dark:from-card dark:to-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <Bell className="h-5 w-5 text-primary" />
@@ -355,7 +355,7 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
         </Card>
 
         {/* Bookmark Lists */}
-        <Card className="border-border/50 bg-gradient-to-br from-card to-pink-50/20 dark:from-card dark:to-card">
+        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-pink-50/20 dark:from-card dark:to-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <Bookmark className="h-5 w-5 text-primary" />
