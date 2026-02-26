@@ -221,7 +221,7 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
                 <Wifi className="h-5 w-5 text-primary" />
                 Relays
               </CardTitle>
-              <Badge variant="secondary" className="font-mono text-xs bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200 dark:from-secondary dark:to-secondary dark:text-secondary-foreground dark:border-border">
+              <Badge variant="secondary" className="font-mono text-xs bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200 dark:bg-card dark:from-card dark:to-card dark:text-foreground dark:border-border">
                 {config.relayMetadata.relays.length}
               </Badge>
             </div>
@@ -284,7 +284,7 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
                   <Bell className="h-4 w-4 mr-2 group-hover:text-purple-500 transition-colors" />
                   View Notifications
                   {notifications && notifications.length > 0 && (
-                    <Badge variant="destructive" className="ml-auto bg-gradient-to-r from-red-500 to-pink-500 shadow-sm">
+                    <Badge variant="destructive" className="ml-auto bg-gradient-to-r from-red-500 to-pink-500 shadow-sm dark:from-red-600 dark:to-pink-600 dark:text-white">
                       {notifications.length > 99 ? '99+' : notifications.length}
                     </Badge>
                   )}
@@ -368,7 +368,7 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
                 <Button variant="outline" size="sm" className="w-full group">
                   <FolderOpen className="h-4 w-4 mr-2 group-hover:text-pink-500 transition-colors" />
                   View Lists
-                  <Badge variant="secondary" className="ml-auto bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 border-pink-200 dark:from-secondary dark:to-secondary dark:text-secondary-foreground dark:border-border">
+                  <Badge variant="secondary" className="ml-auto bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 border-pink-200 dark:bg-card dark:from-card dark:to-card dark:text-foreground dark:border-border">
                     {totalBookmarks}
                   </Badge>
                 </Button>
