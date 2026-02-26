@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { MessageCircle, X, Minimize2, Maximize2, Send, AlertCircle } from 'lucide-react';
+import { MESSAGE_PROTOCOL } from '@/lib/dmConstants';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -193,7 +194,7 @@ function ConversationWindow({ pubkey, isMinimized, onClose, onToggleMinimize }: 
       await sendMessage({
         recipientPubkey: pubkey,
         content: content,
-        protocol: 'nip17', // Use NIP-17 by default
+        protocol: MESSAGE_PROTOCOL.NIP17, // Use NIP-17 by default
       });
       console.log('[FloatingDM] Message sent successfully');
       

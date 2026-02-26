@@ -144,30 +144,10 @@ function UserListContent({
   onOpenConversation,
   onCloseConversation 
 }: UserListContentProps) {
-  // Filter recent DMs
-  const filteredRecentDMs = recentDMPubkeys.filter(pubkey => {
-    if (!searchQuery.trim()) return true;
-    return matchesSearch(pubkey, searchQuery);
-  });
-
-  // Filter following
-  const filteredFollowing = followingNotInRecent.filter(pubkey => {
-    if (!searchQuery.trim()) return true;
-    return matchesSearch(pubkey, searchQuery);
-  });
-
-  if (filteredRecentDMs.length === 0 && filteredFollowing.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground text-sm px-4">
-        {searchQuery.trim() ? 'No users found' : 'No contacts yet. Follow users to chat with them!'}
-      </div>
-    );
-  }
-
   return (
     <>
       {/* Recent DMs Section */}
-      {filteredRecentDMs.length > 0 && (
+      {recentDMPubkeys.length > 0 && (
         <div className="mb-3">
           <div className="px-2 py-1 mb-1">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -175,21 +155,24 @@ function UserListContent({
             </p>
           </div>
           <div className="space-y-1">
-            {filteredRecentDMs.map((pubkey) => {
+            {recentDMPubkeys.map((pubkey) => {
               const isOpen = openConversations.includes(pubkey);
               const conversation = conversations.find(c => c.pubkey === pubkey);
               const hasUnread = conversation?.lastMessage && !conversation.lastMessageFromUser;
 
               return (
-                <UserListItem
-                  key={pubkey}
-                  pubkey={pubkey}
-                  isRecent={true}
-                  isOpen={isOpen}
-                  hasUnread={hasUnread || false}
-                  onOpen={() => onOpenConversation(pubkey)}
-                  onClose={() => onCloseConversation(pubkey)}
-                />
+                <UserSearchMatcher key={pubkey} pubkey={pubkey} query={searchQuery}>
+                  {(matches) => matches ? (
+                    <UserListItem
+                      pubkey={pubkey}
+                      isRecent={true}
+                      isOpen={isOpen}
+                      hasUnread={hasUnread || false}
+                      onOpen={() => onOpenConversation(pubkey)}
+                      onClose={() => onCloseConversation(pubkey)}
+                    />
+                  ) : null}
+                </UserSearchMatcher>
               );
             })}
           </div>
@@ -197,7 +180,7 @@ function UserListContent({
       )}
 
       {/* Following Section */}
-      {filteredFollowing.length > 0 && (
+      {followingNotInRecent.length > 0 && (
         <div>
           <div className="px-2 py-1 mb-1">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -205,35 +188,47 @@ function UserListContent({
             </p>
           </div>
           <div className="space-y-1">
-            {filteredFollowing.map((pubkey) => {
+            {followingNotInRecent.map((pubkey) => {
               const isOpen = openConversations.includes(pubkey);
 
               return (
-                <UserListItem
-                  key={pubkey}
-                  pubkey={pubkey}
-                  isRecent={false}
-                  isOpen={isOpen}
-                  hasUnread={false}
-                  onOpen={() => onOpenConversation(pubkey)}
-                  onClose={() => onCloseConversation(pubkey)}
-                />
+                <UserSearchMatcher key={pubkey} pubkey={pubkey} query={searchQuery}>
+                  {(matches) => matches ? (
+                    <UserListItem
+                      pubkey={pubkey}
+                      isRecent={false}
+                      isOpen={isOpen}
+                      hasUnread={false}
+                      onOpen={() => onOpenConversation(pubkey)}
+                      onClose={() => onCloseConversation(pubkey)}
+                    />
+                  ) : null}
+                </UserSearchMatcher>
               );
             })}
           </div>
+        </div>
+      )}
+      
+      {/* Empty state - only shown when no users match search */}
+      {recentDMPubkeys.length === 0 && followingNotInRecent.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground text-sm px-4">
+          {searchQuery.trim() ? 'No users found' : 'No contacts yet. Follow users to chat with them!'}
         </div>
       )}
     </>
   );
 }
 
-function matchesSearch(pubkey: string, query: string): boolean {
+// Helper component to check if user matches search
+function UserSearchMatcher({ pubkey, query, children }: { pubkey: string; query: string; children: (matches: boolean) => React.ReactNode }) {
   const author = useAuthor(pubkey);
   const metadata = author.data?.metadata;
   const displayName = metadata?.display_name || metadata?.name || genUserName(pubkey);
   const username = metadata?.name || genUserName(pubkey);
   const searchLower = query.toLowerCase();
-  return displayName.toLowerCase().includes(searchLower) || username.toLowerCase().includes(searchLower);
+  const matches = !query.trim() || displayName.toLowerCase().includes(searchLower) || username.toLowerCase().includes(searchLower);
+  return <>{children(matches)}</>;
 }
 
 interface UserListItemProps {
@@ -268,7 +263,7 @@ function UserListItem({ pubkey, isRecent, isOpen, hasUnread, onOpen, onClose }: 
           <Avatar className="h-9 w-9 ring-2 ring-background">
             <AvatarImage src={profileImage} alt={displayName} />
             <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-xs">
-              {displayName[0]?.toUpperCase()}
+              {displayName.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           {hasUnread && (
