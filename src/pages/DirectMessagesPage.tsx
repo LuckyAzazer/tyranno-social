@@ -1,6 +1,5 @@
 import { useSeoMeta } from '@unhead/react';
 import { DMMessagingInterface } from '@/components/dm/DMMessagingInterface';
-import { DMProvider } from '@/components/DMProvider';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { LoginArea } from '@/components/auth/LoginArea';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -100,38 +99,36 @@ export function DirectMessagesPage() {
   }
 
   return (
-    <DMProvider>
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-rose-50/20 dark:from-background dark:via-background dark:to-background">
-        <div className="container mx-auto px-4 py-6">
-          <div className="mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate('/')}
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Home
-                </Button>
-                <div>
-                  <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <MessageCircle className="h-6 w-6 text-primary" />
-                    Direct Messages
-                  </h1>
-                  <p className="text-sm text-muted-foreground">
-                    Private, encrypted conversations
-                  </p>
-                </div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-rose-50/20 dark:from-background dark:via-background dark:to-background">
+      <div className="container mx-auto px-4 py-6">
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/')}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Home
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold flex items-center gap-2">
+                  <MessageCircle className="h-6 w-6 text-primary" />
+                  Direct Messages
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Private, encrypted conversations
+                </p>
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="h-[calc(100vh-12rem)]">
-            <DMMessagingInterface className="h-full" />
-          </div>
+        <div className="h-[calc(100vh-12rem)]">
+          <DMMessagingInterface className="h-full" />
         </div>
       </div>
-    </DMProvider>
+    </div>
   );
 }

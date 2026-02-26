@@ -16,6 +16,7 @@ import { DMProvider } from '@/components/DMProvider';
 import { FloatingDMProvider } from '@/contexts/FloatingDMContext';
 import { FloatingDMWidget } from '@/components/FloatingDMWidget';
 import { AppConfig } from '@/contexts/AppContext';
+import { PROTOCOL_MODE } from '@/lib/dmConstants';
 import AppRouter from './AppRouter';
 
 const head = createHead({
@@ -54,7 +55,7 @@ export function App() {
             <NostrProvider>
               <NostrSync />
               <NWCProvider>
-                <DMProvider>
+                <DMProvider config={{ enabled: true, protocolMode: PROTOCOL_MODE.NIP04_OR_NIP17 }}>
                   <FloatingDMProvider>
                     <TooltipProvider>
                       <Toaster />
