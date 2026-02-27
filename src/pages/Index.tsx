@@ -311,6 +311,11 @@ const Index = () => {
                     <p className="text-muted-foreground">
                       A beautiful way to experience Nostr. Log in to start sharing your moments with the world.
                     </p>
+                    <div className="mt-4 p-3 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-800/30">
+                      <p className="text-xs text-blue-700 dark:text-blue-400">
+                        🛡️ Safe browsing mode active - NSFW content is automatically filtered
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

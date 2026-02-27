@@ -3,6 +3,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useFollows } from '@/hooks/useFollows';
+import { filterNSFWContent } from '@/lib/nsfwDetection';
 import type { NostrEvent } from '@nostrify/nostrify';
 import type { FeedCategory } from './usePosts';
 
@@ -113,6 +114,11 @@ export function useInfinitePosts(category: FeedCategory = 'following') {
         // Filter out replies (events with 'e' tags)
         return !event.tags.some(([name]) => name === 'e');
       });
+
+      // Filter NSFW content for non-logged-in users
+      if (!user) {
+        filteredEvents = filterNSFWContent(filteredEvents);
+      }
 
       return filteredEvents;
     },

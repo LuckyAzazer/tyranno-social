@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useFollows } from '@/hooks/useFollows';
 import { useAppContext } from '@/hooks/useAppContext';
+import { filterNSFWContent } from '@/lib/nsfwDetection';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 export function useSearchPosts(searchQuery: string, limit: number = 100) {
@@ -58,9 +59,16 @@ export function useSearchPosts(searchQuery: string, limit: number = 100) {
       });
 
       // Filter out replies
-      return filteredEvents.filter(
+      let results = filteredEvents.filter(
         (event) => !event.tags.some(([name]) => name === 'e')
       );
+
+      // Filter NSFW content for non-logged-in users
+      if (!user) {
+        results = filterNSFWContent(results);
+      }
+
+      return results;
     },
     enabled: searchQuery.trim().length > 0,
   });
