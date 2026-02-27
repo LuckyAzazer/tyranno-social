@@ -3,7 +3,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useUnreadDMCount } from '@/hooks/useUnreadDMCount';
-import { Home, MessageCircle, User, LogIn } from 'lucide-react';
+import { Home, MessageCircle, User, LogIn, Settings } from 'lucide-react';
 
 export function MobileBottomNav() {
   const { user } = useCurrentUser();
@@ -41,6 +41,17 @@ export function MobileBottomNav() {
             <span className="text-[10px] font-medium">Messages</span>
           </Button>
         )}
+
+        {/* Settings */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/settings')}
+          className="flex-col h-auto py-2 px-3 gap-1"
+        >
+          <Settings className="h-5 w-5" />
+          <span className="text-[10px] font-medium">Settings</span>
+        </Button>
 
         {/* Profile or Login */}
         {user ? (
