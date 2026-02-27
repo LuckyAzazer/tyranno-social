@@ -182,7 +182,7 @@ const Index = () => {
                 </div>
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">
                   Tyrannosocial
                 </h1>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
