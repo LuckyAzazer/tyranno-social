@@ -46,6 +46,14 @@ const defaultConfig: AppConfig = {
     ],
     updatedAt: 0,
   },
+  dmInboxRelays: {
+    relays: [
+      'wss://relay.ditto.pub',
+      'wss://relay.primal.net',
+      'wss://relay.damus.io',
+    ],
+    updatedAt: 0,
+  },
   showContentWarnings: true,
 };
 

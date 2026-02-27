@@ -12,6 +12,13 @@ const DEFAULT_RELAYS = [
   { url: 'wss://relay.nostr.band', read: true, write: true },
 ];
 
+// Default DM inbox relays
+const DEFAULT_DM_INBOX_RELAYS = [
+  'wss://relay.ditto.pub',
+  'wss://relay.primal.net',
+  'wss://relay.damus.io',
+];
+
 /**
  * NostrSync - Syncs user's Nostr data
  *
@@ -38,6 +45,10 @@ export function NostrSync() {
           relays: DEFAULT_RELAYS,
           updatedAt: 0,
         },
+        dmInboxRelays: {
+          relays: DEFAULT_DM_INBOX_RELAYS,
+          updatedAt: 0,
+        },
       }));
       hasAttemptedSync.current = false;
     }
@@ -52,14 +63,23 @@ export function NostrSync() {
 
     const syncRelaysFromNostr = async () => {
       try {
-        console.log('User logged in, fetching relay list from Nostr...');
+        console.log('User logged in, fetching relay lists from Nostr...');
         hasAttemptedSync.current = true;
         
-        // Query multiple relays to find the user's relay list
-        const events = await nostr.query(
-          [{ kinds: [10002], authors: [user.pubkey], limit: 1 }],
-          { signal: AbortSignal.timeout(10000) }
-        );
+        // Query multiple relays to find the user's relay lists
+        const [generalRelayEvents, dmInboxRelayEvents] = await Promise.all([
+          nostr.query(
+            [{ kinds: [10002], authors: [user.pubkey], limit: 1 }],
+            { signal: AbortSignal.timeout(10000) }
+          ),
+          nostr.query(
+            [{ kinds: [10050], authors: [user.pubkey], limit: 1 }],
+            { signal: AbortSignal.timeout(10000) }
+          ),
+        ]);
+        
+        // Process general relays (NIP-65)
+        const events = generalRelayEvents;
 
         if (events.length > 0) {
           const event = events[0];
@@ -107,6 +127,50 @@ export function NostrSync() {
             },
           }));
         }
+
+        // Process DM inbox relays (NIP-17, kind 10050)
+        if (dmInboxRelayEvents.length > 0) {
+          const dmEvent = dmInboxRelayEvents[0];
+
+          // Only update if the event is newer than our stored data
+          if (dmEvent.created_at > (config.dmInboxRelays?.updatedAt || 0)) {
+            const fetchedDmRelays = dmEvent.tags
+              .filter(([name]) => name === 'relay')
+              .map(([_, url]) => url);
+
+            if (fetchedDmRelays.length > 0) {
+              console.log('✅ Found user DM inbox relay list from Nostr:', fetchedDmRelays);
+              updateConfig((current) => ({
+                ...current,
+                dmInboxRelays: {
+                  relays: fetchedDmRelays,
+                  updatedAt: dmEvent.created_at,
+                },
+              }));
+            } else {
+              console.log('⚠️ DM inbox relay list found but empty, using default DM relays');
+              updateConfig((current) => ({
+                ...current,
+                dmInboxRelays: {
+                  relays: DEFAULT_DM_INBOX_RELAYS,
+                  updatedAt: 0,
+                },
+              }));
+            }
+          } else {
+            console.log('✅ Stored DM inbox relay list is already up to date');
+          }
+        } else {
+          console.log('⚠️ No NIP-17 DM inbox relay list found for user, using default DM inbox relays');
+          // User doesn't have a DM inbox relay list published, use defaults
+          updateConfig((current) => ({
+            ...current,
+            dmInboxRelays: {
+              relays: DEFAULT_DM_INBOX_RELAYS,
+              updatedAt: 0,
+            },
+          }));
+        }
       } catch (error) {
         console.error('❌ Failed to sync relays from Nostr:', error);
         // On error, ensure we have default relays
@@ -114,6 +178,10 @@ export function NostrSync() {
           ...current,
           relayMetadata: {
             relays: DEFAULT_RELAYS,
+            updatedAt: 0,
+          },
+          dmInboxRelays: {
+            relays: DEFAULT_DM_INBOX_RELAYS,
             updatedAt: 0,
           },
         }));
