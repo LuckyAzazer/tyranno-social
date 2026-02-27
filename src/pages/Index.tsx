@@ -12,6 +12,7 @@ import { LoginArea } from '@/components/auth/LoginArea';
 import { Sidebar } from '@/components/Sidebar';
 import { MobileSidebar } from '@/components/MobileSidebar';
 import { ColumnSelector } from '@/components/ColumnSelector';
+import { ScrollToTop } from '@/components/ScrollToTop';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useUnreadDMCount } from '@/hooks/useUnreadDMCount';
@@ -448,6 +449,9 @@ const Index = () => {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
       />
+
+      {/* Scroll to Top Button */}
+      <ScrollToTop />
 
       {/* NSFW Filter Info Dialog */}
       <Dialog open={nsfwInfoOpen} onOpenChange={setNsfwInfoOpen}>
