@@ -63,18 +63,31 @@ export function ImageGalleryNew({ images, open, onClose, initialIndex = 0 }: Ima
       
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
+      
+      // Create and trigger download
       const link = document.createElement('a');
+      link.style.display = 'none';
       link.href = blobUrl;
       link.download = filename;
+      
       document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
+      
+      // Use setTimeout to ensure the link is in DOM before clicking
+      setTimeout(() => {
+        link.click();
+        
+        // Clean up after a short delay
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        }, 100);
+      }, 0);
+      
     } catch (error) {
       console.error('Download failed:', error);
       toast({
         title: 'Download failed',
-        description: 'Right-click the image and select "Save Image As..." to download.',
+        description: 'Unable to download image. Try right-clicking the image and select "Save Image As..."',
         variant: 'destructive',
       });
     }
@@ -108,13 +121,20 @@ export function ImageGalleryNew({ images, open, onClose, initialIndex = 0 }: Ima
         
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
+        
         const link = document.createElement('a');
+        link.style.display = 'none';
         link.href = blobUrl;
         link.download = filename;
+        
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(blobUrl);
+        
+        // Clean up after a short delay
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+        }, 100);
         
         successCount++;
       } catch (error) {
@@ -123,16 +143,24 @@ export function ImageGalleryNew({ images, open, onClose, initialIndex = 0 }: Ima
       
       // Small delay between downloads
       if (i < images.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 400));
+        await new Promise(resolve => setTimeout(resolve, 600));
       }
     }
 
     setIsDownloadingAll(false);
     
-    toast({
-      title: 'Downloads complete!',
-      description: `Downloaded ${successCount} of ${images.length} ${images.length === 1 ? 'image' : 'images'}`,
-    });
+    if (successCount > 0) {
+      toast({
+        title: 'Downloads complete!',
+        description: `Downloaded ${successCount} of ${images.length} ${images.length === 1 ? 'image' : 'images'}`,
+      });
+    } else {
+      toast({
+        title: 'Download failed',
+        description: 'Unable to download images. Try right-clicking individual images.',
+        variant: 'destructive',
+      });
+    }
   };
 
   if (!open) return null;
