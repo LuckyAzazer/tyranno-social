@@ -103,9 +103,9 @@ export function DirectMessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-rose-50/20 dark:from-background dark:via-background dark:to-background">
-      <div className="container mx-auto px-4 py-6">
-        <div className="mb-6">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-background via-background to-rose-50/20 dark:from-background dark:via-background dark:to-background">
+      <div className="container mx-auto px-4 py-6 flex flex-col h-full">
+        <div className="mb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Button
@@ -136,8 +136,8 @@ export function DirectMessagesPage() {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'dms' | 'groups')} className="h-[calc(100vh-12rem)] flex flex-col">
-          <TabsList className="grid w-full max-w-md grid-cols-2 mb-4">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'dms' | 'groups')} className="flex-1 flex flex-col min-h-0">
+          <TabsList className="grid w-full max-w-md grid-cols-2 mb-4 shrink-0">
             <TabsTrigger value="dms" className="gap-2">
               <MessageCircle className="h-4 w-4" />
               Direct Messages
@@ -148,11 +148,11 @@ export function DirectMessagesPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dms" className="flex-1 mt-0">
+          <TabsContent value="dms" className="flex-1 mt-0 min-h-0">
             <DMMessagingInterface className="h-full" />
           </TabsContent>
 
-          <TabsContent value="groups" className="flex-1 mt-0">
+          <TabsContent value="groups" className="flex-1 mt-0 min-h-0">
             <GroupMessagingInterface className="h-full" />
           </TabsContent>
         </Tabs>
