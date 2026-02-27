@@ -90,11 +90,41 @@ export function isLikelyNSFW(event: NostrEvent): boolean {
 
   // For posts with images but minimal text, be more cautious
   const hasImages = imageUrls.length > 0 || event.tags.some(([name]) => name === 'imeta');
-  const hasMinimalText = event.content.replace(/https?:\/\/[^\s]+/g, '').trim().length < 20;
+  const textWithoutUrls = event.content.replace(/https?:\/\/[^\s]+/g, '').trim();
+  const hasMinimalText = textWithoutUrls.length < 30;
   
-  // If post is mostly just an image with "premium" or "money" mentions, likely NSFW spam
-  if (hasImages && hasMinimalText && /premium|money|💰|dm me|subscribe/i.test(event.content)) {
+  // Check for suspicious patterns that often indicate NSFW spam
+  const suspiciousPatterns = [
+    /premium/i,
+    /money/i,
+    /bitcoin.*standard/i,
+    /crypto.*girl/i,
+    /💰/,
+    /dm\s+me/i,
+    /subscribe/i,
+    /only\s*fans/i,
+    /exclusive/i,
+    /vip/i,
+    /content.*link/i,
+  ];
+
+  const hasSuspiciousPattern = suspiciousPatterns.some(pattern => 
+    pattern.test(event.content)
+  );
+
+  // If post has images with minimal text and suspicious patterns, filter it
+  if (hasImages && hasMinimalText && hasSuspiciousPattern) {
     return true;
+  }
+
+  // Extra aggressive: Filter any post with images and very little meaningful text
+  // This catches spam posts that are just promotional images
+  if (hasImages && textWithoutUrls.length < 10 && textWithoutUrls.length > 0) {
+    // Check if the text is just emojis or single words
+    const alphanumericText = textWithoutUrls.replace(/[^\w\s]/g, '').trim();
+    if (alphanumericText.length < 5) {
+      return true; // Likely spam/promotional
+    }
   }
 
   return false;
