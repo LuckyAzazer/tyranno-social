@@ -1,5 +1,5 @@
 // Service Worker for Tyrannosocial PWA
-const CACHE_NAME = 'tyrannosocial-v1';
+const CACHE_NAME = 'tyrannosocial-v2';
 const OFFLINE_URL = '/';
 
 // Assets to cache on install
