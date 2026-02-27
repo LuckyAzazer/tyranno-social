@@ -1,7 +1,7 @@
 // NOTE: This file is stable and usually should not be modified.
 // It is important that all functionality in this file is preserved, and should only be modified if explicitly requested.
 
-import { ChevronDown, LogOut, UserIcon, UserPlus, User } from 'lucide-react';
+import { ChevronDown, LogOut, UserIcon, UserPlus, User, Settings } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,12 +75,20 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
           <span>View Profile</span>
         </DropdownMenuItem>
         <DropdownMenuItem
+          onClick={() => navigate('/settings')}
+          className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
+        >
+          <Settings className='w-4 h-4' />
+          <span>Settings</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
           onClick={onAddAccountClick}
           className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
         >
           <UserPlus className='w-4 h-4' />
           <span>Add another account</span>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => removeLogin(currentUser.id)}
           className='flex items-center gap-2 cursor-pointer p-2 rounded-md text-red-500'

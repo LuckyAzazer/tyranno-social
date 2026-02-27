@@ -27,7 +27,6 @@ import {
   Menu,
   Users,
   MessageCircle,
-  Settings,
 } from 'lucide-react';
 import {
   Sheet,
@@ -171,22 +170,6 @@ export function MobileSidebar({ selectedCategory, onCategoryChange }: MobileSide
                   </div>
                 </div>
 
-                <Separator />
-
-                <div>
-                  <h3 className="font-semibold mb-3">More</h3>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => {
-                      navigate('/settings');
-                      setOpen(false);
-                    }}
-                  >
-                    <Settings className="h-4 w-4 mr-3" />
-                    Settings
-                  </Button>
-                </div>
               </TabsContent>
 
               <TabsContent value="relays" className="space-y-4 mt-0">

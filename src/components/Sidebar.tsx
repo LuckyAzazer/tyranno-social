@@ -44,7 +44,6 @@ import {
   CheckCheck,
   AlertTriangle,
   MessageCircle,
-  Settings,
 } from 'lucide-react';
 import {
   Sheet,
@@ -566,21 +565,6 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
                 </ScrollArea>
               </SheetContent>
             </Sheet>
-          </CardContent>
-        </Card>
-
-        {/* Settings Link */}
-        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-slate-50/20 dark:from-card dark:to-card">
-          <CardContent className="p-4">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full group"
-              onClick={() => navigate('/settings')}
-            >
-              <Settings className="h-4 w-4 mr-2 group-hover:text-primary transition-colors" />
-              Settings
-            </Button>
           </CardContent>
         </Card>
 
