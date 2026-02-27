@@ -7,13 +7,14 @@ import { MusicPlayer } from './MusicPlayer';
 import { YouTubeEmbed, isYouTubeUrl } from './YouTubeEmbed';
 import { SpotifyEmbed, isSpotifyUrl } from './SpotifyEmbed';
 import { SoundCloudEmbed, isSoundCloudUrl } from './SoundCloudEmbed';
+import { ZapstrEmbed, isZapstrUrl } from './ZapstrEmbed';
 
 interface MediaContentProps {
   event: NostrEvent;
 }
 
 interface MediaItem {
-  type: 'image' | 'video' | 'audio' | 'youtube' | 'spotify' | 'soundcloud' | 'link';
+  type: 'image' | 'video' | 'audio' | 'youtube' | 'spotify' | 'soundcloud' | 'zapstr' | 'link';
   url: string;
 }
 
@@ -98,6 +99,8 @@ export function MediaContent({ event }: MediaContentProps) {
           items.push({ type: 'spotify', url });
         } else if (isSoundCloudUrl(url)) {
           items.push({ type: 'soundcloud', url });
+        } else if (isZapstrUrl(url)) {
+          items.push({ type: 'zapstr', url });
         } else {
           items.push({ type: 'link', url });
         }
@@ -113,6 +116,7 @@ export function MediaContent({ event }: MediaContentProps) {
   const youtubeVideos = media.filter(item => item.type === 'youtube');
   const spotifyTracks = media.filter(item => item.type === 'spotify');
   const soundcloudTracks = media.filter(item => item.type === 'soundcloud');
+  const zapstrTracks = media.filter(item => item.type === 'zapstr');
   const links = media.filter(item => item.type === 'link');
 
   const imageUrls = images.map(img => img.url);
@@ -218,6 +222,18 @@ export function MediaContent({ event }: MediaContentProps) {
           {soundcloudTracks.map((item, index) => (
             <SoundCloudEmbed
               key={`soundcloud-${index}`}
+              url={item.url}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Zapstr Embeds */}
+      {zapstrTracks.length > 0 && (
+        <div className="space-y-3">
+          {zapstrTracks.map((item, index) => (
+            <ZapstrEmbed
+              key={`zapstr-${index}`}
               url={item.url}
             />
           ))}
