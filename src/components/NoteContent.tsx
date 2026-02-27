@@ -9,6 +9,7 @@ import { EmbeddedNote } from '@/components/EmbeddedNote';
 import { EmbeddedAddressableEvent } from '@/components/EmbeddedAddressableEvent';
 import { MovieCard } from '@/components/MovieCard';
 import { ProfileCard } from '@/components/ProfileCard';
+import { SessionCard } from '@/components/SessionCard';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 
@@ -51,6 +52,15 @@ export function NoteContent({
     return (
       <div className={className}>
         <ProfileCard data={jsonData} />
+      </div>
+    );
+  }
+
+  // If it's session/reflection data, render as a session card
+  if (jsonData && (jsonData.session_id || jsonData.reflection)) {
+    return (
+      <div className={className}>
+        <SessionCard data={jsonData} />
       </div>
     );
   }
