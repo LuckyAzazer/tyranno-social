@@ -48,23 +48,18 @@ export function ImageGalleryNew({ images, open, onClose, initialIndex = 0 }: Ima
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
-  const handleDownloadCurrent = async () => {
+  const handleDownloadCurrent = () => {
     const url = images[currentIndex];
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = url.split('/').pop() || `image-${currentIndex + 1}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      console.error('Download failed:', error);
-      window.open(url, '_blank');
-    }
+    const filename = url.split('/').pop()?.split('?')[0] || `image-${currentIndex + 1}.jpg`;
+    
+    // Simple download link - just like right-click save
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleDownloadAll = async () => {
@@ -72,49 +67,36 @@ export function ImageGalleryNew({ images, open, onClose, initialIndex = 0 }: Ima
 
     setIsDownloadingAll(true);
 
-    try {
-      toast({
-        title: 'Downloading images...',
-        description: `Starting download of ${images.length} ${images.length === 1 ? 'image' : 'images'}`,
-      });
+    toast({
+      title: 'Downloading images...',
+      description: `Starting download of ${images.length} ${images.length === 1 ? 'image' : 'images'}`,
+    });
 
-      for (let i = 0; i < images.length; i++) {
-        const url = images[i];
-
-        try {
-          const response = await fetch(url);
-          const blob = await response.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = blobUrl;
-          link.download = url.split('/').pop() || `image-${i + 1}.jpg`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(blobUrl);
-
-          if (i < images.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 300));
-          }
-        } catch (error) {
-          console.error(`Failed to download image ${i + 1}:`, error);
-        }
+    // Download all images with slight delay between each
+    for (let i = 0; i < images.length; i++) {
+      const url = images[i];
+      const filename = url.split('/').pop()?.split('?')[0] || `image-${i + 1}.jpg`;
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Small delay between downloads
+      if (i < images.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 400));
       }
-
-      toast({
-        title: 'Download complete!',
-        description: `Downloaded ${images.length} ${images.length === 1 ? 'image' : 'images'}`,
-      });
-    } catch (error) {
-      console.error('Download all failed:', error);
-      toast({
-        title: 'Download failed',
-        description: 'There was an error downloading the images',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDownloadingAll(false);
     }
+
+    setIsDownloadingAll(false);
+    
+    toast({
+      title: 'Downloads started!',
+      description: `Initiated download of ${images.length} ${images.length === 1 ? 'image' : 'images'}`,
+    });
   };
 
   if (!open) return null;
