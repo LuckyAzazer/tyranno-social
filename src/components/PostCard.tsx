@@ -97,8 +97,9 @@ export function PostCard({ event, onClick }: PostCardProps) {
     : [];
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Don't trigger if clicking on links or buttons
-    if ((e.target as HTMLElement).closest('a, button')) {
+    // Don't trigger if clicking on links, buttons, or images
+    const target = e.target as HTMLElement;
+    if (target.closest('a, button') || target.tagName === 'IMG') {
       return;
     }
     onClick?.();
