@@ -11,6 +11,7 @@ import { MovieCard } from '@/components/MovieCard';
 import { ProfileCard } from '@/components/ProfileCard';
 import { SessionCard } from '@/components/SessionCard';
 import { ServiceProviderCard } from '@/components/ServiceProviderCard';
+import { HashDataCard } from '@/components/HashDataCard';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 
@@ -37,6 +38,16 @@ export function NoteContent({
       }
     }
     return null;
+  }, [event.content]);
+
+  // Check if content is mostly hexadecimal hash data
+  const isHashData = useMemo(() => {
+    const cleaned = event.content.replace(/\s+/g, '');
+    // Consider it hash data if:
+    // - It's all hex characters
+    // - It's longer than 64 characters (minimum for a hash)
+    // - It doesn't contain other content
+    return /^[a-fA-F0-9]{64,}$/.test(cleaned) && cleaned.length > 100;
   }, [event.content]);
 
   // If it's movie data, render as a movie card
@@ -71,6 +82,15 @@ export function NoteContent({
     return (
       <div className={className}>
         <ServiceProviderCard data={jsonData} />
+      </div>
+    );
+  }
+
+  // If it's hash data, render as a hash data card
+  if (isHashData) {
+    return (
+      <div className={className}>
+        <HashDataCard content={event.content} />
       </div>
     );
   }
