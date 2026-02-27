@@ -3,13 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@/hooks/useTheme';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useLoggedInAccounts } from '@/hooks/useLoggedInAccounts';
+import { useAuthor } from '@/hooks/useAuthor';
+import { genUserName } from '@/lib/genUserName';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { RelayListManager } from '@/components/RelayListManager';
 import { LoginArea } from '@/components/auth/LoginArea';
+import LoginDialog from '@/components/auth/LoginDialog';
 import { TyrannoCoin } from '@/components/TyrannoCoin';
 import { ColorThemeSelector } from '@/components/ColorThemeSelector';
 import {
@@ -28,8 +34,16 @@ import {
   Type,
   Sparkles,
   User,
+  Check,
+  Mail,
+  Link as LinkIcon,
+  Zap,
+  UserPlus,
+  LogOut,
 } from 'lucide-react';
 import { useSeoMeta } from '@unhead/react';
+import { nip19 } from 'nostr-tools';
+import type { NostrMetadata } from '@nostrify/nostrify';
 
 const fontOptions = [
   { value: 'inter', label: 'Inter (Default)', family: 'Inter Variable, Inter, system-ui, sans-serif' },
@@ -58,7 +72,13 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { config, updateConfig } = useAppContext();
   const { user } = useCurrentUser();
+  const { currentUser, otherUsers, setLogin, removeLogin } = useLoggedInAccounts();
   const [relaysExpanded, setRelaysExpanded] = useState(false);
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+
+  // Get metadata for current user
+  const currentUserProfile = useAuthor(currentUser?.pubkey || '');
+  const currentMetadata: NostrMetadata | undefined = currentUserProfile.data?.metadata;
 
   useSeoMeta({
     title: 'Settings - Tyrannosocial',
@@ -163,18 +183,142 @@ export default function SettingsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {user ? (
-                <div className="space-y-4">
+              {currentUser ? (
+                <div className="space-y-6">
+                  {/* Current Account */}
                   <div>
-                    <p className="text-sm text-muted-foreground mb-2">Logged in as:</p>
-                    <p className="text-sm font-medium">{user.pubkey.substring(0, 16)}...</p>
+                    <Label className="text-sm font-semibold mb-3 block">Current Account</Label>
+                    <div className="flex items-start gap-4 p-4 rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20">
+                      <Avatar className="h-16 w-16 ring-2 ring-primary/20 shrink-0">
+                        <AvatarImage src={currentMetadata?.picture} alt={currentMetadata?.name || 'User'} />
+                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-lg">
+                          {(currentMetadata?.name || currentMetadata?.display_name || genUserName(currentUser.pubkey))[0]?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div>
+                          <h3 className="font-semibold text-lg truncate">
+                            {currentMetadata?.display_name || currentMetadata?.name || genUserName(currentUser.pubkey)}
+                          </h3>
+                          {currentMetadata?.name && currentMetadata?.display_name && (
+                            <p className="text-sm text-muted-foreground truncate">@{currentMetadata.name}</p>
+                          )}
+                        </div>
+                        {currentMetadata?.nip05 && (
+                          <Badge variant="secondary" className="gap-1 text-xs">
+                            <Check className="h-3 w-3" />
+                            {currentMetadata.nip05}
+                          </Badge>
+                        )}
+                        {currentMetadata?.about && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {currentMetadata.about}
+                          </p>
+                        )}
+                        <div className="flex gap-2 flex-wrap">
+                          {currentMetadata?.website && (
+                            <Badge variant="outline" className="gap-1 text-xs">
+                              <LinkIcon className="h-3 w-3" />
+                              Website
+                            </Badge>
+                          )}
+                          {(currentMetadata?.lud16 || currentMetadata?.lud06) && (
+                            <Badge variant="outline" className="gap-1 text-xs">
+                              <Zap className="h-3 w-3" />
+                              Lightning
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="pt-2">
+                          <code className="text-xs text-muted-foreground font-mono">
+                            {nip19.npubEncode(currentUser.pubkey)}
+                          </code>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate('/profile/edit')}
-                  >
-                    Edit Profile
-                  </Button>
+
+                  {/* Other Accounts */}
+                  {otherUsers.length > 0 && (
+                    <>
+                      <Separator />
+                      <div>
+                        <Label className="text-sm font-semibold mb-3 block">Other Accounts</Label>
+                        <div className="space-y-2">
+                          {otherUsers.map((account) => {
+                            const displayName = account.metadata?.display_name || account.metadata?.name || genUserName(account.pubkey);
+                            const username = account.metadata?.name || genUserName(account.pubkey);
+                            const isActive = account.id === currentUser.id;
+
+                            return (
+                              <div
+                                key={account.id}
+                                className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:border-primary/30 hover:bg-accent/50 transition-colors"
+                              >
+                                <Avatar className="h-10 w-10 shrink-0">
+                                  <AvatarImage src={account.metadata?.picture} alt={displayName} />
+                                  <AvatarFallback className="bg-gradient-to-br from-muted to-muted/50">
+                                    {displayName[0]?.toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm truncate">{displayName}</p>
+                                  <p className="text-xs text-muted-foreground truncate">@{username}</p>
+                                </div>
+                                {isActive ? (
+                                  <Badge variant="default" className="gap-1">
+                                    <Check className="h-3 w-3" />
+                                    Active
+                                  </Badge>
+                                ) : (
+                                  <div className="flex gap-1">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setLogin(account.id)}
+                                      className="h-8"
+                                    >
+                                      Switch
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => removeLogin(account.id)}
+                                      className="h-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                                    >
+                                      <LogOut className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <Separator />
+
+                  {/* Account Actions */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate(`/${nip19.npubEncode(currentUser.pubkey)}`)}
+                      className="flex-1"
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      View Profile
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setLoginDialogOpen(true)}
+                      className="flex-1"
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Add Account
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-6">
@@ -365,6 +509,13 @@ export default function SettingsPage() {
           </Card>
         </div>
       </main>
+
+      {/* Login Dialog */}
+      <LoginDialog
+        isOpen={loginDialogOpen}
+        onClose={() => setLoginDialogOpen(false)}
+        onLogin={() => setLoginDialogOpen(false)}
+      />
     </div>
   );
 }
