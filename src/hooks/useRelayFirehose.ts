@@ -3,6 +3,8 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useNSFWFilter } from '@/hooks/useNSFWFilter';
+import { useWebOfTrust } from '@/hooks/useWebOfTrust';
+import { useWebOfTrustNetwork } from '@/hooks/useWebOfTrustNetwork';
 import { filterNSFWContent } from '@/lib/nsfwDetection';
 import { filterEventsByTopic } from '@/lib/topicFilter';
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -22,9 +24,11 @@ export function useRelayFirehose(relayUrl: string | null, category: FeedCategory
   const { user } = useCurrentUser();
   const { config } = useAppContext();
   const { shouldFilter } = useNSFWFilter();
+  const { isActive: wotActive } = useWebOfTrust();
+  const { data: wotNetwork = [] } = useWebOfTrustNetwork();
 
   return useInfiniteQuery({
-    queryKey: ['relay-firehose', relayUrl, category, shouldFilter, config.topicFilter],
+    queryKey: ['relay-firehose', relayUrl, category, shouldFilter, config.topicFilter, wotActive, wotNetwork.length],
     queryFn: async ({ pageParam }) => {
       if (!relayUrl) return [];
 
@@ -108,6 +112,23 @@ export function useRelayFirehose(relayUrl: string | null, category: FeedCategory
       // Apply topic filter
       if (config.topicFilter) {
         filteredEvents = filterEventsByTopic(filteredEvents, config.topicFilter);
+      }
+
+      // Apply Web of Trust filter
+      if (wotActive && wotNetwork.length > 0) {
+        filteredEvents = filteredEvents.filter((event) => {
+          // For reposts, check the original author (if available)
+          if (event.kind === 6 || event.kind === 16) {
+            const originalAuthorTag = event.tags.find(([name]) => name === 'p');
+            if (originalAuthorTag && originalAuthorTag[1]) {
+              // Check if either the reposter OR the original author is in WoT
+              return wotNetwork.includes(event.pubkey) || wotNetwork.includes(originalAuthorTag[1]);
+            }
+          }
+          
+          // For regular posts, check the author
+          return wotNetwork.includes(event.pubkey);
+        });
       }
 
       return filteredEvents;

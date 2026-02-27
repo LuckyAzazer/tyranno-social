@@ -7,6 +7,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useNSFWFilter } from '@/hooks/useNSFWFilter';
+import { useWebOfTrust } from '@/hooks/useWebOfTrust';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -50,6 +51,7 @@ import {
   ChevronRightIcon,
   ShieldCheck,
   ShieldAlert,
+  UserCheck,
 } from 'lucide-react';
 import {
   Sheet,
@@ -132,6 +134,7 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
   const { data: bookmarkSets, isLoading: isLoadingBookmarks, refetch: refetchBookmarks } = useBookmarkSets();
   const { data: notifications, isLoading: isLoadingNotifications } = useNotifications();
   const { shouldFilter, filterEnabled, setFilterEnabled, canToggle } = useNSFWFilter();
+  const { isActive: wotActive, wotEnabled, setWotEnabled, canUseWoT } = useWebOfTrust();
   const [relaysOpen, setRelaysOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
@@ -271,6 +274,33 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
                 checked={filterEnabled}
                 onCheckedChange={setFilterEnabled}
                 disabled={!canToggle}
+                className="data-[state=checked]:bg-primary"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {wotActive ? (
+                  <UserCheck className="h-5 w-5 text-primary" />
+                ) : (
+                  <UserCheck className="h-5 w-5 text-muted-foreground" />
+                )}
+                <div className="flex flex-col">
+                  <Label 
+                    htmlFor="wot-toggle" 
+                    className={`cursor-pointer font-medium ${!canUseWoT ? 'opacity-50' : ''}`}
+                  >
+                    Web of Trust
+                  </Label>
+                  {!canUseWoT && (
+                    <span className="text-xs text-muted-foreground">Login to enable</span>
+                  )}
+                </div>
+              </div>
+              <Switch
+                id="wot-toggle"
+                checked={wotEnabled}
+                onCheckedChange={setWotEnabled}
+                disabled={!canUseWoT}
                 className="data-[state=checked]:bg-primary"
               />
             </div>

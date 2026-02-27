@@ -4,6 +4,8 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useFollows } from '@/hooks/useFollows';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useNSFWFilter } from '@/hooks/useNSFWFilter';
+import { useWebOfTrust } from '@/hooks/useWebOfTrust';
+import { useWebOfTrustNetwork } from '@/hooks/useWebOfTrustNetwork';
 import { filterNSFWContent } from '@/lib/nsfwDetection';
 import { filterEventsByTopic } from '@/lib/topicFilter';
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -14,9 +16,11 @@ export function useSearchPosts(searchQuery: string, limit: number = 100) {
   const { config } = useAppContext();
   const { data: followPubkeys = [] } = useFollows(user?.pubkey);
   const { shouldFilter } = useNSFWFilter();
+  const { isActive: wotActive } = useWebOfTrust();
+  const { data: wotNetwork = [] } = useWebOfTrustNetwork();
 
   return useQuery({
-    queryKey: ['search-posts', searchQuery, limit, user?.pubkey, config.relayMetadata.updatedAt, followPubkeys.length, shouldFilter, config.topicFilter],
+    queryKey: ['search-posts', searchQuery, limit, user?.pubkey, config.relayMetadata.updatedAt, followPubkeys.length, shouldFilter, config.topicFilter, wotActive, wotNetwork.length],
     queryFn: async () => {
       if (!searchQuery.trim()) {
         return [];
@@ -74,6 +78,11 @@ export function useSearchPosts(searchQuery: string, limit: number = 100) {
       // Apply topic filter
       if (config.topicFilter) {
         results = filterEventsByTopic(results, config.topicFilter);
+      }
+
+      // Apply Web of Trust filter
+      if (wotActive && wotNetwork.length > 0) {
+        results = results.filter((event) => wotNetwork.includes(event.pubkey));
       }
 
       return results;
