@@ -81,6 +81,7 @@ export default function SettingsPage() {
   const [relaysExpanded, setRelaysExpanded] = useState(false);
   const [topicFilterExpanded, setTopicFilterExpanded] = useState(false);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [showPersonalizedUploader, setShowPersonalizedUploader] = useState(false);
 
   // Get metadata for current user (only if user exists)
   const currentUserProfile = useAuthor(currentUser?.pubkey ?? '');
@@ -105,8 +106,11 @@ export default function SettingsPage() {
     }));
   };
 
-  const togglePersonalizedMode = () => {
-    if (hasPersonalizedTheme) {
+  const togglePersonalizedMode = (checked: boolean) => {
+    if (checked) {
+      // Show the uploader
+      setShowPersonalizedUploader(true);
+    } else {
       // Remove personalized theme
       updateConfig((current) => {
         const newConfig = { ...current };
@@ -118,8 +122,10 @@ export default function SettingsPage() {
       const root = document.documentElement;
       root.classList.remove('personalized-theme');
       root.style.removeProperty('--wallpaper-url');
+      
+      // Hide uploader
+      setShowPersonalizedUploader(false);
     }
-    // If turning on, do nothing - user needs to upload a wallpaper
   };
 
   const handleFontChange = (fontValue: string) => {
@@ -386,8 +392,8 @@ export default function SettingsPage() {
                 />
               </div>
 
-              {/* Personalized Theme Manager - only show when enabled */}
-              {hasPersonalizedTheme && (
+              {/* Personalized Theme Manager - show when enabled OR when user toggled it on */}
+              {(hasPersonalizedTheme || showPersonalizedUploader) && (
                 <>
                   <PersonalizedThemeManager />
                   <Separator />
