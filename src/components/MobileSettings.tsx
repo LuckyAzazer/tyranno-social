@@ -33,8 +33,17 @@ export function MobileSettings() {
       
       // Remove personalized theme from DOM
       const root = document.documentElement;
+      const body = document.body;
+      
       root.classList.remove('personalized-theme');
       root.style.removeProperty('--wallpaper-url');
+      
+      // Clear body background styles
+      body.style.removeProperty('background-image');
+      body.style.removeProperty('background-size');
+      body.style.removeProperty('background-position');
+      body.style.removeProperty('background-attachment');
+      body.style.removeProperty('background-repeat');
     }
   };
 
