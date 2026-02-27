@@ -15,7 +15,11 @@ import { Send, Eye, ImagePlus, AlertTriangle, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import type { NostrEvent } from '@nostrify/nostrify';
 
-export function ComposePost() {
+interface ComposePostProps {
+  onPostPublished?: () => void;
+}
+
+export function ComposePost({ onPostPublished }: ComposePostProps = {}) {
   const { user, metadata } = useCurrentUser();
   const { mutate: createEvent, isPending } = useNostrPublish();
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
@@ -122,6 +126,8 @@ export function ComposePost() {
             title: 'Post published!',
             description: 'Your post has been shared with the network.',
           });
+          // Trigger feed refresh
+          onPostPublished?.();
         },
         onError: () => {
           toast({

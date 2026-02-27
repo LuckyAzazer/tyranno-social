@@ -21,7 +21,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sparkles, FileText, Image, Music, Video, Users, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Sparkles, FileText, Image, Music, Video, Users, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw } from 'lucide-react';
 import { TyrannoCoin } from '@/components/TyrannoCoin';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useNavigate } from 'react-router-dom';
@@ -59,7 +59,9 @@ const Index = () => {
     isLoading: isLoadingFeed, 
     fetchNextPage: fetchNextFeedPage, 
     hasNextPage: hasNextFeedPage,
-    isFetchingNextPage: isFetchingNextFeedPage 
+    isFetchingNextPage: isFetchingNextFeedPage,
+    refetch: refetchFeed,
+    isRefetching: isRefetchingFeed
   } = useInfinitePosts(selectedCategory);
   
   const { 
@@ -67,7 +69,9 @@ const Index = () => {
     isLoading: isLoadingRelay,
     fetchNextPage: fetchNextRelayPage,
     hasNextPage: hasNextRelayPage,
-    isFetchingNextPage: isFetchingNextRelayPage
+    isFetchingNextPage: isFetchingNextRelayPage,
+    refetch: refetchRelay,
+    isRefetching: isRefetchingRelay
   } = useRelayFirehose(selectedRelay, selectedCategory);
   
   const { data: searchPosts, isLoading: isLoadingSearch } = useSearchPosts(searchQuery);
@@ -92,6 +96,12 @@ const Index = () => {
   const fetchNextPage = selectedRelay ? fetchNextRelayPage : fetchNextFeedPage;
   const hasNextPage = selectedRelay ? hasNextRelayPage : hasNextFeedPage;
   const isFetchingNextPage = selectedRelay ? isFetchingNextRelayPage : isFetchingNextFeedPage;
+  const refetch = selectedRelay ? refetchRelay : refetchFeed;
+  const isRefetching = selectedRelay ? isRefetchingRelay : isRefetchingFeed;
+
+  const handleRefresh = () => {
+    refetch();
+  };
 
   // Intersection observer for infinite scroll
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -215,7 +225,7 @@ const Index = () => {
           {/* Compose Section */}
           {user && !searchQuery && (
             <div className="animate-in fade-in slide-in-from-top-4 duration-700">
-              <ComposePost />
+              <ComposePost onPostPublished={handleRefresh} />
             </div>
           )}
 
@@ -268,6 +278,17 @@ const Index = () => {
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={isRefetching}
+                  className="gap-2"
+                  title="Refresh feed"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">Refresh</span>
+                </Button>
                 {posts && (
                   <span className="text-sm text-muted-foreground">
                     {posts.length} {posts.length === 1 ? 'post' : 'posts'}
