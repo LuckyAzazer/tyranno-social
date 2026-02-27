@@ -22,7 +22,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sparkles, FileText, Image, Music, Video, Users, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Sparkles, FileText, Image, Music, Video, Users, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap } from 'lucide-react';
 import { TyrannoCoin } from '@/components/TyrannoCoin';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useNavigate } from 'react-router-dom';
@@ -154,6 +154,20 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-rose-50/30 to-pink-50/40 dark:from-background dark:via-background dark:to-primary/5">
+      {/* Small Zap Link - Top Banner */}
+      <div className="bg-gradient-to-r from-amber-50/50 via-yellow-50/30 to-amber-50/50 dark:from-amber-950/20 dark:via-yellow-950/10 dark:to-amber-950/20 border-b border-amber-200/30 dark:border-amber-900/20">
+        <div className="px-4 py-1.5">
+          <div className="flex justify-center">
+            <a
+              href="lightning:deadwolf170@minibits.cash"
+              className="text-[10px] sm:text-xs text-amber-700/80 dark:text-amber-400/70 hover:text-amber-900 dark:hover:text-amber-300 transition-colors flex items-center gap-1.5 group"
+            >
+              <Zap className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-amber-500/50 dark:fill-amber-400/30 group-hover:fill-amber-600 dark:group-hover:fill-amber-300 transition-colors" />
+              <span className="font-medium">Appreciate the Zaps!</span>
+            </a>
+          </div>
+        </div>
+      </div>
       {/* Hero Header - Sticky */}
       <header className="sticky top-0 z-40 relative border-b border-border/50 bg-background/95 backdrop-blur-lg shadow-sm">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-rose-500/5 to-primary/10 -z-10" />
