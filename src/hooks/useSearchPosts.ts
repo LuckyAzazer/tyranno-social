@@ -26,31 +26,15 @@ export function useSearchPosts(searchQuery: string, limit: number = 100) {
         return [];
       }
 
-      // Get relay URLs from user's configuration
-      const relayUrls = config.relayMetadata.relays
-        .filter(r => r.read)
-        .map(r => r.url);
+      // Search across ALL configured relays (not just user's read relays)
+      // This ensures maximum search coverage across the entire relay network
+      const query = {
+        kinds: [1, 30023],
+        search: searchQuery,
+        limit,
+      };
 
-      // Create a relay group to query from user's relays
-      const relayGroup = relayUrls.length > 0 
-        ? nostr.group(relayUrls)
-        : nostr;
-
-      // Search within user's follows only
-      const query = followPubkeys.length > 0
-        ? {
-            kinds: [1, 30023],
-            authors: followPubkeys,
-            search: searchQuery,
-            limit,
-          }
-        : {
-            kinds: [1, 30023],
-            search: searchQuery,
-            limit: 20,
-          };
-
-      const events = await relayGroup.query([query]);
+      const events = await nostr.query([query]);
 
       // Client-side filtering as fallback (some relays may not support search)
       const filteredEvents = events.filter((event) => {
