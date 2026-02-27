@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, X, Download, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Download, ExternalLink, FolderDown } from 'lucide-react';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { useToast } from '@/hooks/useToast';
 
 interface ImageGalleryProps {
   images: string[];
@@ -13,6 +14,8 @@ interface ImageGalleryProps {
 
 export function ImageGallery({ images, initialIndex, open, onOpenChange }: ImageGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [isDownloadingAll, setIsDownloadingAll] = useState(false);
+  const { toast } = useToast();
 
   // Reset to initial index when dialog opens
   useEffect(() => {
@@ -67,6 +70,58 @@ export function ImageGallery({ images, initialIndex, open, onOpenChange }: Image
     }
   };
 
+  const handleDownloadAll = async () => {
+    if (images.length === 0) return;
+
+    setIsDownloadingAll(true);
+    
+    try {
+      toast({
+        title: 'Downloading images...',
+        description: `Starting download of ${images.length} ${images.length === 1 ? 'image' : 'images'}`,
+      });
+
+      // Download each image with a small delay to avoid overwhelming the browser
+      for (let i = 0; i < images.length; i++) {
+        const url = images[i];
+        
+        try {
+          const response = await fetch(url);
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = url.split('/').pop() || `image-${i + 1}.jpg`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(blobUrl);
+          
+          // Small delay between downloads
+          if (i < images.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+        } catch (error) {
+          console.error(`Failed to download image ${i + 1}:`, error);
+        }
+      }
+
+      toast({
+        title: 'Download complete!',
+        description: `Downloaded ${images.length} ${images.length === 1 ? 'image' : 'images'}`,
+      });
+    } catch (error) {
+      console.error('Download all failed:', error);
+      toast({
+        title: 'Download failed',
+        description: 'There was an error downloading the images',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDownloadingAll(false);
+    }
+  };
+
   const currentImage = images[currentIndex];
 
   return (
@@ -91,10 +146,26 @@ export function ImageGallery({ images, initialIndex, open, onOpenChange }: Image
               size="icon"
               className="text-white hover:bg-white/20 rounded-full"
               onClick={handleDownload}
-              title="Download image"
+              title="Download current image"
             >
               <Download className="h-5 w-5" />
             </Button>
+            {images.length > 1 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-white hover:bg-white/20 rounded-full"
+                onClick={handleDownloadAll}
+                disabled={isDownloadingAll}
+                title="Download all images"
+              >
+                {isDownloadingAll ? (
+                  <Download className="h-5 w-5 animate-pulse" />
+                ) : (
+                  <FolderDown className="h-5 w-5" />
+                )}
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"

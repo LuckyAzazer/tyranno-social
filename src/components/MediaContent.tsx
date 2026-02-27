@@ -147,16 +147,26 @@ export function MediaContent({ event }: MediaContentProps) {
                 className={`relative overflow-hidden rounded-lg bg-muted ${
                   images.length === 3 && index === 0 ? 'col-span-3' : ''
                 }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleImageClick(index);
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleImageClick(index);
+                  }
+                }}
+                data-gallery-image="true"
               >
                 <img
                   src={item.url}
                   alt=""
                   className="w-full h-auto object-cover transition-transform duration-300 hover:scale-105 cursor-pointer"
                   loading="lazy"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleImageClick(index);
-                  }}
                 />
               </div>
             ))}
