@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronLeft, ChevronRight, Download, FolderDown, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 
@@ -120,10 +121,11 @@ export function ImageGalleryNew({ images, open, onClose, initialIndex = 0 }: Ima
 
   const currentImage = images[currentIndex];
 
-  return (
+  const galleryContent = (
     <div
       className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center"
       onClick={onClose}
+      style={{ position: 'fixed' }}
     >
       {/* Close Button */}
       <button
@@ -255,4 +257,6 @@ export function ImageGalleryNew({ images, open, onClose, initialIndex = 0 }: Ima
       )}
     </div>
   );
+
+  return createPortal(galleryContent, document.body);
 }
