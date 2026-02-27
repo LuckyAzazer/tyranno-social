@@ -1,11 +1,9 @@
 // Service Worker for Tyrannosocial PWA
-const CACHE_NAME = 'tyrannosocial-v2';
+const CACHE_NAME = 'tyrannosocial-v3';
 const OFFLINE_URL = '/';
 
-// Assets to cache on install
+// Assets to cache on install (minimal set to avoid stale JS)
 const PRECACHE_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.webmanifest',
   '/icon-192.png',
   '/icon-512.png',
@@ -59,19 +57,32 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first strategy for static assets
+  // Network-first strategy for HTML and JS to always get fresh code
+  if (event.request.url.endsWith('.html') || event.request.url.endsWith('.js') || event.request.url.includes('/main-')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Cache the fresh response
+          if (response && response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          // Fallback to cache if offline
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
+  // Cache-first strategy for images and other static assets
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
-        // Return cached version and update cache in background
-        fetch(event.request).then((response) => {
-          if (response && response.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, response.clone());
-            });
-          }
-        }).catch(() => {});
-        
         return cachedResponse;
       }
 
