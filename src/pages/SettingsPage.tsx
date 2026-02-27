@@ -235,7 +235,7 @@ export default function SettingsPage() {
                           )}
                         </div>
                         {currentMetadata?.nip05 && (
-                          <Badge variant="secondary" className="gap-1 text-xs">
+                          <Badge variant="secondary" className="gap-1 text-xs bg-green-100 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800">
                             <Check className="h-3 w-3" />
                             {currentMetadata.nip05}
                           </Badge>

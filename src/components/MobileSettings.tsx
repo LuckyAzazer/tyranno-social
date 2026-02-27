@@ -21,12 +21,11 @@ export function MobileSettings() {
 
   const toggleTheme = () => {
     const newTheme = isDark ? 'light' : 'dark';
-    setTheme(newTheme);
     
     // If personalized mode is active, turn it off when toggling theme
     if (hasPersonalizedTheme) {
       updateConfig((current) => {
-        const newConfig = { ...current };
+        const newConfig = { ...current, theme: newTheme };
         delete newConfig.personalizedTheme;
         return newConfig;
       });
@@ -35,8 +34,9 @@ export function MobileSettings() {
       const root = document.documentElement;
       const body = document.body;
       
-      root.classList.remove('personalized-theme');
+      root.classList.remove('personalized-theme', 'light', 'dark');
       root.style.removeProperty('--wallpaper-url');
+      root.classList.add(newTheme);
       
       // Clear body background styles
       body.style.removeProperty('background-image');
@@ -44,6 +44,9 @@ export function MobileSettings() {
       body.style.removeProperty('background-position');
       body.style.removeProperty('background-attachment');
       body.style.removeProperty('background-repeat');
+    } else {
+      // Normal theme toggle
+      setTheme(newTheme);
     }
   };
 
