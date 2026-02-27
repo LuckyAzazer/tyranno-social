@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from 'react';
 import { z } from 'zod';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { AppContext, type AppConfig, type AppContextType, type Theme, type RelayMetadata, type DMInboxRelays, type PrivateHomeRelays, type PersonalizedTheme } from '@/contexts/AppContext';
+import { AppContext, type AppConfig, type AppContextType, type Theme, type RelayMetadata, type DMInboxRelays, type PrivateHomeRelays, type PersonalizedTheme, type TopicFilter } from '@/contexts/AppContext';
 import { initializePersonalizedTheme } from '@/components/PersonalizedThemeManager';
 
 interface AppProviderProps {
@@ -34,6 +34,24 @@ const PrivateHomeRelaysSchema = z.object({
   updatedAt: z.number(),
 }) satisfies z.ZodType<PrivateHomeRelays>;
 
+// Zod schema for TopicFilter validation
+const TopicFilterSchema = z.object({
+  keywords: z.array(z.string()),
+  hashtags: z.array(z.string()),
+  emojis: z.array(z.string()),
+}) satisfies z.ZodType<TopicFilter>;
+
+// Zod schema for PersonalizedTheme validation
+const PersonalizedThemeSchema = z.object({
+  wallpaperUrl: z.string(),
+  primaryColor: z.string(),
+  secondaryColor: z.string(),
+  accentColor: z.string(),
+  backgroundColor: z.string(),
+  foregroundColor: z.string(),
+  cardOpacity: z.number().optional(),
+}) satisfies z.ZodType<PersonalizedTheme>;
+
 // Zod schema for AppConfig validation
 const AppConfigSchema = z.object({
   theme: z.enum(['dark', 'light', 'system']),
@@ -41,6 +59,8 @@ const AppConfigSchema = z.object({
   dmInboxRelays: DMInboxRelaysSchema.optional(),
   privateHomeRelays: PrivateHomeRelaysSchema.optional(),
   showContentWarnings: z.boolean().optional().default(true),
+  topicFilter: TopicFilterSchema.optional(),
+  personalizedTheme: PersonalizedThemeSchema.optional(),
   fontFamily: z.string().optional(),
   fontSize: z.string().optional(),
 }) satisfies z.ZodType<AppConfig>;
