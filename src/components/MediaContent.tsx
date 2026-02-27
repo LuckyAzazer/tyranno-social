@@ -144,29 +144,21 @@ export function MediaContent({ event }: MediaContentProps) {
             {images.slice(0, 4).map((item, index) => (
               <div
                 key={`img-${index}`}
-                className={`relative overflow-hidden rounded-lg bg-muted ${
+                className={`relative overflow-hidden rounded-lg bg-muted cursor-pointer ${
                   images.length === 3 && index === 0 ? 'col-span-3' : ''
                 }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleImageClick(index);
-                }}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleImageClick(index);
-                  }
-                }}
-                data-gallery-image="true"
               >
                 <img
                   src={item.url}
                   alt=""
-                  className="w-full h-auto object-cover transition-transform duration-300 hover:scale-105 cursor-pointer"
+                  className="w-full h-auto object-cover transition-transform duration-300 hover:scale-105"
                   loading="lazy"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleImageClick(index);
+                  }}
+                  style={{ pointerEvents: 'auto' }}
                 />
               </div>
             ))}
