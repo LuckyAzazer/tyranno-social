@@ -10,6 +10,7 @@ import { EmbeddedAddressableEvent } from '@/components/EmbeddedAddressableEvent'
 import { MovieCard } from '@/components/MovieCard';
 import { ProfileCard } from '@/components/ProfileCard';
 import { SessionCard } from '@/components/SessionCard';
+import { ServiceProviderCard } from '@/components/ServiceProviderCard';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal } from 'lucide-react';
 
@@ -61,6 +62,15 @@ export function NoteContent({
     return (
       <div className={className}>
         <SessionCard data={jsonData} />
+      </div>
+    );
+  }
+
+  // If it's service provider data (VPN, network provider, etc.), render as a service provider card
+  if (jsonData && (jsonData.provider_name || jsonData.endpoint) && (jsonData.region || jsonData.wg_public_key)) {
+    return (
+      <div className={className}>
+        <ServiceProviderCard data={jsonData} />
       </div>
     );
   }
