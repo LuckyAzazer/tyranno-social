@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { LinkPreview } from './LinkPreview';
-import { ImageGallery } from './ImageGallery';
+import { ImageGalleryNew } from './ImageGalleryNew';
 import { VideoPlayer } from './VideoPlayer';
 import { MusicPlayer } from './MusicPlayer';
 import { YouTubeEmbed, isYouTubeUrl } from './YouTubeEmbed';
@@ -260,11 +260,11 @@ export function MediaContent({ event }: MediaContentProps) {
       </div>
 
       {/* Image Gallery */}
-      <ImageGallery
+      <ImageGalleryNew
         images={imageUrls}
-        initialIndex={galleryIndex}
         open={galleryOpen}
-        onOpenChange={setGalleryOpen}
+        onClose={() => setGalleryOpen(false)}
+        initialIndex={galleryIndex}
       />
     </>
   );
