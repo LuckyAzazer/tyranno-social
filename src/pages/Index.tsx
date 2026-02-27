@@ -13,6 +13,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { MobileSidebar } from '@/components/MobileSidebar';
 import { ColumnSelector } from '@/components/ColumnSelector';
 import { ScrollToTop } from '@/components/ScrollToTop';
+import { InstallPWA } from '@/components/InstallPWA';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useUnreadDMCount } from '@/hooks/useUnreadDMCount';
@@ -466,6 +467,9 @@ const Index = () => {
 
       {/* Scroll to Top Button */}
       <ScrollToTop />
+
+      {/* PWA Install Prompt */}
+      <InstallPWA />
 
       {/* NSFW Filter Info Dialog */}
       <Dialog open={nsfwInfoOpen} onOpenChange={setNsfwInfoOpen}>
