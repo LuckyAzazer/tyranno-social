@@ -54,7 +54,20 @@ export function PersonalizedThemeManager() {
         
         try {
           // Extract colors from image
-          const colors = await extractColorsFromImage(dataUrl);
+          let colors;
+          try {
+            colors = await extractColorsFromImage(dataUrl);
+          } catch (extractError) {
+            console.warn('Color extraction failed, using default colors:', extractError);
+            // Use default theme colors if extraction fails
+            colors = {
+              primary: '#e11d48', // Rose-600
+              secondary: '#f43f5e', // Rose-500
+              accent: '#fb923c', // Orange-400
+              background: '#ffffff',
+              foreground: '#0a0a0a',
+            };
+          }
           
           // Apply colors to CSS variables
           applyPersonalizedTheme(colors, dataUrl, cardOpacity);
@@ -78,10 +91,10 @@ export function PersonalizedThemeManager() {
             description: 'Your personalized theme has been applied.',
           });
         } catch (error) {
-          console.error('Failed to extract colors:', error);
+          console.error('Failed to process wallpaper:', error);
           toast({
-            title: 'Failed to process image',
-            description: 'Could not extract colors from the image. Please try a different image.',
+            title: 'Failed to upload wallpaper',
+            description: 'There was an error processing the file. Please try again.',
             variant: 'destructive',
           });
         } finally {
