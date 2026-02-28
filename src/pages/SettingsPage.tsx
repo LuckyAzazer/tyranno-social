@@ -177,7 +177,7 @@ export default function SettingsPage() {
                   <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 blur-xl opacity-60 animate-pulse dark:from-yellow-600 dark:via-red-900 dark:to-yellow-700 dark:opacity-50" />
                   <div className="relative p-1 bg-gradient-to-br from-rose-100/50 to-pink-100/30 rounded-full dark:from-transparent dark:to-transparent">
                     <img 
-                      src="/icon-512.png" 
+                      src={`${import.meta.env.BASE_URL}icon-512.png`} 
                       alt="Tyrannosocial Logo" 
                       className="h-10 w-10 drop-shadow-2xl filter brightness-110 rounded-full"
                     />
