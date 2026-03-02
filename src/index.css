@@ -233,4 +233,24 @@
   .personalized-theme .text-muted-foreground {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
+
+  /* Hide scrollbars */
+  .hide-scrollbar {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+
+  /* Hide scrollbar in ScrollArea viewport */
+  .hide-scrollbar [data-radix-scroll-area-viewport] {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .hide-scrollbar [data-radix-scroll-area-viewport]::-webkit-scrollbar {
+    display: none;
+  }
 }

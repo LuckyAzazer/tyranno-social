@@ -213,7 +213,7 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
         // Collapsed state - just show the toggle button
         <div className="sticky top-4" />
       ) : (
-        <ScrollArea className="h-[calc(100vh-2rem)] sticky top-4">
+        <ScrollArea className="h-[calc(100vh-2rem)] sticky top-4 hide-scrollbar">
           <div className="space-y-4 pr-4 pb-8">
         {/* Theme Toggle */}
         <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-rose-50/30 dark:from-card dark:to-card">
@@ -398,26 +398,32 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
           </CardContent>
         </Card>
 
-        {/* Direct Messages */}
-        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-indigo-50/20 dark:from-card dark:to-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MessageCircle className="h-5 w-5 text-primary" />
-              Direct Messages
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full group"
-              onClick={() => navigate('/messages')}
-            >
-              <MessageCircle className="h-4 w-4 mr-2 group-hover:text-indigo-500 transition-colors" />
-              Open Messages
-            </Button>
-          </CardContent>
-        </Card>
+        {/* Direct Messages - Hivetalk Style */}
+        <button
+          onClick={() => navigate('/messages')}
+          className="w-full group relative overflow-hidden rounded-xl border-2 border-primary/20 hover:border-primary/40 bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-pink-50/50 dark:from-indigo-950/20 dark:via-purple-950/10 dark:to-pink-950/20 transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="relative p-6 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+                <div className="relative p-3 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 group-hover:from-primary/30 group-hover:to-primary/20 transition-all duration-300">
+                  <MessageCircle className="h-6 w-6 text-primary" />
+                </div>
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">
+                  Messages
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Private conversations
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
+          </div>
+        </button>
 
         {/* Notifications */}
         <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-purple-50/20 dark:from-card dark:to-card">
