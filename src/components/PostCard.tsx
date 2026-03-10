@@ -18,6 +18,7 @@ import { MediaContent } from '@/components/MediaContent';
 import { ZapButton } from '@/components/ZapButton';
 import { BookmarkListsDialog } from '@/components/BookmarkListsDialog';
 import { ContentWarningWrapper } from '@/components/ContentWarningWrapper';
+import { FollowRepliesPreview } from '@/components/FollowRepliesPreview';
 import { nip19 } from 'nostr-tools';
 import { MessageCircle, Repeat2, Bookmark, MoreHorizontal, Copy, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -225,6 +226,9 @@ export function PostCard({ event, onClick }: PostCardProps) {
             })}
           </div>
         )}
+
+        {/* Replies from people the user follows */}
+        <FollowRepliesPreview event={displayEvent} onReplyClick={() => onClick?.()} />
 
         <div className="flex items-center justify-between pt-2 border-t border-border/50">
           <div className="flex items-center gap-1">
