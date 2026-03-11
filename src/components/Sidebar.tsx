@@ -112,7 +112,7 @@ function BookmarkSetContent({ setId }: { setId: string }) {
     <>
       <div className="space-y-3 pt-2">
         {items.map((event) => (
-          <PostCard key={event.id} event={event} onClick={() => setSelectedPost(event)} />
+          <PostCard key={event.id} event={event} onClick={(displayEvent) => setSelectedPost(displayEvent)} />
         ))}
       </div>
       {selectedPost && (

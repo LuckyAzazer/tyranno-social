@@ -33,7 +33,7 @@ import {
 
 interface PostCardProps {
   event: NostrEvent;
-  onClick?: () => void;
+  onClick?: (displayEvent: NostrEvent) => void;
 }
 
 export function PostCard({ event, onClick }: PostCardProps) {
@@ -109,7 +109,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
   return (
     <Card
       className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border/50 hover:border-primary/20 dark:border-transparent cursor-pointer bg-gradient-to-br from-card via-card to-rose-50/20 dark:from-card dark:via-card dark:to-card"
-      onClick={onClick}
+      onClick={() => onClick?.(displayEvent)}
     >
       {isRepost && repostedEvent && (
         <div className="px-4 pt-3 pb-2">
@@ -201,7 +201,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
               variant="ghost"
               size="sm"
               className="h-8 px-2 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
-              onClick={() => onClick?.()}
+              onClick={() => onClick?.(displayEvent)}
             >
               <MessageCircle className="h-4 w-4 mr-1" />
               {replyCount > 0 && <span className="text-xs">{replyCount}</span>}

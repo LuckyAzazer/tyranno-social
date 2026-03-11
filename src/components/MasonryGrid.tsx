@@ -133,7 +133,7 @@ export function MasonryGrid({ posts, columns: columnsProp, onPostClick }: Masonr
               <PostCard 
                 key={post.id} 
                 event={post} 
-                onClick={() => onPostClick?.(post)}
+                onClick={(displayEvent) => onPostClick?.(displayEvent)}
               />
             ))}
           </div>
