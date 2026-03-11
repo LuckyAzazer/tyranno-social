@@ -501,7 +501,13 @@ const Index = () => {
                       <p className="text-xs text-muted-foreground">Private conversations</p>
                     </div>
                   </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-primary -rotate-90 group-hover:translate-x-1 transition-all duration-300" />
+                  {unreadDMCount > 0 ? (
+                    <Badge className="bg-red-500 hover:bg-red-500 text-white text-xs font-bold min-w-6 h-6 flex items-center justify-center rounded-full border-2 border-background animate-pulse">
+                      {unreadDMCount > 99 ? '99+' : unreadDMCount}
+                    </Badge>
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-primary -rotate-90 group-hover:translate-x-1 transition-all duration-300" />
+                  )}
                 </div>
               </button>
 
