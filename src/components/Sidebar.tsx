@@ -186,7 +186,7 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
         // Collapsed state - just show the toggle button
         <div className="sticky top-4" />
       ) : (
-        <div className="sticky top-4 flex flex-col" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
+        <div className="sticky top-20 flex flex-col" style={{ maxHeight: 'calc(100vh - 6rem)' }}>
         <div className="overflow-y-auto overscroll-contain space-y-4 pl-0 pr-4 pb-8 scrollbar-thin scrollbar-thumb-border hover:scrollbar-thumb-primary/30">
         {/* Theme Toggle */}
         <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-rose-50/30 dark:from-card dark:to-card">
