@@ -235,23 +235,6 @@ const Index = () => {
                 <SearchBar onSearch={setSearchQuery} />
               </div>
               
-              {/* DM Button with Unread Badge - Only show on desktop (hidden on mobile since it's in bottom nav) */}
-              {user && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/messages')}
-                  className="relative h-10 w-10 hidden lg:flex"
-                  aria-label={`Messages${unreadDMCount > 0 ? ` (${unreadDMCount} unread)` : ''}`}
-                >
-                  <MessageCircle className="h-5 w-5" />
-                  {unreadDMCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1.5 bg-red-500 hover:bg-red-500 text-white text-xs border-2 border-background">
-                      {unreadDMCount > 9 ? '9+' : unreadDMCount}
-                    </Badge>
-                  )}
-                </Button>
-              )}
               
               <LoginArea className="max-w-60 hidden sm:flex" />
             </div>
