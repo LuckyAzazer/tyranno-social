@@ -1,8 +1,9 @@
-import { useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSeoMeta } from '@unhead/react';
 import { useSearchPosts } from '@/hooks/useSearchPosts';
 import { MasonryGrid } from '@/components/MasonryGrid';
+import { PostModal } from '@/components/PostModal';
 import { LoginArea } from '@/components/auth/LoginArea';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -10,8 +11,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PostDetailDialog } from '@/components/PostDetailDialog';
-import { useState } from 'react';
 import { ArrowLeft, Hash, Sparkles } from 'lucide-react';
 import type { NostrEvent } from '@nostrify/nostrify';
 
@@ -21,8 +20,6 @@ export function HashtagPage() {
   const { user } = useCurrentUser();
   const [columns] = useLocalStorage<number>('masonry-columns', 3);
   const [selectedPost, setSelectedPost] = useState<NostrEvent | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-
   const hashtag = tag ?? '';
 
   useSeoMeta({
@@ -31,11 +28,6 @@ export function HashtagPage() {
   });
 
   const { data: posts, isLoading } = useSearchPosts(`#${hashtag}`, 100);
-
-  const handlePostClick = (event: NostrEvent) => {
-    setSelectedPost(event);
-    setDialogOpen(true);
-  };
 
   if (!hashtag) {
     return null;
@@ -114,7 +106,7 @@ export function HashtagPage() {
           </div>
         ) : posts && posts.length > 0 ? (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <MasonryGrid posts={posts} columns={columns} onPostClick={handlePostClick} />
+            <MasonryGrid posts={posts} columns={columns} onPostClick={setSelectedPost} />
           </div>
         ) : (
           <Card className="border-dashed max-w-md mx-auto mt-16">
@@ -137,11 +129,9 @@ export function HashtagPage() {
         )}
       </main>
 
-      <PostDetailDialog
-        event={selectedPost}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-      />
+      {selectedPost && (
+        <PostModal event={selectedPost} onClose={() => setSelectedPost(null)} />
+      )}
     </div>
   );
 }

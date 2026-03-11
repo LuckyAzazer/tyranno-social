@@ -5,8 +5,8 @@ import { useInfinitePosts } from '@/hooks/useInfinitePosts';
 import { useSearchPosts } from '@/hooks/useSearchPosts';
 import { useRelayFirehose } from '@/hooks/useRelayFirehose';
 import { MasonryGrid } from '@/components/MasonryGrid';
+import { PostModal } from '@/components/PostModal';
 import { ComposePost } from '@/components/ComposePost';
-import { PostDetailDialog } from '@/components/PostDetailDialog';
 import { SearchBar } from '@/components/SearchBar';
 import { LoginArea } from '@/components/auth/LoginArea';
 import { Sidebar } from '@/components/Sidebar';
@@ -39,7 +39,6 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<FeedCategory>('following');
   const [columns, setColumns] = useLocalStorage<number>('masonry-columns', 3);
   const [selectedPost, setSelectedPost] = useState<NostrEvent | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRelay, setSelectedRelay] = useState<string | null>(null);
   const [nsfwInfoOpen, setNsfwInfoOpen] = useState(false);
@@ -146,11 +145,6 @@ const Index = () => {
   };
 
   const CategoryIcon = categoryIcons[selectedCategory];
-
-  const handlePostClick = (event: NostrEvent) => {
-    setSelectedPost(event);
-    setDialogOpen(true);
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-rose-50/30 to-pink-50/40 dark:from-background dark:via-background dark:to-primary/5">
@@ -391,7 +385,7 @@ const Index = () => {
             ) : posts && posts.length > 0 ? (
               <>
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                  <MasonryGrid posts={posts} columns={columns} onPostClick={handlePostClick} />
+                   <MasonryGrid posts={posts} columns={columns} onPostClick={setSelectedPost} />
                 </div>
 
                 {/* Infinite scroll trigger and loading indicator */}
@@ -457,12 +451,10 @@ const Index = () => {
         </div>
       </footer>
 
-      {/* Post Detail Dialog */}
-      <PostDetailDialog
-        event={selectedPost}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-      />
+      {/* Post Modal */}
+      {selectedPost && (
+        <PostModal event={selectedPost} onClose={() => setSelectedPost(null)} />
+      )}
 
       {/* Scroll to Top Button */}
       <ScrollToTop />

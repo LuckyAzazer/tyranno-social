@@ -6,7 +6,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useFloatingDM } from '@/contexts/FloatingDMContext';
 import { useToast } from '@/hooks/useToast';
 import { MasonryGrid } from '@/components/MasonryGrid';
-import { PostDetailDialog } from '@/components/PostDetailDialog';
+import { PostModal } from '@/components/PostModal';
 import { ColumnSelector } from '@/components/ColumnSelector';
 import { ColorThemeSelector } from '@/components/ColorThemeSelector';
 import { FollowListDialog } from '@/components/FollowListDialog';
@@ -38,7 +38,6 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
   const { toast } = useToast();
   const [columns, setColumns] = useLocalStorage<number>('masonry-columns', 3);
   const [selectedPost, setSelectedPost] = useState<NostrEvent | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [followListOpen, setFollowListOpen] = useState(false);
   const [followListTab, setFollowListTab] = useState<'followers' | 'following'>('followers');
@@ -82,11 +81,6 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
     title: `${displayName} (@${username}) - Tyrannosocial`,
     description: bio || `View ${displayName}'s profile on Tyrannosocial`,
   });
-
-  const handlePostClick = (event: NostrEvent) => {
-    setSelectedPost(event);
-    setDialogOpen(true);
-  };
 
   const handleOpenFollowers = () => {
     setFollowListTab('followers');
@@ -340,7 +334,7 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
                 ))}
               </div>
             ) : posts && posts.length > 0 ? (
-              <MasonryGrid posts={posts} columns={columns} onPostClick={handlePostClick} />
+              <MasonryGrid posts={posts} columns={columns} onPostClick={setSelectedPost} />
             ) : (
               <Card className="border-dashed">
                 <CardContent className="py-12 px-8 text-center">
@@ -352,12 +346,9 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
         </div>
       </div>
 
-      {/* Post Detail Dialog */}
-      <PostDetailDialog
-        event={selectedPost}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-      />
+      {selectedPost && (
+        <PostModal event={selectedPost} onClose={() => setSelectedPost(null)} />
+      )}
 
       {/* Edit Profile Dialog */}
       <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>

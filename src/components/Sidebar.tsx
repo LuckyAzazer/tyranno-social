@@ -24,9 +24,8 @@ import {
 } from '@/components/ui/select';
 import { RelayListManager } from '@/components/RelayListManager';
 import { PostCard } from '@/components/PostCard';
-import { PostDetailDialog } from '@/components/PostDetailDialog';
+import { PostModal } from '@/components/PostModal';
 import { NotificationItem } from '@/components/NotificationItem';
-import type { NostrEvent } from '@nostrify/nostrify';
 import {
   Moon,
   Sun,
@@ -79,13 +78,7 @@ interface SidebarProps {
 
 function BookmarkSetContent({ setId }: { setId: string }) {
   const { data: items, isLoading } = useBookmarkSetItems(setId);
-  const [selectedEvent, setSelectedEvent] = useState<NostrEvent | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-
-  const handleEventClick = (event: NostrEvent) => {
-    setSelectedEvent(event);
-    setDialogOpen(true);
-  };
+  const [selectedPost, setSelectedPost] = useState<import('@nostrify/nostrify').NostrEvent | null>(null);
 
   if (isLoading) {
     return (
@@ -119,10 +112,12 @@ function BookmarkSetContent({ setId }: { setId: string }) {
     <>
       <div className="space-y-3 pt-2">
         {items.map((event) => (
-          <PostCard key={event.id} event={event} onClick={() => handleEventClick(event)} />
+          <PostCard key={event.id} event={event} onClick={() => setSelectedPost(event)} />
         ))}
       </div>
-      <PostDetailDialog event={selectedEvent} open={dialogOpen} onOpenChange={setDialogOpen} />
+      {selectedPost && (
+        <PostModal event={selectedPost} onClose={() => setSelectedPost(null)} />
+      )}
     </>
   );
 }
