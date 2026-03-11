@@ -192,16 +192,16 @@ const Index = () => {
       <header className="sticky top-0 z-40 relative border-b border-border/50 bg-background/95 backdrop-blur-lg shadow-sm">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-rose-500/5 to-primary/10 -z-10" />
         <div className="px-4 py-4">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center justify-between gap-3">
             {/* Logo and Title */}
-            <div className="flex items-center gap-3 flex-1 sm:flex-initial">
+            <div className="flex items-center gap-3 shrink-0">
               <div className="relative shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 blur-xl opacity-60 animate-pulse dark:from-yellow-600 dark:via-red-900 dark:to-yellow-700 dark:opacity-50" />
                 <div className="relative p-1 bg-gradient-to-br from-rose-100/50 to-pink-100/30 rounded-full dark:from-transparent dark:to-transparent">
-                  <img 
-                    src="/icon-512.png" 
-                    alt="Tyrannosocial Logo" 
-                    className="h-12 w-12 sm:h-14 sm:w-14 drop-shadow-2xl filter brightness-110 rounded-full"
+                  <img
+                    src="/icon-512.png"
+                    alt="Tyrannosocial Logo"
+                    className="h-10 w-10 sm:h-12 sm:w-12 drop-shadow-2xl filter brightness-110 rounded-full"
                   />
                 </div>
               </div>
@@ -228,15 +228,14 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Right Side - Search, DM Button, Login and Mobile Menu */}
-            <div className="flex items-center gap-2 shrink-0">
-              {/* Search Bar - Desktop */}
-              <div className="hidden md:block w-64 lg:w-80">
-                <SearchBar onSearch={setSearchQuery} />
-              </div>
-              
-              
-              <LoginArea className="max-w-60 hidden sm:flex" />
+            {/* Search Bar - Desktop (hidden on mobile, shown below) */}
+            <div className="hidden md:block flex-1 max-w-sm lg:max-w-lg">
+              <SearchBar onSearch={setSearchQuery} />
+            </div>
+
+            {/* Login/Avatar — always visible */}
+            <div className="shrink-0">
+              <LoginArea className="max-w-60" />
             </div>
           </div>
 
