@@ -98,15 +98,9 @@ export function PostCard({ event, onClick }: PostCardProps) {
     : [];
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Don't trigger if clicking on links, buttons (except image gallery triggers), or images
     const target = e.target as HTMLElement;
-    
-    // Check if this is an image gallery trigger button
-    if (target.closest('[data-image-gallery-trigger]')) {
-      return;
-    }
-    
-    if (target.closest('a, button') || target.tagName === 'IMG') {
+    // Only suppress the card click if the user hit something explicitly marked as interactive
+    if (target.closest('[data-no-card-click]')) {
       return;
     }
     onClick?.();
@@ -164,7 +158,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
       )}
       <CardHeader className={isRepost && repostedEvent ? "pb-3 pt-2" : "pb-3"}>
         <div className="flex items-start gap-3">
-          <Link to={`/${npub}`} className="shrink-0" onClick={(e) => e.stopPropagation()}>
+          <Link to={`/${npub}`} className="shrink-0" data-no-card-click>
             <Avatar className="h-10 w-10 ring-2 ring-background transition-all group-hover:ring-primary/20">
               <AvatarImage src={profileImage} alt={displayName} />
               <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
@@ -178,7 +172,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
                 <Link
                   to={`/${npub}`}
                   className="font-semibold text-foreground hover:text-primary transition-colors line-clamp-1"
-                  onClick={(e) => e.stopPropagation()}
+                  data-no-card-click
                 >
                   {displayName}
                 </Link>
@@ -187,7 +181,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
               <Link
                 to={`/${noteId}`}
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                onClick={(e) => e.stopPropagation()}
+                data-no-card-click
               >
                 {timeAgo}
               </Link>
@@ -201,7 +195,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
         </div>
 
         {/* Media Display (images, videos, link previews) */}
-        <div className="mb-4">
+        <div className="mb-4" data-no-card-click>
           <ContentWarningWrapper event={displayEvent} mediaOnly={true}>
             <MediaContent event={displayEvent} />
           </ContentWarningWrapper>
@@ -228,18 +222,17 @@ export function PostCard({ event, onClick }: PostCardProps) {
         )}
 
         {/* Replies from people the user follows */}
-        <FollowRepliesPreview event={displayEvent} onReplyClick={() => onClick?.()} />
+        <div data-no-card-click>
+          <FollowRepliesPreview event={displayEvent} onReplyClick={() => onClick?.()} />
+        </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+        <div className="flex items-center justify-between pt-2 border-t border-border/50" data-no-card-click>
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
               className="h-8 px-2 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                onClick?.();
-              }}
+              onClick={() => onClick?.()}
             >
               <MessageCircle className="h-4 w-4 mr-1" />
               {replyCount > 0 && <span className="text-xs">{replyCount}</span>}
@@ -248,20 +241,17 @@ export function PostCard({ event, onClick }: PostCardProps) {
               variant="ghost"
               size="sm"
               className="h-8 px-2 text-muted-foreground hover:text-green-500 hover:bg-green-500/10 transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
+              onClick={() => {
                 // Add repost functionality if needed
               }}
             >
               <Repeat2 className="h-4 w-4" />
             </Button>
-            <div onClick={(e) => e.stopPropagation()}>
-              <ZapButton
-                target={displayEvent as any}
-                className="h-8 px-2 text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10 transition-colors flex items-center gap-1"
-                showCount={true}
-              />
-            </div>
+            <ZapButton
+              target={displayEvent as any}
+              className="h-8 px-2 text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10 transition-colors flex items-center gap-1"
+              showCount={true}
+            />
             <Button
               variant="ghost"
               size="sm"
@@ -282,7 +272,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
           </div>
 
           {/* More options menu */}
-          <div onClick={(e) => e.stopPropagation()}>
+          <div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
