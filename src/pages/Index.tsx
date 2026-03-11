@@ -237,12 +237,6 @@ const Index = () => {
 
           {/* Feed Section */}
           <div className="flex-1 min-w-0 space-y-6">
-          {/* Compose Section */}
-          {user && !searchQuery && (
-            <div className="animate-in fade-in slide-in-from-top-4 duration-700">
-              <ComposePost onPostPublished={handleRefresh} />
-            </div>
-          )}
 
           {/* Feed Selector and Column Selector */}
           {!searchQuery && (
@@ -431,6 +425,26 @@ const Index = () => {
             )}
           </div>
           </div>
+
+          {/* Right Sidebar */}
+          <aside className="w-80 shrink-0 hidden xl:block">
+            <div className="sticky top-4 space-y-4">
+              {user ? (
+                <ComposePost onPostPublished={handleRefresh} />
+              ) : (
+                <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-primary/5">
+                  <CardContent className="pt-6 pb-5 space-y-3 text-center">
+                    <div className="inline-flex p-3 rounded-full bg-primary/10 mb-1">
+                      <Sparkles className="h-6 w-6 text-primary" />
+                    </div>
+                    <p className="font-semibold">Join Tyrannosocial</p>
+                    <p className="text-sm text-muted-foreground">Log in to post, reply, react, and more.</p>
+                    <LoginArea className="w-full" />
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </aside>
         </div>
       </main>
 
