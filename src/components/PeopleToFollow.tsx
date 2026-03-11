@@ -1,6 +1,7 @@
 /**
  * PeopleToFollow — "Who to Follow" suggestion panel.
  * Shows active users the current user is not yet following.
+ * The panel is collapsible — state persisted in localStorage.
  */
 
 import { Link } from 'react-router-dom';
@@ -8,12 +9,14 @@ import { nip19 } from 'nostr-tools';
 import { useSuggestedUsers } from '@/hooks/useSuggestedUsers';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { FollowButton } from '@/components/FollowButton';
 import { genUserName } from '@/lib/genUserName';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Users, ChevronDown, ChevronUp } from 'lucide-react';
 import type { NostrMetadata } from '@nostrify/nostrify';
 
 function SuggestedUserRow({ pubkey }: { pubkey: string }) {
@@ -50,41 +53,70 @@ function SuggestedUserRow({ pubkey }: { pubkey: string }) {
 export function PeopleToFollow() {
   const { user } = useCurrentUser();
   const { data: suggestions, isLoading } = useSuggestedUsers(5);
+  const [collapsed, setCollapsed] = useLocalStorage<boolean>('who-to-follow-collapsed', false);
 
   // Only show when logged in
   if (!user) return null;
   if (!isLoading && (!suggestions || suggestions.length === 0)) return null;
 
   return (
-    <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-blue-50/20 dark:from-card dark:to-card">
+    <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-blue-50/20 dark:from-card dark:to-card overflow-hidden">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Users className="h-4 w-4 text-primary" />
-          Who to Follow
-        </CardTitle>
+        {/* Clickable header row toggles collapse */}
+        <button
+          className="flex items-center justify-between w-full group"
+          onClick={() => setCollapsed(!collapsed)}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? 'Expand Who to Follow' : 'Collapse Who to Follow'}
+        >
+          <span className="text-base font-semibold flex items-center gap-2 group-hover:text-primary transition-colors">
+            <Users className="h-4 w-4 text-primary" />
+            Who to Follow
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors pointer-events-none"
+            tabIndex={-1}
+          >
+            {collapsed ? (
+              <ChevronDown className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronUp className="h-3.5 w-3.5" />
+            )}
+          </Button>
+        </button>
       </CardHeader>
-      <CardContent className="pb-4">
-        {isLoading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-9 w-9 rounded-full shrink-0" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-3.5 w-24" />
-                  <Skeleton className="h-3 w-16" />
+
+      {/* Animated collapse */}
+      <div
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          collapsed ? 'max-h-0 opacity-0' : 'max-h-[500px] opacity-100'
+        }`}
+      >
+        <CardContent className="pb-4 pt-0">
+          {isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-3.5 w-24" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                  <Skeleton className="h-8 w-8 rounded-md" />
                 </div>
-                <Skeleton className="h-8 w-8 rounded-md" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="divide-y divide-border/30">
-            {suggestions?.map((s) => (
-              <SuggestedUserRow key={s.pubkey} pubkey={s.pubkey} />
-            ))}
-          </div>
-        )}
-      </CardContent>
+              ))}
+            </div>
+          ) : (
+            <div className="divide-y divide-border/30">
+              {suggestions?.map((s) => (
+                <SuggestedUserRow key={s.pubkey} pubkey={s.pubkey} />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </div>
     </Card>
   );
 }
