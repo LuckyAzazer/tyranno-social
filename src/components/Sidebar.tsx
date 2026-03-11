@@ -25,6 +25,7 @@ import { RelayListManager } from '@/components/RelayListManager';
 import { PostCard } from '@/components/PostCard';
 import { PostModal } from '@/components/PostModal';
 import { TrendingHashtags } from '@/components/TrendingHashtags';
+import { PeopleToFollow } from '@/components/PeopleToFollow';
 import {
   Moon,
   Sun,
@@ -371,6 +372,9 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
 
         {/* Trending Hashtags */}
         <TrendingHashtags />
+
+        {/* Who to Follow */}
+        <PeopleToFollow />
 
         {/* Bookmark Lists */}
         <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-pink-50/20 dark:from-card dark:to-card">

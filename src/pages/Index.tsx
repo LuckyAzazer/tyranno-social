@@ -33,7 +33,7 @@ import { WalletBalance } from '@/components/WalletBalance';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useNavigate } from 'react-router-dom';
 import { useMutedUsers } from '@/hooks/useMutedUsers';
-import { PeopleToFollow } from '@/components/PeopleToFollow';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -516,9 +516,6 @@ const Index = () => {
                   )}
                 </div>
               </button>
-
-              {/* People to Follow */}
-              <PeopleToFollow />
 
               {/* Notifications panel */}
               {user && (
