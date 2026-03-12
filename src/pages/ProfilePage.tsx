@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { useProfile, useUserPosts } from '@/hooks/useProfile';
 import { useFollowStats } from '@/hooks/useFollowers';
+import { usePinnedPost } from '@/hooks/usePinnedPost';
+import { useEventById } from '@/hooks/useEventById';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useFloatingDM } from '@/contexts/FloatingDMContext';
 import { useToast } from '@/hooks/useToast';
@@ -18,8 +20,11 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { genUserName } from '@/lib/genUserName';
-import { ArrowLeft, Link as LinkIcon, Mail, Zap, CheckCircle2, Edit, Copy, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon, Mail, Zap, CheckCircle2, Edit, Copy, MessageCircle, CircleDot, ChevronDown, Pin } from 'lucide-react';
+import { PostCard } from '@/components/PostCard';
 import { FollowButton } from '@/components/FollowButton';
+import { useFollowSets } from '@/hooks/useFollowSets';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
 import { EditProfileForm } from '@/components/EditProfileForm';
@@ -48,6 +53,9 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
 
   // Check if this is the current user's own profile
   const isOwnProfile = user?.pubkey === pubkey;
+  const { followSets, addToCircle, removeFromCircle } = useFollowSets();
+  const { pinnedEventId } = usePinnedPost(pubkey);
+  const { data: pinnedEvent } = useEventById(pinnedEventId ?? null);
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -277,6 +285,36 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
                         ) : (
                           <>
                             <FollowButton pubkey={pubkey} className="w-full justify-center" />
+                            {/* Add to Circle */}
+                            {user && followSets.length > 0 && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="outline" className="gap-2 w-full">
+                                    <CircleDot className="h-4 w-4 text-violet-500" />
+                                    Add to Circle
+                                    <ChevronDown className="h-3.5 w-3.5 opacity-50 ml-auto" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-52">
+                                  {followSets.map((set) => {
+                                    const inCircle = set.pubkeys.includes(pubkey);
+                                    return (
+                                      <DropdownMenuItem
+                                        key={set.dTag}
+                                        className="gap-2 cursor-pointer"
+                                        onClick={() => inCircle
+                                          ? removeFromCircle({ dTag: set.dTag, pubkey })
+                                          : addToCircle({ dTag: set.dTag, pubkey })}
+                                      >
+                                        <CircleDot className={`h-3.5 w-3.5 ${inCircle ? 'text-primary' : 'text-muted-foreground'}`} />
+                                        <span className="flex-1">{set.title}</span>
+                                        {inCircle && <span className="text-xs text-primary">✓</span>}
+                                      </DropdownMenuItem>
+                                    );
+                                  })}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                             <Button
                               onClick={handleSendDM}
                               variant="outline"
@@ -305,6 +343,20 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
               </CardContent>
             </Card>
           </div>
+
+          {/* Pinned Post */}
+          {pinnedEvent && (
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center gap-2 px-2 text-sm font-semibold text-muted-foreground">
+                <Pin className="h-4 w-4 text-primary" />
+                Pinned Post
+              </div>
+              <PostCard
+                event={pinnedEvent}
+                onClick={setSelectedPost}
+              />
+            </div>
+          )}
 
           {/* Posts */}
           <div className="space-y-4">

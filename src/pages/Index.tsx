@@ -27,7 +27,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sparkles, FileText, Image, Music, Video, Users, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit } from 'lucide-react';
+import { Sparkles, FileText, Image, Music, Video, Users, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit, CircleDot, X as XIcon } from 'lucide-react';
 import { EditProfileForm } from '@/components/EditProfileForm';
 import { WalletBalance } from '@/components/WalletBalance';
 import { useAppContext } from '@/hooks/useAppContext';
@@ -52,6 +52,9 @@ const Index = () => {
   const [selectedRelay, setSelectedRelay] = useState<string | null>(null);
   const [nsfwInfoOpen, setNsfwInfoOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [selectedCircleDTag, setSelectedCircleDTag] = useState<string | null>(null);
+  const [selectedCirclePubkeys, setSelectedCirclePubkeys] = useState<string[] | null>(null);
+  const [selectedCircleLabel, setSelectedCircleLabel] = useState<string | null>(null);
 
   useSeoMeta({
     title: 'Tyrannosocial - A Beautiful Nostr Experience',
@@ -119,8 +122,11 @@ const Index = () => {
       ? relayPosts 
       : feedPosts;
 
-  // Filter out muted users
-  const posts = rawPosts?.filter(p => !isMuted(p.pubkey)) ?? rawPosts;
+  // Filter out muted users, then optionally filter by selected circle
+  const posts = rawPosts
+    ?.filter(p => !isMuted(p.pubkey))
+    .filter(p => !selectedCirclePubkeys || selectedCirclePubkeys.includes(p.pubkey))
+    ?? rawPosts;
   
   const isLoading = searchQuery.trim() 
     ? isLoadingSearch 
@@ -276,7 +282,19 @@ const Index = () => {
           {/* Sidebar */}
           <Sidebar
             selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
+            onCategoryChange={(cat) => { setSelectedCategory(cat); setSelectedCircleDTag(null); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); }}
+            onCircleSelect={(pubkeys, label) => {
+              if (pubkeys === null) {
+                setSelectedCircleDTag(null);
+                setSelectedCirclePubkeys(null);
+                setSelectedCircleLabel(null);
+              } else {
+                setSelectedCircleDTag(label?.toLowerCase().replace(/\s+/g, '-') ?? null);
+                setSelectedCirclePubkeys(pubkeys);
+                setSelectedCircleLabel(label);
+              }
+            }}
+            selectedCircleDTag={selectedCircleDTag}
           />
 
           {/* Feed Section */}
@@ -286,6 +304,18 @@ const Index = () => {
           {!searchQuery && (
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-2">
+                {selectedCircleLabel && (
+                  <Badge className="gap-1.5 bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-950/30 dark:text-violet-300 dark:border-violet-800/50 pr-1">
+                    <CircleDot className="h-3 w-3" />
+                    {selectedCircleLabel}
+                    <button
+                      onClick={() => { setSelectedCircleDTag(null); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); }}
+                      className="ml-0.5 hover:bg-violet-200 dark:hover:bg-violet-800/50 rounded p-0.5 transition-colors"
+                    >
+                      <XIcon className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="secondary" size="sm" className="gap-2 bg-gradient-to-r from-primary/10 to-orange-100/50 text-primary border-primary/20 dark:from-primary/20 dark:to-primary/10">

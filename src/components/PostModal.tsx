@@ -11,8 +11,9 @@ import type { NostrEvent, NostrMetadata } from '@nostrify/nostrify';
 import { nip19 } from 'nostr-tools';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
-import { X, Send, MessageCircle, Repeat2, Bookmark, MoreHorizontal, Copy, User, Users, Share2, ArrowUpLeft } from 'lucide-react';
+import { X, Send, MessageCircle, Repeat2, Bookmark, MoreHorizontal, Copy, User, Users, Share2, ArrowUpLeft, CircleDot, ChevronDown } from 'lucide-react';
 import { RepostDialog } from '@/components/RepostDialog';
+import { useFollowSets } from '@/hooks/useFollowSets';
 
 import { useAuthor } from '@/hooks/useAuthor';
 import { useReplies } from '@/hooks/useReplies';
@@ -172,6 +173,8 @@ export function PostModal({ event, onClose }: PostModalProps) {
   const { user } = useCurrentUser();
   const { mutate: publish, isPending } = useNostrPublish();
   const { toast } = useToast();
+  const { followSets, addToCircle, removeFromCircle } = useFollowSets();
+  const isOwnPost = user?.pubkey === event.pubkey;
 
   const author = useAuthor(event.pubkey);
   const meta: NostrMetadata | undefined = author.data?.metadata;
@@ -291,10 +294,42 @@ export function PostModal({ event, onClose }: PostModalProps) {
                 </AvatarFallback>
               </Avatar>
             </Link>
-            <div>
-              <Link to={`/${npub}`} onClick={onClose} className="font-semibold hover:text-primary transition-colors">
-                {name}
-              </Link>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Link to={`/${npub}`} onClick={onClose} className="font-semibold hover:text-primary transition-colors">
+                  {name}
+                </Link>
+                {/* Add to Circle — only for other people's posts, when circles exist */}
+                {user && !isOwnPost && followSets.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-6 px-2 gap-1 text-xs text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-800/50 hover:bg-violet-50 dark:hover:bg-violet-950/30">
+                        <CircleDot className="h-3 w-3" />
+                        Circle
+                        <ChevronDown className="h-2.5 w-2.5 opacity-60" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-48">
+                      {followSets.map((set) => {
+                        const inCircle = set.pubkeys.includes(event.pubkey);
+                        return (
+                          <DropdownMenuItem
+                            key={set.dTag}
+                            className="gap-2 cursor-pointer"
+                            onClick={() => inCircle
+                              ? removeFromCircle({ dTag: set.dTag, pubkey: event.pubkey })
+                              : addToCircle({ dTag: set.dTag, pubkey: event.pubkey })}
+                          >
+                            <CircleDot className={`h-3.5 w-3.5 ${inCircle ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <span className="flex-1 truncate">{set.title}</span>
+                            {inCircle && <span className="text-xs text-primary">✓</span>}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">@{handle}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{time}</p>
             </div>

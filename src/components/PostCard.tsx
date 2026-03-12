@@ -20,10 +20,14 @@ import { ZapButton } from '@/components/ZapButton';
 import { BookmarkListsDialog } from '@/components/BookmarkListsDialog';
 import { ContentWarningWrapper } from '@/components/ContentWarningWrapper';
 import { nip19 } from 'nostr-tools';
-import { MessageCircle, Repeat2, Bookmark, MoreHorizontal, Copy, User, VolumeX } from 'lucide-react';
+import { MessageCircle, Repeat2, Bookmark, MoreHorizontal, Copy, User, VolumeX, Pin, PinOff, Send, X } from 'lucide-react';
+import { usePinnedPost } from '@/hooks/usePinnedPost';
+import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { FollowButton } from '@/components/FollowButton';
+import { FollowRepliesPreview } from '@/components/FollowRepliesPreview';
 import { RepostDialog } from '@/components/RepostDialog';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -42,8 +46,12 @@ interface PostCardProps {
 export function PostCard({ event, onClick }: PostCardProps) {
   const [bookmarkDialogOpen, setBookmarkDialogOpen] = useState(false);
   const [repostDialogOpen, setRepostDialogOpen] = useState(false);
-  const { user } = useCurrentUser();
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const { user, metadata: currentUserMeta } = useCurrentUser();
+  const { mutate: publish, isPending: isReplying } = useNostrPublish();
   const { mute, unmute, isMuted } = useMutedUsers();
+  const { pinnedEventId, pinPost, unpinPost } = usePinnedPost(user?.pubkey ?? '');
   
   const isRepost = event.kind === 6 || event.kind === 16;
   const { data: repostedEvent } = useRepostedEvent(event);
@@ -209,11 +217,23 @@ export function PostCard({ event, onClick }: PostCardProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 flex items-center justify-center text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
-              onClick={() => onClick?.(displayEvent)}
+              className={`h-8 px-1.5 flex items-center justify-center gap-1 transition-colors ${
+                replyOpen
+                  ? 'text-blue-500 bg-blue-500/10'
+                  : 'text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10'
+              }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!user) {
+                  onClick?.(displayEvent);
+                  return;
+                }
+                setReplyOpen((prev) => !prev);
+              }}
+              title="Reply"
             >
               <MessageCircle className="h-4 w-4" />
-              {replyCount > 0 && <span className="text-xs ml-0.5">{replyCount}</span>}
+              {replyCount > 0 && <span className="text-xs">{replyCount}</span>}
             </Button>
             <Button
               variant="ghost"
@@ -292,6 +312,29 @@ export function PostCard({ event, onClick }: PostCardProps) {
                 <User className="h-4 w-4" />
                 Copy User npub
               </DropdownMenuItem>
+              {/* Pin option — only for own posts */}
+              {user && user.pubkey === displayEvent.pubkey && (
+                <>
+                  <DropdownMenuSeparator />
+                  {pinnedEventId === displayEvent.id ? (
+                    <DropdownMenuItem
+                      onClick={() => unpinPost()}
+                      className="gap-2 cursor-pointer text-primary focus:text-primary focus:bg-primary/5"
+                    >
+                      <PinOff className="h-4 w-4" />
+                      Unpin from Profile
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      onClick={() => pinPost(displayEvent.id)}
+                      className="gap-2 cursor-pointer text-primary focus:text-primary focus:bg-primary/5"
+                    >
+                      <Pin className="h-4 w-4" />
+                      Pin to Profile
+                    </DropdownMenuItem>
+                  )}
+                </>
+              )}
               <DropdownMenuSeparator />
               {isMuted(displayEvent.pubkey) ? (
                 <DropdownMenuItem
@@ -318,6 +361,84 @@ export function PostCard({ event, onClick }: PostCardProps) {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+        </div>
+
+        {/* Inline reply composer — shown when reply button is toggled */}
+        {replyOpen && user && (
+          <div
+            className="mt-3 pt-3 border-t border-border/40 space-y-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex gap-2 items-start">
+              <Avatar className="h-7 w-7 shrink-0 mt-0.5">
+                <AvatarImage src={currentUserMeta?.picture} />
+                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                  {(currentUserMeta?.name ?? currentUserMeta?.display_name ?? '?')[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 space-y-2">
+                <Textarea
+                  placeholder={`Reply to ${displayName}…`}
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  rows={2}
+                  className="resize-none text-sm min-h-0 py-2"
+                  disabled={isReplying}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') { setReplyOpen(false); setReplyText(''); }
+                  }}
+                />
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs text-muted-foreground gap-1"
+                    onClick={() => { setReplyOpen(false); setReplyText(''); }}
+                    disabled={isReplying}
+                  >
+                    <X className="h-3 w-3" />
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-7 px-3 text-xs gap-1.5"
+                    disabled={isReplying || !replyText.trim()}
+                    onClick={() => {
+                      publish(
+                        {
+                          kind: 1,
+                          content: replyText.trim(),
+                          tags: [
+                            ['e', displayEvent.id, '', 'reply'],
+                            ['p', displayEvent.pubkey],
+                          ],
+                        },
+                        {
+                          onSuccess: () => {
+                            setReplyText('');
+                            setReplyOpen(false);
+                            toast({ title: 'Reply posted!' });
+                          },
+                        }
+                      );
+                    }}
+                  >
+                    <Send className="h-3 w-3" />
+                    {isReplying ? 'Posting…' : 'Reply'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Replies from people you follow */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <FollowRepliesPreview
+            event={displayEvent}
+            onReplyClick={(reply) => onClick?.(reply)}
+          />
         </div>
       </CardContent>
 

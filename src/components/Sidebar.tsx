@@ -26,6 +26,7 @@ import { PostCard } from '@/components/PostCard';
 import { PostModal } from '@/components/PostModal';
 import { TrendingHashtags } from '@/components/TrendingHashtags';
 import { PeopleToFollow } from '@/components/PeopleToFollow';
+import { CirclesManager } from '@/components/CirclesManager';
 import {
   Moon,
   Sun,
@@ -49,6 +50,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   UserCheck,
+  Flame,
+  Bell,
 } from 'lucide-react';
 import {
   Sheet,
@@ -71,6 +74,8 @@ export type FeedCategory = 'following' | 'text' | 'articles' | 'photos' | 'music
 interface SidebarProps {
   selectedCategory: FeedCategory;
   onCategoryChange: (category: FeedCategory) => void;
+  onCircleSelect?: (pubkeys: string[] | null, label: string | null) => void;
+  selectedCircleDTag?: string | null;
 }
 
 function BookmarkSetContent({ setId }: { setId: string }) {
@@ -119,7 +124,7 @@ function BookmarkSetContent({ setId }: { setId: string }) {
   );
 }
 
-export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
+export function Sidebar({ selectedCategory, onCategoryChange, onCircleSelect, selectedCircleDTag }: SidebarProps) {
   const { theme, setTheme } = useTheme();
   const { config, updateConfig } = useAppContext();
   const { user } = useCurrentUser();
@@ -188,6 +193,33 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
       ) : (
         <div className="sticky top-20 flex flex-col" style={{ maxHeight: 'calc(100vh - 7rem)' }}>
         <div className="overflow-y-auto overscroll-contain space-y-4 pl-0 pr-4 pb-16 scrollbar-thin scrollbar-thumb-border hover:scrollbar-thumb-primary/30">
+        {/* Quick Nav */}
+        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-indigo-50/20 dark:from-card dark:to-card">
+          <CardContent className="pt-4 pb-3 space-y-1">
+            <button
+              className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors text-sm font-medium group"
+              onClick={() => navigate('/explore')}
+            >
+              <Flame className="h-4 w-4 text-orange-500 group-hover:text-orange-500" />
+              Explore / What's Hot
+            </button>
+            <button
+              className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors text-sm font-medium group"
+              onClick={() => navigate('/notifications')}
+            >
+              <Bell className="h-4 w-4 text-primary group-hover:text-primary" />
+              Notifications
+            </button>
+            <button
+              className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors text-sm font-medium group"
+              onClick={() => navigate('/communities')}
+            >
+              <Users className="h-4 w-4 text-indigo-500 group-hover:text-indigo-500" />
+              Communities
+            </button>
+          </CardContent>
+        </Card>
+
         {/* Theme Toggle */}
         <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-rose-50/30 dark:from-card dark:to-card">
           <CardContent className="pt-6 space-y-4">
@@ -314,6 +346,12 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
             </Select>
           </CardContent>
         </Card>
+
+        {/* Circles */}
+        <CirclesManager
+          onCircleSelect={onCircleSelect}
+          selectedCircleDTag={selectedCircleDTag}
+        />
 
         {/* Relays */}
         <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-blue-50/20 dark:from-card dark:to-card">

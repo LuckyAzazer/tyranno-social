@@ -115,10 +115,11 @@ export function MasonryGrid({ posts, columns: columnsProp, onPostClick }: Masonr
     4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
   }[columns] || 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
 
-  // For single column view, center the content with max width
-  const containerClasses = columns === 1 
-    ? 'max-w-2xl mx-auto w-full' 
-    : '';
+  // Center narrow layouts so they don't stretch to full page width
+  const containerClasses =
+    columns === 1 ? 'max-w-2xl mx-auto w-full' :
+    columns === 2 ? 'max-w-4xl mx-auto w-full' :
+    '';
 
   return (
     <div className={containerClasses}>
