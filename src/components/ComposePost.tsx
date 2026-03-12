@@ -7,9 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { NoteContent } from '@/components/NoteContent';
-import { MediaContent } from '@/components/MediaContent';
+import { PostCard } from '@/components/PostCard';
 import { genUserName } from '@/lib/genUserName';
 import { Send, Eye, ImagePlus, AlertTriangle, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
@@ -332,48 +330,20 @@ export function ComposePost({ onPostPublished }: ComposePostProps = {}) {
 
       {/* Preview Dialog */}
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Post Preview</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-4 w-4 text-primary" />
+              Preview — this is how your post will look
+            </DialogTitle>
           </DialogHeader>
-          
-          <Card className="border-border/50 dark:border-transparent">
-            <CardHeader className="pb-3">
-              <div className="flex items-start gap-3">
-                <Avatar className="h-10 w-10 ring-2 ring-background">
-                  <AvatarImage src={profileImage} alt={displayName} />
-                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
-                    {displayName[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm">{displayName}</div>
-                  <div className="text-xs text-muted-foreground">@{username}</div>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pb-4 space-y-4">
-              {/* Content Warning Badge */}
-              {showContentWarning && contentWarning.trim() && (
-                <Badge variant="destructive" className="gap-2">
-                  <AlertTriangle className="h-3 w-3" />
-                  {contentWarning}
-                </Badge>
-              )}
 
-              {/* Post Content */}
-              <div className="whitespace-pre-wrap break-words">
-                <NoteContent event={previewEvent} className="text-sm" />
-              </div>
+          {/* Real PostCard preview — identical to the feed */}
+          <div className="pointer-events-none select-none">
+            <PostCard event={previewEvent} />
+          </div>
 
-              {/* Media Preview - Uses MediaContent to show images, videos, YouTube embeds, and link previews */}
-              <div className="mt-4">
-                <MediaContent event={previewEvent} />
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="flex justify-end gap-2">
+          <div className="flex justify-end gap-2 pt-1">
             <Button variant="outline" onClick={() => setShowPreview(false)}>
               Back to Edit
             </Button>
