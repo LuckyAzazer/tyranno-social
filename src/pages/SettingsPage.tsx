@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { RelayListManager } from '@/components/RelayListManager';
 import { TopicFilterManager } from '@/components/TopicFilterManager';
 import { PersonalizedThemeManager } from '@/components/PersonalizedThemeManager';
+import { BackupManager } from '@/components/BackupManager';
 import { LoginArea } from '@/components/auth/LoginArea';
 import LoginDialog from '@/components/auth/LoginDialog';
 import { ColorThemeSelector } from '@/components/ColorThemeSelector';
@@ -43,6 +44,9 @@ import {
   LogOut,
   Filter,
   Palette,
+  Database,
+  ChevronRight,
+  ChevronDown,
 } from 'lucide-react';
 import { useSeoMeta } from '@unhead/react';
 import { nip19 } from 'nostr-tools';
@@ -81,6 +85,7 @@ export default function SettingsPage() {
   const [topicFilterExpanded, setTopicFilterExpanded] = useState(false);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [showPersonalizedUploader, setShowPersonalizedUploader] = useState(false);
+  const [backupExpanded, setBackupExpanded] = useState(false);
 
   // Get metadata for current user (only if user exists)
   const currentUserProfile = useAuthor(currentUser?.pubkey ?? '');
@@ -651,6 +656,37 @@ export default function SettingsPage() {
                     ))}
                   </div>
                 </div>
+              </CardContent>
+            )}
+          </Card>
+
+          {/* Backup & Export */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 cursor-pointer" onClick={() => setBackupExpanded(!backupExpanded)}>
+                <Database className="h-5 w-5 text-primary" />
+                Backup & Export
+                {!backupExpanded && (
+                  <ChevronRight className="h-4 w-4 ml-auto" />
+                )}
+                {backupExpanded && (
+                  <ChevronDown className="h-4 w-4 ml-auto" />
+                )}
+              </CardTitle>
+              <CardDescription>
+                Export and restore your Nostr data
+              </CardDescription>
+            </CardHeader>
+            {backupExpanded && (
+              <CardContent>
+                <BackupManager />
+              </CardContent>
+            )}
+            {!backupExpanded && (
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Download a complete backup of your posts, profile, and bookmarks
+                </p>
               </CardContent>
             )}
           </Card>

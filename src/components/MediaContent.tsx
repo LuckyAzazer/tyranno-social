@@ -142,16 +142,17 @@ export function MediaContent({ event }: MediaContentProps) {
             'grid-cols-2'
           }`}>
             {images.slice(0, 4).map((item, index) => (
-              <button
+              <a
                 key={`img-${index}`}
-                type="button"
-                className={`relative overflow-hidden rounded-lg bg-muted cursor-pointer border-0 p-0 ${
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`relative overflow-hidden rounded-lg bg-muted cursor-pointer block ${
                   images.length === 3 && index === 0 ? 'col-span-3' : ''
                 }`}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log('Image clicked, opening gallery at index:', index);
                   handleImageClick(index);
                 }}
                 data-image-gallery-trigger
@@ -159,10 +160,11 @@ export function MediaContent({ event }: MediaContentProps) {
                 <img
                   src={item.url}
                   alt=""
-                  className="w-full h-auto object-cover transition-transform duration-300 hover:scale-105 pointer-events-none"
+                  className="w-full h-auto object-cover transition-transform duration-300 hover:scale-105"
                   loading="lazy"
+                  draggable
                 />
-              </button>
+              </a>
             ))}
             {images.length > 4 && (
               <div className="col-span-2 text-center text-sm text-muted-foreground">

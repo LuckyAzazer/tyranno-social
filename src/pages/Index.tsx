@@ -1,14 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { type FeedCategory } from '@/hooks/usePosts';
 import { useInfinitePosts } from '@/hooks/useInfinitePosts';
 import { useSearchPosts } from '@/hooks/useSearchPosts';
 import { useRelayFirehose } from '@/hooks/useRelayFirehose';
 import { MasonryGrid } from '@/components/MasonryGrid';
+import { PostModal } from '@/components/PostModal';
 import { ComposePost } from '@/components/ComposePost';
-import { PostDetailDialog } from '@/components/PostDetailDialog';
 import { SearchBar } from '@/components/SearchBar';
 import { LoginArea } from '@/components/auth/LoginArea';
+import { NotificationItem } from '@/components/NotificationItem';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useEventById } from '@/hooks/useEventById';
+import type { NotificationEvent } from '@/hooks/useNotifications';
 import { Sidebar } from '@/components/Sidebar';
 import { ColumnSelector } from '@/components/ColumnSelector';
 import { ScrollToTop } from '@/components/ScrollToTop';
@@ -23,9 +27,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sparkles, FileText, Image, Music, Video, Users, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap } from 'lucide-react';
+import { Sparkles, FileText, Image, Music, Video, Users, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit } from 'lucide-react';
+import { EditProfileForm } from '@/components/EditProfileForm';
+import { WalletBalance } from '@/components/WalletBalance';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useNavigate } from 'react-router-dom';
+import { useMutedUsers } from '@/hooks/useMutedUsers';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,10 +47,11 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<FeedCategory>('following');
   const [columns, setColumns] = useLocalStorage<number>('masonry-columns', 3);
   const [selectedPost, setSelectedPost] = useState<NostrEvent | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [pendingEventId, setPendingEventId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRelay, setSelectedRelay] = useState<string | null>(null);
   const [nsfwInfoOpen, setNsfwInfoOpen] = useState(false);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
 
   useSeoMeta({
     title: 'Tyrannosocial - A Beautiful Nostr Experience',
@@ -52,8 +61,30 @@ const Index = () => {
   const { user } = useCurrentUser();
   const { config } = useAppContext();
   const navigate = useNavigate();
+  const { isMuted } = useMutedUsers();
   const unreadDMCount = useUnreadDMCount();
   const { shouldFilter } = useNSFWFilter();
+  const { data: notifications, isLoading: isLoadingNotifications } = useNotifications(50);
+  const { data: pendingEvent } = useEventById(pendingEventId);
+
+  // Once the pending event loads, open the modal and clear the pending ID
+  useEffect(() => {
+    if (pendingEvent) {
+      setSelectedPost(pendingEvent);
+      setPendingEventId(null);
+    }
+  }, [pendingEvent]);
+
+  const handleNotificationClick = useCallback((notification: NotificationEvent) => {
+    // Find the 'e' tag — the post being replied to / reacted to / reposted / zapped
+    const eTag = notification.tags.find(([name]) => name === 'e');
+    if (eTag?.[1]) {
+      setPendingEventId(eTag[1]);
+    } else {
+      // Mentions: the notification itself is a kind-1 post — open it directly
+      setSelectedPost(notification);
+    }
+  }, []);
   
   const { 
     data: infiniteData, 
@@ -82,11 +113,14 @@ const Index = () => {
   const relayPosts = relayData?.pages.flat() ?? [];
 
   // Use search results if searching, relay posts if relay selected, otherwise use feed
-  const posts = searchQuery.trim() 
+  const rawPosts = searchQuery.trim() 
     ? searchPosts 
     : selectedRelay 
       ? relayPosts 
       : feedPosts;
+
+  // Filter out muted users
+  const posts = rawPosts?.filter(p => !isMuted(p.pubkey)) ?? rawPosts;
   
   const isLoading = searchQuery.trim() 
     ? isLoadingSearch 
@@ -147,11 +181,6 @@ const Index = () => {
 
   const CategoryIcon = categoryIcons[selectedCategory];
 
-  const handlePostClick = (event: NostrEvent) => {
-    setSelectedPost(event);
-    setDialogOpen(true);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-rose-50/30 to-pink-50/40 dark:from-background dark:via-background dark:to-primary/5">
       {/* Small Zap Link - Top Banner */}
@@ -172,9 +201,9 @@ const Index = () => {
       <header className="sticky top-0 z-40 relative border-b border-border/50 bg-background/95 backdrop-blur-lg shadow-sm">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-rose-500/5 to-primary/10 -z-10" />
         <div className="px-4 py-4">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center justify-between gap-3">
             {/* Logo and Title */}
-            <div className="flex items-center gap-3 flex-1 sm:flex-initial">
+            <div className="flex items-center gap-3 shrink-0">
               <div className="relative shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 blur-xl opacity-60 animate-pulse dark:from-yellow-600 dark:via-red-900 dark:to-yellow-700 dark:opacity-50" />
                 <div className="relative p-1 bg-gradient-to-br from-rose-100/50 to-pink-100/30 rounded-full dark:from-transparent dark:to-transparent">
@@ -189,39 +218,48 @@ const Index = () => {
                 <h1 className="text-xl sm:text-2xl font-bold text-foreground">
                   Tyrannosocial
                 </h1>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Sparkles className="h-3 w-3" />
-                  Powered by Nostr
-                </p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    Powered by Nostr
+                  </span>
+                  <span className="opacity-30">·</span>
+                  <a
+                    href="https://shakespeare.diy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 hover:text-primary transition-colors"
+                  >
+                    <Sparkles className="h-3 w-3 text-rose-500 dark:text-primary" />
+                    Vibed with Shakespeare
+                  </a>
+                </div>
               </div>
             </div>
 
-            {/* Right Side - Search, DM Button, Login and Mobile Menu */}
-            <div className="flex items-center gap-2 shrink-0">
-              {/* Search Bar - Desktop */}
-              <div className="hidden md:block w-64 lg:w-80">
-                <SearchBar onSearch={setSearchQuery} />
-              </div>
-              
-              {/* DM Button with Unread Badge - Only show when logged in */}
+            {/* Search Bar - Desktop (hidden on mobile, shown below) */}
+            <div className="hidden md:block flex-1 max-w-sm lg:max-w-lg">
+              <SearchBar onSearch={setSearchQuery} />
+            </div>
+
+            {/* Login/Avatar — always visible */}
+            <div className="shrink-0 flex items-center gap-2">
               {user && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/messages')}
-                  className="relative h-10 w-10"
-                  aria-label={`Messages${unreadDMCount > 0 ? ` (${unreadDMCount} unread)` : ''}`}
-                >
-                  <MessageCircle className="h-5 w-5" />
-                  {unreadDMCount > 0 && (
-                    <Badge className="absolute -top-1 -right-1 h-5 min-w-5 px-1.5 bg-red-500 hover:bg-red-500 text-white text-xs border-2 border-background">
-                      {unreadDMCount > 9 ? '9+' : unreadDMCount}
-                    </Badge>
-                  )}
-                </Button>
+                <>
+                  <WalletBalance />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditProfileOpen(true)}
+                    className="hidden sm:flex gap-1.5 text-muted-foreground hover:text-primary"
+                    title="Edit your profile"
+                  >
+                    <Edit className="h-4 w-4" />
+                    <span className="hidden lg:inline">Edit Profile</span>
+                  </Button>
+                </>
               )}
-              
-              <LoginArea className="max-w-60 hidden sm:flex" />
+              <LoginArea className="max-w-60" />
             </div>
           </div>
 
@@ -235,14 +273,14 @@ const Index = () => {
       {/* Main Content */}
       <main className="px-4 py-8 pb-24 lg:pb-8">
         <div className="flex gap-6">
+          {/* Sidebar */}
+          <Sidebar
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+          />
+
           {/* Feed Section */}
           <div className="flex-1 min-w-0 space-y-6">
-          {/* Compose Section */}
-          {user && !searchQuery && (
-            <div className="animate-in fade-in slide-in-from-top-4 duration-700">
-              <ComposePost onPostPublished={handleRefresh} />
-            </div>
-          )}
 
           {/* Feed Selector and Column Selector */}
           {!searchQuery && (
@@ -391,7 +429,7 @@ const Index = () => {
             ) : posts && posts.length > 0 ? (
               <>
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                  <MasonryGrid posts={posts} columns={columns} onPostClick={handlePostClick} />
+                   <MasonryGrid posts={posts} columns={columns} onPostClick={setSelectedPost} />
                 </div>
 
                 {/* Infinite scroll trigger and loading indicator */}
@@ -432,37 +470,108 @@ const Index = () => {
           </div>
           </div>
 
-          {/* Sidebar */}
-          <Sidebar
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-          />
+          {/* Right Sidebar */}
+          <aside className="w-96 shrink-0 hidden xl:block">
+            <div className="sticky top-4 space-y-4">
+              {user ? (
+                <ComposePost onPostPublished={handleRefresh} />
+              ) : (
+                <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-primary/5">
+                  <CardContent className="pt-6 pb-5 space-y-3 text-center">
+                    <div className="inline-flex p-3 rounded-full bg-primary/10 mb-1">
+                      <Sparkles className="h-6 w-6 text-primary" />
+                    </div>
+                    <p className="font-semibold">Join Tyrannosocial</p>
+                    <p className="text-sm text-muted-foreground">Log in to post, reply, react, and more.</p>
+                    <LoginArea className="w-full" />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Messages */}
+              <button
+                onClick={() => navigate('/messages')}
+                className="w-full group relative overflow-hidden rounded-xl border-2 border-primary/20 hover:border-primary/40 bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-pink-50/50 dark:from-indigo-950/20 dark:via-purple-950/10 dark:to-pink-950/20 transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="relative p-5 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+                      <div className="relative p-2.5 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 group-hover:from-primary/30 group-hover:to-primary/20 transition-all duration-300">
+                        <MessageCircle className="h-5 w-5 text-primary" />
+                      </div>
+                    </div>
+                    <div className="text-left">
+                      <p className="font-semibold text-foreground group-hover:text-primary transition-colors">Messages</p>
+                      <p className="text-xs text-muted-foreground">Private conversations</p>
+                    </div>
+                  </div>
+                  {unreadDMCount > 0 ? (
+                    <Badge className="bg-red-500 hover:bg-red-500 text-white text-xs font-bold min-w-6 h-6 flex items-center justify-center rounded-full border-2 border-background animate-pulse">
+                      {unreadDMCount > 99 ? '99+' : unreadDMCount}
+                    </Badge>
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-primary -rotate-90 group-hover:translate-x-1 transition-all duration-300" />
+                  )}
+                </div>
+              </button>
+
+              {/* Notifications panel */}
+              {user && (
+                <Card className="border-border/50 dark:border-transparent overflow-hidden">
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-border/50">
+                    <Bell className="h-4 w-4 text-primary" />
+                    <span className="font-semibold text-sm">Notifications</span>
+                    {notifications && notifications.length > 0 && (
+                      <Badge variant="secondary" className="ml-auto text-xs">
+                        {notifications.length}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="h-96 overflow-y-auto">
+                    {isLoadingNotifications ? (
+                      <div className="p-3 space-y-3">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="flex gap-3 items-start">
+                            <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                            <div className="space-y-1.5 flex-1">
+                              <Skeleton className="h-3 w-28" />
+                              <Skeleton className="h-3 w-full" />
+                              <Skeleton className="h-3 w-2/3" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : notifications && notifications.length > 0 ? (
+                      <div className="p-2 space-y-1.5">
+                        {notifications.map((notification) => (
+                          <NotificationItem
+                            key={notification.id}
+                            notification={notification}
+                            onClick={() => handleNotificationClick(notification)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+                        <Bell className="h-8 w-8 opacity-30" />
+                        <p className="text-sm">No notifications yet</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+            </div>
+          </aside>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border/50 bg-gradient-to-r from-background/80 via-rose-50/30 to-background/80 backdrop-blur-lg mt-16 dark:from-background/80 dark:via-background/80 dark:to-background/80">
-        <div className="px-4 py-6">
-          <p className="text-center text-sm text-muted-foreground">
-            <a
-              href="https://shakespeare.diy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-primary transition-all inline-flex items-center gap-1 hover:scale-105"
-            >
-              Vibed with Shakespeare
-              <Sparkles className="h-3 w-3 text-rose-600 dark:text-primary" />
-            </a>
-          </p>
-        </div>
-      </footer>
-
-      {/* Post Detail Dialog */}
-      <PostDetailDialog
-        event={selectedPost}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-      />
+      {/* Post Modal */}
+      {selectedPost && (
+        <PostModal event={selectedPost} onClose={() => setSelectedPost(null)} />
+      )}
 
       {/* Scroll to Top Button */}
       <ScrollToTop />
@@ -472,6 +581,22 @@ const Index = () => {
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-primary" />
+              Edit Profile
+            </DialogTitle>
+            <DialogDescription>
+              Update your Nostr profile information
+            </DialogDescription>
+          </DialogHeader>
+          <EditProfileForm onSuccess={() => setEditProfileOpen(false)} />
+        </DialogContent>
+      </Dialog>
 
       {/* NSFW Filter Info Dialog */}
       <Dialog open={nsfwInfoOpen} onOpenChange={setNsfwInfoOpen}>

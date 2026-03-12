@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@/hooks/useTheme';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useBookmarkSets, useBookmarkSetItems } from '@/hooks/useBookmarkSets';
-import { useNotifications } from '@/hooks/useNotifications';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useNSFWFilter } from '@/hooks/useNSFWFilter';
@@ -24,14 +23,13 @@ import {
 } from '@/components/ui/select';
 import { RelayListManager } from '@/components/RelayListManager';
 import { PostCard } from '@/components/PostCard';
-import { PostDetailDialog } from '@/components/PostDetailDialog';
-import { NotificationItem } from '@/components/NotificationItem';
-import type { NostrEvent } from '@nostrify/nostrify';
+import { PostModal } from '@/components/PostModal';
+import { TrendingHashtags } from '@/components/TrendingHashtags';
+import { PeopleToFollow } from '@/components/PeopleToFollow';
 import {
   Moon,
   Sun,
   Wifi,
-  Bell,
   Bookmark,
   FileText,
   Image,
@@ -44,7 +42,6 @@ import {
   Globe,
   FolderOpen,
   RefreshCw,
-  CheckCheck,
   AlertTriangle,
   MessageCircle,
   ChevronLeft,
@@ -68,7 +65,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { nip19 } from 'nostr-tools';
 
 export type FeedCategory = 'following' | 'text' | 'articles' | 'photos' | 'music' | 'videos';
 
@@ -79,13 +75,7 @@ interface SidebarProps {
 
 function BookmarkSetContent({ setId }: { setId: string }) {
   const { data: items, isLoading } = useBookmarkSetItems(setId);
-  const [selectedEvent, setSelectedEvent] = useState<NostrEvent | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-
-  const handleEventClick = (event: NostrEvent) => {
-    setSelectedEvent(event);
-    setDialogOpen(true);
-  };
+  const [selectedPost, setSelectedPost] = useState<import('@nostrify/nostrify').NostrEvent | null>(null);
 
   if (isLoading) {
     return (
@@ -119,10 +109,12 @@ function BookmarkSetContent({ setId }: { setId: string }) {
     <>
       <div className="space-y-3 pt-2">
         {items.map((event) => (
-          <PostCard key={event.id} event={event} onClick={() => handleEventClick(event)} />
+          <PostCard key={event.id} event={event} onClick={(displayEvent) => setSelectedPost(displayEvent)} />
         ))}
       </div>
-      <PostDetailDialog event={selectedEvent} open={dialogOpen} onOpenChange={setDialogOpen} />
+      {selectedPost && (
+        <PostModal event={selectedPost} onClose={() => setSelectedPost(null)} />
+      )}
     </>
   );
 }
@@ -132,11 +124,9 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
   const { config, updateConfig } = useAppContext();
   const { user } = useCurrentUser();
   const { data: bookmarkSets, isLoading: isLoadingBookmarks, refetch: refetchBookmarks } = useBookmarkSets();
-  const { data: notifications, isLoading: isLoadingNotifications } = useNotifications(10); // Fetch small amount for badge
   const { shouldFilter, filterEnabled, setFilterEnabled, canToggle } = useNSFWFilter();
   const { isActive: wotActive, wotEnabled, setWotEnabled, canUseWoT } = useWebOfTrust();
   const [relaysOpen, setRelaysOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isCollapsed, setIsCollapsed] = useLocalStorage<boolean>('sidebar-collapsed', false);
@@ -150,23 +140,6 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
     setIsRefreshing(true);
     await refetchBookmarks();
     setTimeout(() => setIsRefreshing(false), 500);
-  };
-
-  const handleNotificationClick = (notification: any) => {
-    // Get the event ID that the notification references
-    const eventTag = notification.tags.find(([name]: string[]) => name === 'e');
-    if (eventTag && eventTag[1]) {
-      // Close the notifications panel and navigate to the event
-      setNotificationsOpen(false);
-      const noteId = nip19.noteEncode(eventTag[1]);
-      navigate(`/${noteId}`);
-    }
-  };
-
-  const handleMarkAllAsRead = () => {
-    // In a real implementation, this would mark notifications as read in storage
-    // For now, we'll just close the panel as a visual indication
-    setNotificationsOpen(false);
   };
 
   const categories: Array<{ id: FeedCategory; label: string; icon: typeof FileText; kinds: number[] }> = [
@@ -199,13 +172,13 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
         variant="outline"
         size="icon"
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -left-4 top-4 z-50 h-8 w-8 rounded-full shadow-lg bg-background border-2 border-primary/20 hover:border-primary/40"
+        className="absolute -right-4 top-4 z-50 h-8 w-8 rounded-full shadow-lg bg-background border-2 border-primary/20 hover:border-primary/40"
         title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         {isCollapsed ? (
-          <ChevronRightIcon className="h-4 w-4" />
-        ) : (
           <ChevronLeft className="h-4 w-4" />
+        ) : (
+          <ChevronRightIcon className="h-4 w-4" />
         )}
       </Button>
 
@@ -213,8 +186,8 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
         // Collapsed state - just show the toggle button
         <div className="sticky top-4" />
       ) : (
-        <ScrollArea className="h-[calc(100vh-2rem)] sticky top-4">
-          <div className="space-y-4 pr-4 pb-8">
+        <div className="sticky top-20 flex flex-col" style={{ maxHeight: 'calc(100vh - 7rem)' }}>
+        <div className="overflow-y-auto overscroll-contain space-y-4 pl-0 pr-4 pb-16 scrollbar-thin scrollbar-thumb-border hover:scrollbar-thumb-primary/30">
         {/* Theme Toggle */}
         <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-rose-50/30 dark:from-card dark:to-card">
           <CardContent className="pt-6 space-y-4">
@@ -398,127 +371,11 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
           </CardContent>
         </Card>
 
-        {/* Direct Messages */}
-        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-indigo-50/20 dark:from-card dark:to-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MessageCircle className="h-5 w-5 text-primary" />
-              Direct Messages
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full group"
-              onClick={() => navigate('/messages')}
-            >
-              <MessageCircle className="h-4 w-4 mr-2 group-hover:text-indigo-500 transition-colors" />
-              Open Messages
-            </Button>
-          </CardContent>
-        </Card>
+        {/* Trending Hashtags */}
+        <TrendingHashtags />
 
-        {/* Notifications */}
-        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-purple-50/20 dark:from-card dark:to-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary" />
-              Notifications
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full group">
-                  <Bell className="h-4 w-4 mr-2 group-hover:text-purple-500 transition-colors" />
-                  View Notifications
-                  {notifications && notifications.length > 0 && (
-                    <Badge variant="destructive" className="ml-auto bg-gradient-to-r from-red-500 to-pink-500 shadow-sm dark:from-red-600 dark:to-pink-600 dark:text-white">
-                      {notifications.length > 99 ? '99+' : notifications.length}
-                    </Badge>
-                  )}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-full sm:w-[540px]">
-                <SheetHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <SheetTitle className="flex items-center gap-2">
-                        <Bell className="h-5 w-5 text-primary" />
-                        Notifications
-                      </SheetTitle>
-                      <SheetDescription>
-                        Stay updated with mentions, replies, and reactions
-                      </SheetDescription>
-                    </div>
-                    {user && notifications && notifications.length > 0 && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={handleMarkAllAsRead}
-                        className="gap-2 shrink-0"
-                      >
-                        <CheckCheck className="h-4 w-4" />
-                        <span className="hidden sm:inline">Mark all read</span>
-                      </Button>
-                    )}
-                  </div>
-                </SheetHeader>
-                <Separator className="my-4" />
-                <ScrollArea className="h-[calc(100vh-140px)] pr-4">
-                  {!user ? (
-                    <div className="flex items-center justify-center h-64">
-                      <div className="text-center space-y-2">
-                        <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">Log in to see notifications</p>
-                        <p className="text-xs text-muted-foreground">
-                          You'll see mentions, replies, and reactions
-                        </p>
-                      </div>
-                    </div>
-                  ) : isLoadingNotifications ? (
-                    <div className="space-y-3">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Card key={i} className="overflow-hidden">
-                          <div className="p-4 space-y-3">
-                            <div className="flex items-start gap-3">
-                              <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                              <div className="space-y-2 flex-1">
-                                <Skeleton className="h-4 w-32" />
-                                <Skeleton className="h-3 w-24" />
-                              </div>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : notifications && notifications.length > 0 ? (
-                    <div className="space-y-3">
-                      {notifications.map((notification) => (
-                        <NotificationItem
-                          key={notification.id}
-                          notification={notification}
-                          onClick={() => handleNotificationClick(notification)}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-64">
-                      <div className="text-center space-y-2">
-                        <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">No notifications yet</p>
-                        <p className="text-xs text-muted-foreground">
-                          You'll see mentions, replies, and reactions here
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </ScrollArea>
-              </SheetContent>
-            </Sheet>
-          </CardContent>
-        </Card>
+        {/* Who to Follow */}
+        <PeopleToFollow />
 
         {/* Bookmark Lists */}
         <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-pink-50/20 dark:from-card dark:to-card">
@@ -653,8 +510,8 @@ export function Sidebar({ selectedCategory, onCategoryChange }: SidebarProps) {
           </CardContent>
         </Card>
 
-          </div>
-        </ScrollArea>
+        </div>
+        </div>
       )}
     </aside>
   );

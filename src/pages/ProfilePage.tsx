@@ -6,7 +6,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useFloatingDM } from '@/contexts/FloatingDMContext';
 import { useToast } from '@/hooks/useToast';
 import { MasonryGrid } from '@/components/MasonryGrid';
-import { PostDetailDialog } from '@/components/PostDetailDialog';
+import { PostModal } from '@/components/PostModal';
 import { ColumnSelector } from '@/components/ColumnSelector';
 import { ColorThemeSelector } from '@/components/ColorThemeSelector';
 import { FollowListDialog } from '@/components/FollowListDialog';
@@ -18,7 +18,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { genUserName } from '@/lib/genUserName';
-import { ArrowLeft, MapPin, Link as LinkIcon, Calendar, Mail, Zap, CheckCircle2, Edit, Copy, MessageCircle, Users, UserPlus } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon, Mail, Zap, CheckCircle2, Edit, Copy, MessageCircle } from 'lucide-react';
+import { FollowButton } from '@/components/FollowButton';
 import { useNavigate } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
 import { EditProfileForm } from '@/components/EditProfileForm';
@@ -38,7 +39,6 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
   const { toast } = useToast();
   const [columns, setColumns] = useLocalStorage<number>('masonry-columns', 3);
   const [selectedPost, setSelectedPost] = useState<NostrEvent | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [followListOpen, setFollowListOpen] = useState(false);
   const [followListTab, setFollowListTab] = useState<'followers' | 'following'>('followers');
@@ -82,11 +82,6 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
     title: `${displayName} (@${username}) - Tyrannosocial`,
     description: bio || `View ${displayName}'s profile on Tyrannosocial`,
   });
-
-  const handlePostClick = (event: NostrEvent) => {
-    setSelectedPost(event);
-    setDialogOpen(true);
-  };
 
   const handleOpenFollowers = () => {
     setFollowListTab('followers');
@@ -281,10 +276,11 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
                           </Button>
                         ) : (
                           <>
+                            <FollowButton pubkey={pubkey} className="w-full justify-center" />
                             <Button
                               onClick={handleSendDM}
-                              variant="default"
-                              className="gap-2 w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                              variant="outline"
+                              className="gap-2 w-full"
                             >
                               <MessageCircle className="h-4 w-4" />
                               Send Message
@@ -340,7 +336,7 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
                 ))}
               </div>
             ) : posts && posts.length > 0 ? (
-              <MasonryGrid posts={posts} columns={columns} onPostClick={handlePostClick} />
+              <MasonryGrid posts={posts} columns={columns} onPostClick={setSelectedPost} />
             ) : (
               <Card className="border-dashed">
                 <CardContent className="py-12 px-8 text-center">
@@ -352,12 +348,9 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
         </div>
       </div>
 
-      {/* Post Detail Dialog */}
-      <PostDetailDialog
-        event={selectedPost}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-      />
+      {selectedPost && (
+        <PostModal event={selectedPost} onClose={() => setSelectedPost(null)} />
+      )}
 
       {/* Edit Profile Dialog */}
       <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>

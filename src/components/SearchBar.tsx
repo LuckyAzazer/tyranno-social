@@ -1,6 +1,4 @@
-import { useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { useState, useRef } from 'react';
 import { Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -11,49 +9,67 @@ interface SearchBarProps {
 
 export function SearchBar({ onSearch, className }: SearchBarProps) {
   const [query, setQuery] = useState('');
+  const [focused, setFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch(query);
+    inputRef.current?.blur();
   };
 
   const handleClear = () => {
     setQuery('');
     onSearch('');
+    inputRef.current?.focus();
   };
 
   return (
-    <form onSubmit={handleSubmit} className={cn('flex gap-2', className)}>
-      <div className="relative flex-1">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
-        <Input
+    <form onSubmit={handleSubmit} className={cn('w-full', className)}>
+      <div
+        className={cn(
+          'flex items-center gap-2 px-4 h-11 rounded-full border-2 bg-background transition-all duration-200',
+          focused
+            ? 'border-primary shadow-[0_0_0_3px_hsl(var(--primary)/0.15)]'
+            : 'border-border/60 hover:border-border'
+        )}
+      >
+        {/* Text input */}
+        <input
+          ref={inputRef}
           type="text"
-          placeholder="Search posts across all relays..."
+          placeholder="What are you looking for?"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="pl-11 pr-10 h-12 bg-background/80 backdrop-blur-md border-2 border-primary/30 focus-visible:ring-primary focus-visible:border-primary font-medium text-base shadow-sm"
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          className="flex-1 bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground min-w-0"
         />
+
+        {/* Clear button */}
         {query && (
-          <Button
+          <button
             type="button"
-            variant="ghost"
-            size="sm"
             onClick={handleClear}
-            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted/50 rounded-full"
+            className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+            tabIndex={-1}
           >
-            <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-          </Button>
+            <X className="h-3.5 w-3.5" />
+          </button>
         )}
+
+        {/* Search icon button */}
+        <button
+          type="submit"
+          className={cn(
+            'shrink-0 transition-colors',
+            query.trim() ? 'text-primary hover:text-primary/80' : 'text-muted-foreground'
+          )}
+          aria-label="Search"
+        >
+          <Search className="h-4 w-4" />
+        </button>
       </div>
-      <Button
-        type="submit"
-        size="lg"
-        className="h-12 px-6 gap-2 bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 shadow-lg font-bold text-base"
-        disabled={!query.trim()}
-      >
-        <Search className="h-5 w-5" />
-        <span className="hidden sm:inline">Search</span>
-      </Button>
     </form>
   );
 }
