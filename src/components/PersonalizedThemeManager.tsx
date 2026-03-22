@@ -5,7 +5,7 @@ import { Slider } from '@/components/ui/slider';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useToast } from '@/hooks/useToast';
 import { extractColorsFromImage, hexToHSL } from '@/lib/colorExtraction';
-import { Upload, X, Loader2, ImagePlus, Droplet } from 'lucide-react';
+import { Upload, X, Loader2, ImagePlus, Droplet, Layers } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
@@ -17,6 +17,7 @@ export function PersonalizedThemeManager() {
 
   const hasPersonalizedTheme = !!config.personalizedTheme;
   const cardOpacity = config.personalizedTheme?.cardOpacity ?? 85;
+  const cardBlur = config.personalizedTheme?.cardBlur ?? 20;
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -70,7 +71,7 @@ export function PersonalizedThemeManager() {
           }
           
           // Apply colors to CSS variables
-          applyPersonalizedTheme(colors, dataUrl, cardOpacity);
+          applyPersonalizedTheme(colors, dataUrl, cardOpacity, cardBlur);
           
           // Save to config
           updateConfig((current) => ({
@@ -83,6 +84,7 @@ export function PersonalizedThemeManager() {
               backgroundColor: colors.background,
               foregroundColor: colors.foreground,
               cardOpacity: cardOpacity,
+              cardBlur: cardBlur,
             },
           }));
           
@@ -147,8 +149,6 @@ export function PersonalizedThemeManager() {
 
   const handleOpacityChange = (value: number[]) => {
     const newOpacity = value[0];
-    
-    // Update config
     updateConfig((current) => ({
       ...current,
       personalizedTheme: current.personalizedTheme ? {
@@ -156,10 +156,19 @@ export function PersonalizedThemeManager() {
         cardOpacity: newOpacity,
       } : undefined,
     }));
+    document.documentElement.style.setProperty('--card-opacity', (newOpacity / 100).toString());
+  };
 
-    // Apply to CSS immediately
-    const root = document.documentElement;
-    root.style.setProperty('--card-opacity', (newOpacity / 100).toString());
+  const handleBlurChange = (value: number[]) => {
+    const newBlur = value[0];
+    updateConfig((current) => ({
+      ...current,
+      personalizedTheme: current.personalizedTheme ? {
+        ...current.personalizedTheme,
+        cardBlur: newBlur,
+      } : undefined,
+    }));
+    document.documentElement.style.setProperty('--card-blur', `${newBlur}px`);
   };
 
   return (
@@ -217,6 +226,34 @@ export function PersonalizedThemeManager() {
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>More wallpaper</span>
               <span>Less wallpaper</span>
+            </div>
+          </div>
+
+          {/* Blur Slider */}
+          <div className="space-y-3 p-4 rounded-lg border bg-muted/20">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2 font-medium">
+                <Layers className="h-4 w-4 text-primary" />
+                Card Blur
+              </Label>
+              <span className="text-sm text-muted-foreground font-mono">
+                {cardBlur === 0 ? 'Off' : `${cardBlur}px`}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Blurry = frosted glass look. Clear = darker solid cards for better readability
+            </p>
+            <Slider
+              value={[cardBlur]}
+              onValueChange={handleBlurChange}
+              min={0}
+              max={40}
+              step={2}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Clear (no blur)</span>
+              <span>Blurry (frosted)</span>
             </div>
           </div>
 
@@ -304,7 +341,7 @@ function applyPersonalizedTheme(colors: {
   accent: string;
   background: string;
   foreground: string;
-}, wallpaperUrl: string, cardOpacity: number = 85) {
+}, wallpaperUrl: string, cardOpacity: number = 85, cardBlur: number = 20) {
   const root = document.documentElement;
   
   // Convert colors to HSL for CSS variables
@@ -319,9 +356,10 @@ function applyPersonalizedTheme(colors: {
   root.style.setProperty('--background', `${bgHSL.h} ${bgHSL.s}% ${bgHSL.l}%`);
   root.style.setProperty('--foreground', `${fgHSL.h} ${fgHSL.s}% ${fgHSL.l}%`);
   
-  // Set wallpaper and opacity
+  // Set wallpaper, opacity, and blur
   root.style.setProperty('--wallpaper-url', `url(${wallpaperUrl})`);
   root.style.setProperty('--card-opacity', (cardOpacity / 100).toString());
+  root.style.setProperty('--card-blur', `${cardBlur}px`);
   root.classList.add('personalized-theme');
   
   // Determine if dark or light based on background
@@ -358,6 +396,7 @@ export function initializePersonalizedTheme(personalizedTheme?: {
   backgroundColor: string;
   foregroundColor: string;
   cardOpacity?: number;
+  cardBlur?: number;
 }) {
   if (personalizedTheme) {
     applyPersonalizedTheme(
@@ -369,7 +408,8 @@ export function initializePersonalizedTheme(personalizedTheme?: {
         foreground: personalizedTheme.foregroundColor,
       },
       personalizedTheme.wallpaperUrl,
-      personalizedTheme.cardOpacity ?? 85
+      personalizedTheme.cardOpacity ?? 85,
+      personalizedTheme.cardBlur ?? 20
     );
   } else {
     removePersonalizedTheme();

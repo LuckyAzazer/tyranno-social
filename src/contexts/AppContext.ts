@@ -47,6 +47,8 @@ export interface PersonalizedTheme {
   foregroundColor: string;
   /** Card transparency (0-100, default 85) */
   cardOpacity?: number;
+  /** Card backdrop blur in pixels (0-40, default 20). 0 = clear dark cards, 40 = heavy frosted glass */
+  cardBlur?: number;
 }
 
 export interface AppConfig {
