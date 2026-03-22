@@ -1,13 +1,162 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useToast } from '@/hooks/useToast';
 import { extractColorsFromImage, hexToHSL } from '@/lib/colorExtraction';
-import { Upload, X, Loader2, ImagePlus, Droplet, Layers } from 'lucide-react';
+import { Upload, X, Loader2, ImagePlus, Droplet, Layers, Move } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
+
+// ─── Position presets ─────────────────────────────────────────────────────────
+
+const POSITION_PRESETS = [
+  { label: 'Top Left',    value: '0% 0%'     },
+  { label: 'Top',         value: '50% 0%'    },
+  { label: 'Top Right',   value: '100% 0%'   },
+  { label: 'Left',        value: '0% 50%'    },
+  { label: 'Center',      value: '50% 50%'   },
+  { label: 'Right',       value: '100% 50%'  },
+  { label: 'Bottom Left', value: '0% 100%'   },
+  { label: 'Bottom',      value: '50% 100%'  },
+  { label: 'Bottom Right',value: '100% 100%' },
+];
+
+// ─── Drag-to-reposition thumbnail ─────────────────────────────────────────────
+
+function WallpaperPositionPicker({
+  wallpaperUrl,
+  position,
+  onChange,
+}: {
+  wallpaperUrl: string;
+  position: string;
+  onChange: (pos: string) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+
+  // Parse current position as x/y percentages
+  const [px, py] = position.split(' ').map(p => parseFloat(p));
+
+  const posFromEvent = useCallback((e: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent) => {
+    const el = containerRef.current;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+    const x = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
+    return `${Math.round(x)}% ${Math.round(y)}%`;
+  }, []);
+
+  const handlePointerDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    isDragging.current = true;
+    const pos = posFromEvent(e);
+    if (pos) onChange(pos);
+
+    const onMove = (ev: MouseEvent | TouchEvent) => {
+      if (!isDragging.current) return;
+      const p = posFromEvent(ev);
+      if (p) onChange(p);
+    };
+    const onUp = () => { isDragging.current = false; };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove);
+    window.addEventListener('touchend', onUp);
+
+    // Cleanup once released
+    const cleanup = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+      window.removeEventListener('mouseup', cleanup);
+      window.removeEventListener('touchend', cleanup);
+    };
+    window.addEventListener('mouseup', cleanup);
+    window.addEventListener('touchend', cleanup);
+  }, [posFromEvent, onChange]);
+
+  return (
+    <div className="space-y-2">
+      {/* Drag area */}
+      <div
+        ref={containerRef}
+        className="relative w-full rounded-lg overflow-hidden cursor-crosshair select-none border-2 border-primary/30 hover:border-primary/50 transition-colors"
+        style={{ aspectRatio: '16/7' }}
+        onMouseDown={handlePointerDown}
+        onTouchStart={handlePointerDown}
+      >
+        {/* Wallpaper preview showing focal point */}
+        <div
+          className="absolute inset-0 bg-cover"
+          style={{
+            backgroundImage: `url(${wallpaperUrl})`,
+            backgroundPosition: position,
+          }}
+        />
+        {/* Dark overlay so crosshair is visible */}
+        <div className="absolute inset-0 bg-black/20" />
+
+        {/* Rule-of-thirds grid lines */}
+        <div className="absolute inset-0 pointer-events-none">
+          {[1, 2].map(i => (
+            <div key={`v${i}`} className="absolute top-0 bottom-0 w-px bg-white/15" style={{ left: `${(i / 3) * 100}%` }} />
+          ))}
+          {[1, 2].map(i => (
+            <div key={`h${i}`} className="absolute left-0 right-0 h-px bg-white/15" style={{ top: `${(i / 3) * 100}%` }} />
+          ))}
+        </div>
+
+        {/* Crosshair at current position */}
+        <div
+          className="absolute pointer-events-none"
+          style={{ left: `${px}%`, top: `${py}%`, transform: 'translate(-50%,-50%)' }}
+        >
+          <div className="relative flex items-center justify-center">
+            {/* Outer ring */}
+            <div className="h-8 w-8 rounded-full border-2 border-white shadow-lg shadow-black/60" />
+            {/* Cross lines */}
+            <div className="absolute h-px w-5 bg-white shadow-sm" />
+            <div className="absolute h-5 w-px bg-white shadow-sm" />
+            {/* Center dot */}
+            <div className="absolute h-1.5 w-1.5 rounded-full bg-white" />
+          </div>
+        </div>
+
+        {/* Hint label */}
+        <div className="absolute bottom-1.5 right-2 text-white/60 text-[10px] font-medium pointer-events-none select-none">
+          Drag to reposition
+        </div>
+      </div>
+
+      {/* 3×3 preset grid */}
+      <div className="grid grid-cols-3 gap-1">
+        {POSITION_PRESETS.map(preset => (
+          <button
+            key={preset.value}
+            onClick={() => onChange(preset.value)}
+            className={cn(
+              'text-[10px] font-medium py-1.5 px-1 rounded-md border transition-all',
+              position === preset.value
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border hover:border-primary/40 text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export function PersonalizedThemeManager() {
   const { config, updateConfig } = useAppContext();
@@ -18,62 +167,35 @@ export function PersonalizedThemeManager() {
   const hasPersonalizedTheme = !!config.personalizedTheme;
   const cardOpacity = config.personalizedTheme?.cardOpacity ?? 85;
   const cardBlur = config.personalizedTheme?.cardBlur ?? 20;
+  const wallpaperPosition = config.personalizedTheme?.wallpaperPosition ?? '50% 50%';
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast({
-        title: 'Invalid file type',
-        description: 'Please select an image file (JPG, PNG, WebP, etc.)',
-        variant: 'destructive',
-      });
+      toast({ title: 'Invalid file type', description: 'Please select an image file (JPG, PNG, WebP, etc.)', variant: 'destructive' });
       return;
     }
-
-    // Validate file size (max 10MB for local storage)
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast({
-        title: 'File too large',
-        description: 'Please select an image smaller than 10MB',
-        variant: 'destructive',
-      });
+      toast({ title: 'File too large', description: 'Please select an image smaller than 10MB', variant: 'destructive' });
       return;
     }
 
     setIsProcessing(true);
-
     try {
-      // Convert to data URL for local storage
       const reader = new FileReader();
-      
       reader.onload = async (event) => {
         const dataUrl = event.target?.result as string;
-        
         try {
-          // Extract colors from image
           let colors;
           try {
             colors = await extractColorsFromImage(dataUrl);
-          } catch (extractError) {
-            console.warn('Color extraction failed, using default colors:', extractError);
-            // Use default theme colors if extraction fails
-            colors = {
-              primary: '#e11d48', // Rose-600
-              secondary: '#f43f5e', // Rose-500
-              accent: '#fb923c', // Orange-400
-              background: '#ffffff',
-              foreground: '#0a0a0a',
-            };
+          } catch {
+            colors = { primary: '#e11d48', secondary: '#f43f5e', accent: '#fb923c', background: '#ffffff', foreground: '#0a0a0a' };
           }
-          
-          // Apply colors to CSS variables
-          applyPersonalizedTheme(colors, dataUrl, cardOpacity, cardBlur);
-          
-          // Save to config
+          applyPersonalizedTheme(colors, dataUrl, cardOpacity, cardBlur, wallpaperPosition);
           updateConfig((current) => ({
             ...current,
             personalizedTheme: {
@@ -83,124 +205,79 @@ export function PersonalizedThemeManager() {
               accentColor: colors.accent,
               backgroundColor: colors.background,
               foregroundColor: colors.foreground,
-              cardOpacity: cardOpacity,
-              cardBlur: cardBlur,
+              cardOpacity,
+              cardBlur,
+              wallpaperPosition,
             },
           }));
-          
-          toast({
-            title: 'Wallpaper uploaded!',
-            description: 'Your personalized theme has been applied.',
-          });
-        } catch (error) {
-          console.error('Failed to process wallpaper:', error);
-          toast({
-            title: 'Failed to upload wallpaper',
-            description: 'There was an error processing the file. Please try again.',
-            variant: 'destructive',
-          });
+          toast({ title: 'Wallpaper uploaded!', description: 'Your personalized theme has been applied.' });
+        } catch {
+          toast({ title: 'Failed to upload wallpaper', description: 'There was an error processing the file. Please try again.', variant: 'destructive' });
         } finally {
           setIsProcessing(false);
         }
       };
-      
       reader.onerror = () => {
-        toast({
-          title: 'Failed to read file',
-          description: 'There was an error reading the file. Please try again.',
-          variant: 'destructive',
-        });
+        toast({ title: 'Failed to read file', description: 'There was an error reading the file. Please try again.', variant: 'destructive' });
         setIsProcessing(false);
       };
-      
       reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Failed to upload wallpaper:', error);
-      toast({
-        title: 'Upload failed',
-        description: 'There was an error uploading the wallpaper.',
-        variant: 'destructive',
-      });
+    } catch {
+      toast({ title: 'Upload failed', description: 'There was an error uploading the wallpaper.', variant: 'destructive' });
       setIsProcessing(false);
     }
-
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleRemoveWallpaper = () => {
-    // Remove personalized theme from config
-    updateConfig((current) => {
-      const newConfig = { ...current };
-      delete newConfig.personalizedTheme;
-      return newConfig;
-    });
-
-    // Remove CSS variables
+    updateConfig((current) => { const n = { ...current }; delete n.personalizedTheme; return n; });
     removePersonalizedTheme();
-
-    toast({
-      title: 'Wallpaper removed',
-      description: 'Your personalized theme has been removed.',
-    });
+    toast({ title: 'Wallpaper removed', description: 'Your personalized theme has been removed.' });
   };
 
   const handleOpacityChange = (value: number[]) => {
     const newOpacity = value[0];
-    updateConfig((current) => ({
-      ...current,
-      personalizedTheme: current.personalizedTheme ? {
-        ...current.personalizedTheme,
-        cardOpacity: newOpacity,
-      } : undefined,
-    }));
+    updateConfig((current) => ({ ...current, personalizedTheme: current.personalizedTheme ? { ...current.personalizedTheme, cardOpacity: newOpacity } : undefined }));
     document.documentElement.style.setProperty('--card-opacity', (newOpacity / 100).toString());
   };
 
   const handleBlurChange = (value: number[]) => {
     const newBlur = value[0];
-    updateConfig((current) => ({
-      ...current,
-      personalizedTheme: current.personalizedTheme ? {
-        ...current.personalizedTheme,
-        cardBlur: newBlur,
-      } : undefined,
-    }));
+    updateConfig((current) => ({ ...current, personalizedTheme: current.personalizedTheme ? { ...current.personalizedTheme, cardBlur: newBlur } : undefined }));
     document.documentElement.style.setProperty('--card-blur', `${newBlur}px`);
   };
+
+  const handlePositionChange = useCallback((pos: string) => {
+    updateConfig((current) => ({ ...current, personalizedTheme: current.personalizedTheme ? { ...current.personalizedTheme, wallpaperPosition: pos } : undefined }));
+    document.documentElement.style.setProperty('--wallpaper-position', pos);
+  }, [updateConfig]);
 
   return (
     <div className="space-y-4">
       {hasPersonalizedTheme ? (
         <div className="space-y-4">
-          {/* Preview */}
-          <Card className="overflow-hidden border-2 border-primary/20">
-            <div 
-              className="h-32 bg-cover bg-center relative"
-              style={{ backgroundImage: `url(${config.personalizedTheme!.wallpaperUrl})` }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-                <div className="flex gap-1">
-                  {[
-                    config.personalizedTheme!.primaryColor,
-                    config.personalizedTheme!.secondaryColor,
-                    config.personalizedTheme!.accentColor,
-                  ].map((color, i) => (
-                    <div
-                      key={i}
-                      className="h-6 w-6 rounded-full border-2 border-white shadow-lg"
-                      style={{ backgroundColor: color }}
-                      title={color}
-                    />
-                  ))}
-                </div>
-              </div>
+
+          {/* Wallpaper Position Picker */}
+          <div className="space-y-3 p-4 rounded-lg border bg-muted/20">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2 font-medium">
+                <Move className="h-4 w-4 text-primary" />
+                Wallpaper Position
+              </Label>
+              <span className="text-sm text-muted-foreground font-mono text-xs">
+                {wallpaperPosition}
+              </span>
             </div>
-          </Card>
-          
+            <p className="text-xs text-muted-foreground">
+              Drag the preview or pick a preset to set the focal point of your wallpaper
+            </p>
+            <WallpaperPositionPicker
+              wallpaperUrl={config.personalizedTheme!.wallpaperUrl}
+              position={wallpaperPosition}
+              onChange={handlePositionChange}
+            />
+          </div>
+
           {/* Opacity Slider */}
           <div className="space-y-3 p-4 rounded-lg border bg-muted/20">
             <div className="flex items-center justify-between">
@@ -208,21 +285,10 @@ export function PersonalizedThemeManager() {
                 <Droplet className="h-4 w-4 text-primary" />
                 Card Transparency
               </Label>
-              <span className="text-sm text-muted-foreground font-mono">
-                {cardOpacity}%
-              </span>
+              <span className="text-sm text-muted-foreground font-mono">{cardOpacity}%</span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Adjust how much of your wallpaper shows through cards
-            </p>
-            <Slider
-              value={[cardOpacity]}
-              onValueChange={handleOpacityChange}
-              min={20}
-              max={100}
-              step={5}
-              className="w-full"
-            />
+            <p className="text-xs text-muted-foreground">Adjust how much of your wallpaper shows through cards</p>
+            <Slider value={[cardOpacity]} onValueChange={handleOpacityChange} min={20} max={100} step={5} className="w-full" />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>More wallpaper</span>
               <span>Less wallpaper</span>
@@ -236,21 +302,10 @@ export function PersonalizedThemeManager() {
                 <Layers className="h-4 w-4 text-primary" />
                 Card Blur
               </Label>
-              <span className="text-sm text-muted-foreground font-mono">
-                {cardBlur === 0 ? 'Off' : `${cardBlur}px`}
-              </span>
+              <span className="text-sm text-muted-foreground font-mono">{cardBlur === 0 ? 'Off' : `${cardBlur}px`}</span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Blurry = frosted glass look. Clear = darker solid cards for better readability
-            </p>
-            <Slider
-              value={[cardBlur]}
-              onValueChange={handleBlurChange}
-              min={0}
-              max={40}
-              step={2}
-              className="w-full"
-            />
+            <p className="text-xs text-muted-foreground">Blurry = frosted glass look. Clear = darker solid cards for better readability</p>
+            <Slider value={[cardBlur]} onValueChange={handleBlurChange} min={0} max={40} step={2} className="w-full" />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>Clear (no blur)</span>
               <span>Blurry (frosted)</span>
@@ -258,36 +313,14 @@ export function PersonalizedThemeManager() {
           </div>
 
           <Separator />
-          
+
           {/* Actions */}
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isProcessing}
-              className="flex-1"
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Change Wallpaper
-                </>
-              )}
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isProcessing} className="flex-1">
+              {isProcessing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</> : <><Upload className="h-4 w-4 mr-2" />Change Wallpaper</>}
             </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleRemoveWallpaper}
-              disabled={isProcessing}
-            >
-              <X className="h-4 w-4 mr-2" />
-              Remove
+            <Button variant="destructive" size="sm" onClick={handleRemoveWallpaper} disabled={isProcessing}>
+              <X className="h-4 w-4 mr-2" />Remove
             </Button>
           </div>
         </div>
@@ -295,74 +328,45 @@ export function PersonalizedThemeManager() {
         <div className="space-y-3">
           <div className="p-8 rounded-md border-2 border-dashed bg-muted/20 text-center">
             <ImagePlus className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground mb-4">
-              Upload a wallpaper to personalize your theme
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Wallpaper
-                </>
-              )}
+            <p className="text-sm text-muted-foreground mb-4">Upload a wallpaper to personalize your theme</p>
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isProcessing}>
+              {isProcessing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</> : <><Upload className="h-4 w-4 mr-2" />Upload Wallpaper</>}
             </Button>
           </div>
         </div>
       )}
 
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileSelect}
-        className="hidden"
-      />
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
     </div>
   );
 }
 
-/**
- * Apply personalized theme colors to CSS variables
- */
-function applyPersonalizedTheme(colors: {
-  primary: string;
-  secondary: string;
-  accent: string;
-  background: string;
-  foreground: string;
-}, wallpaperUrl: string, cardOpacity: number = 85, cardBlur: number = 20) {
+// ─── Apply / remove helpers ───────────────────────────────────────────────────
+
+function applyPersonalizedTheme(
+  colors: { primary: string; secondary: string; accent: string; background: string; foreground: string },
+  wallpaperUrl: string,
+  cardOpacity = 85,
+  cardBlur = 20,
+  wallpaperPosition = '50% 50%',
+) {
   const root = document.documentElement;
-  
-  // Convert colors to HSL for CSS variables
   const primaryHSL = hexToHSL(colors.primary);
-  const accentHSL = hexToHSL(colors.accent);
-  const bgHSL = hexToHSL(colors.background);
-  const fgHSL = hexToHSL(colors.foreground);
-  
-  // Set CSS variables
-  root.style.setProperty('--primary', `${primaryHSL.h} ${primaryHSL.s}% ${primaryHSL.l}%`);
-  root.style.setProperty('--accent', `${accentHSL.h} ${accentHSL.s}% ${accentHSL.l}%`);
+  const accentHSL  = hexToHSL(colors.accent);
+  const bgHSL      = hexToHSL(colors.background);
+  const fgHSL      = hexToHSL(colors.foreground);
+
+  root.style.setProperty('--primary',    `${primaryHSL.h} ${primaryHSL.s}% ${primaryHSL.l}%`);
+  root.style.setProperty('--accent',     `${accentHSL.h} ${accentHSL.s}% ${accentHSL.l}%`);
   root.style.setProperty('--background', `${bgHSL.h} ${bgHSL.s}% ${bgHSL.l}%`);
   root.style.setProperty('--foreground', `${fgHSL.h} ${fgHSL.s}% ${fgHSL.l}%`);
-  
-  // Set wallpaper, opacity, and blur
-  root.style.setProperty('--wallpaper-url', `url(${wallpaperUrl})`);
-  root.style.setProperty('--card-opacity', (cardOpacity / 100).toString());
-  root.style.setProperty('--card-blur', `${cardBlur}px`);
+
+  root.style.setProperty('--wallpaper-url',      `url(${wallpaperUrl})`);
+  root.style.setProperty('--card-opacity',        (cardOpacity / 100).toString());
+  root.style.setProperty('--card-blur',           `${cardBlur}px`);
+  root.style.setProperty('--wallpaper-position',  wallpaperPosition);
   root.classList.add('personalized-theme');
-  
-  // Determine if dark or light based on background
+
   if (bgHSL.l < 50) {
     root.classList.add('dark');
     root.classList.remove('light');
@@ -372,22 +376,13 @@ function applyPersonalizedTheme(colors: {
   }
 }
 
-/**
- * Remove personalized theme and restore defaults
- */
 function removePersonalizedTheme() {
   const root = document.documentElement;
-  
-  // Remove personalized class and wallpaper
   root.classList.remove('personalized-theme');
   root.style.removeProperty('--wallpaper-url');
-  
-  // Note: CSS variables will be restored by the theme system
+  root.style.removeProperty('--wallpaper-position');
 }
 
-/**
- * Initialize personalized theme on app load
- */
 export function initializePersonalizedTheme(personalizedTheme?: {
   wallpaperUrl: string;
   primaryColor: string;
@@ -397,19 +392,21 @@ export function initializePersonalizedTheme(personalizedTheme?: {
   foregroundColor: string;
   cardOpacity?: number;
   cardBlur?: number;
+  wallpaperPosition?: string;
 }) {
   if (personalizedTheme) {
     applyPersonalizedTheme(
       {
-        primary: personalizedTheme.primaryColor,
-        secondary: personalizedTheme.secondaryColor,
-        accent: personalizedTheme.accentColor,
+        primary:    personalizedTheme.primaryColor,
+        secondary:  personalizedTheme.secondaryColor,
+        accent:     personalizedTheme.accentColor,
         background: personalizedTheme.backgroundColor,
         foreground: personalizedTheme.foregroundColor,
       },
       personalizedTheme.wallpaperUrl,
-      personalizedTheme.cardOpacity ?? 85,
-      personalizedTheme.cardBlur ?? 20
+      personalizedTheme.cardOpacity    ?? 85,
+      personalizedTheme.cardBlur       ?? 20,
+      personalizedTheme.wallpaperPosition ?? '50% 50%',
     );
   } else {
     removePersonalizedTheme();

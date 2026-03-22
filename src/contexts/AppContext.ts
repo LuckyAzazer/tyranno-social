@@ -49,6 +49,8 @@ export interface PersonalizedTheme {
   cardOpacity?: number;
   /** Card backdrop blur in pixels (0-40, default 20). 0 = clear dark cards, 40 = heavy frosted glass */
   cardBlur?: number;
+  /** Wallpaper focal point as "X% Y%" CSS background-position (default "50% 50%") */
+  wallpaperPosition?: string;
 }
 
 export interface AppConfig {

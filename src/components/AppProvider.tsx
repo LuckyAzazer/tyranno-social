@@ -51,6 +51,7 @@ const PersonalizedThemeSchema = z.object({
   foregroundColor: z.string(),
   cardOpacity: z.number().optional(),
   cardBlur: z.number().optional(),
+  wallpaperPosition: z.string().optional(),
 }) satisfies z.ZodType<PersonalizedTheme>;
 
 // Zod schema for AppConfig validation
