@@ -178,6 +178,7 @@
   .personalized-theme {
     --wallpaper-url: none;
     --card-opacity: 0.85;
+    --card-blur: 20px;
   }
 
   .personalized-theme body {
@@ -207,11 +208,11 @@
     z-index: 1;
   }
 
-  /* Enhance card backgrounds in personalized mode with adjustable opacity */
+  /* Enhance card backgrounds in personalized mode with adjustable opacity + blur */
   .personalized-theme [class*="card"],
   .personalized-theme header,
   .personalized-theme footer {
-    backdrop-filter: blur(20px) saturate(150%);
+    backdrop-filter: blur(var(--card-blur)) saturate(150%);
     background: hsl(var(--background) / var(--card-opacity));
   }
 
