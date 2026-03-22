@@ -13,9 +13,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ArrowLeft, Send, Loader2, AlertTriangle, Key, ShieldCheck, Video } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, AlertTriangle, Key, ShieldCheck, Phone, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NoteContent } from '@/components/NoteContent';
+import { useWebRTCCall } from '@/hooks/useWebRTCCall';
+import { WebRTCCallUI } from '@/components/WebRTCCallUI';
+import { IncomingCallModal } from '@/components/IncomingCallModal';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 interface DMChatAreaProps {
@@ -152,7 +155,19 @@ const MessageBubble = memo(({
 
 MessageBubble.displayName = 'MessageBubble';
 
-const ChatHeader = ({ pubkey, onBack }: { pubkey: string; onBack?: () => void }) => {
+const ChatHeader = ({
+  pubkey,
+  onBack,
+  onAudioCall,
+  onVideoCall,
+  callActive,
+}: {
+  pubkey: string;
+  onBack?: () => void;
+  onAudioCall?: () => void;
+  onVideoCall?: () => void;
+  callActive?: boolean;
+}) => {
   const author = useAuthor(pubkey);
   const metadata = author.data?.metadata;
 
@@ -183,6 +198,30 @@ const ChatHeader = ({ pubkey, onBack }: { pubkey: string; onBack?: () => void })
         {metadata?.nip05 && (
           <p className="text-xs text-muted-foreground truncate">{metadata.nip05}</p>
         )}
+      </div>
+
+      {/* Call buttons */}
+      <div className="flex items-center gap-1 shrink-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onAudioCall}
+          disabled={callActive}
+          className="h-9 w-9 text-muted-foreground hover:text-green-500 hover:bg-green-500/10 transition-colors"
+          title="Audio call"
+        >
+          <Phone className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onVideoCall}
+          disabled={callActive}
+          className="h-9 w-9 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
+          title="Video call"
+        >
+          <Video className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );
@@ -217,6 +256,29 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
   const { user } = useCurrentUser();
   const { sendMessage, protocolMode, isLoading } = useDMContext();
   const { messages, hasMoreMessages, loadEarlierMessages } = useConversationMessages(pubkey || '');
+
+  const {
+    callState,
+    callType,
+    remotePubkey: callRemotePubkey,
+    incomingCall,
+    localStream,
+    remoteStream,
+    isMuted,
+    isCameraOff,
+    error: callError,
+    startCall,
+    acceptCall,
+    rejectCall,
+    hangUp,
+    toggleMute,
+    toggleCamera,
+    dismissCall,
+  } = useWebRTCCall();
+
+  const callActive = callState !== 'idle' && callState !== 'ended';
+  const showCallUI = callActive && callState !== 'receiving';
+  const showIncoming = callState === 'receiving' && !!incomingCall;
   
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -318,7 +380,13 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
 
   return (
     <Card className={cn("h-full flex flex-col", className)}>
-      <ChatHeader pubkey={pubkey} onBack={onBack} />
+      <ChatHeader
+        pubkey={pubkey}
+        onBack={onBack}
+        onAudioCall={() => startCall(pubkey, 'audio')}
+        onVideoCall={() => startCall(pubkey, 'video')}
+        callActive={callActive}
+      />
       
       <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
         {messages.length === 0 ? (
@@ -404,6 +472,41 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
           </div>
         </div>
       </div>
+
+      {/* Call error banner */}
+      {callError && callState === 'ended' && (
+        <div className="px-4 py-2 bg-red-50 dark:bg-red-950/20 border-t border-red-200 dark:border-red-900/30 flex items-center justify-between gap-3">
+          <p className="text-sm text-red-600 dark:text-red-400">{callError}</p>
+          <Button variant="ghost" size="sm" onClick={dismissCall} className="h-7 text-xs shrink-0">
+            Dismiss
+          </Button>
+        </div>
+      )}
+
+      {/* Active call overlay */}
+      {showCallUI && callRemotePubkey && (
+        <WebRTCCallUI
+          callState={callState}
+          callType={callType}
+          remotePubkey={callRemotePubkey}
+          localStream={localStream}
+          remoteStream={remoteStream}
+          isMuted={isMuted}
+          isCameraOff={isCameraOff}
+          onToggleMute={toggleMute}
+          onToggleCamera={toggleCamera}
+          onHangUp={hangUp}
+        />
+      )}
+
+      {/* Incoming call modal */}
+      {showIncoming && incomingCall && (
+        <IncomingCallModal
+          call={incomingCall}
+          onAccept={acceptCall}
+          onReject={rejectCall}
+        />
+      )}
     </Card>
   );
 };
