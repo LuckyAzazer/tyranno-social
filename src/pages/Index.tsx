@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { type FeedCategory } from '@/hooks/usePosts';
 import { useInfinitePosts } from '@/hooks/useInfinitePosts';
+import { useInfiniteMutualFollowsPosts } from '@/hooks/useInfiniteMutualFollowsPosts';
+import { useMutualFollows } from '@/hooks/useMutualFollows';
 import { useSearchPosts } from '@/hooks/useSearchPosts';
 import { useRelayFirehose } from '@/hooks/useRelayFirehose';
 import { MasonryGrid } from '@/components/MasonryGrid';
@@ -27,7 +29,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sparkles, FileText, Image, Music, Video, Users, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit, CircleDot, X as XIcon } from 'lucide-react';
+import { Sparkles, FileText, Image, Music, Video, Users, UserCheck, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit, CircleDot, X as XIcon } from 'lucide-react';
 import { EditProfileForm } from '@/components/EditProfileForm';
 import { WalletBalance } from '@/components/WalletBalance';
 import { useAppContext } from '@/hooks/useAppContext';
@@ -50,6 +52,7 @@ const Index = () => {
   const [pendingEventId, setPendingEventId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRelay, setSelectedRelay] = useState<string | null>(null);
+  const [isMutualFeed, setIsMutualFeed] = useState(false);
   const [nsfwInfoOpen, setNsfwInfoOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [selectedCircleDTag, setSelectedCircleDTag] = useState<string | null>(null);
@@ -98,6 +101,10 @@ const Index = () => {
     refetch: refetchFeed,
     isRefetching: isRefetchingFeed
   } = useInfinitePosts(selectedCategory);
+
+  // Mutual follows feed
+  const { data: mutualFollowsData, isLoading: isLoadingMutualFeed, fetchNextPage: fetchNextMutualPage, hasNextPage: hasNextMutualPage, isFetchingNextPage: isFetchingNextMutualPage, refetch: refetchMutual, isRefetching: isRefetchingMutual } = useInfiniteMutualFollowsPosts();
+  const { data: mutualFollowsPubkeys = [] } = useMutualFollows();
   
   const { 
     data: relayData, 
@@ -114,13 +121,16 @@ const Index = () => {
   // Flatten infinite query pages
   const feedPosts = infiniteData?.pages.flat() ?? [];
   const relayPosts = relayData?.pages.flat() ?? [];
+  const mutualPosts = mutualFollowsData?.pages.flat() ?? [];
 
-  // Use search results if searching, relay posts if relay selected, otherwise use feed
+  // Use search results if searching, relay posts if relay selected, mutual feed if active, otherwise use feed
   const rawPosts = searchQuery.trim() 
     ? searchPosts 
     : selectedRelay 
       ? relayPosts 
-      : feedPosts;
+      : isMutualFeed
+        ? mutualPosts
+        : feedPosts;
 
   // Filter out muted users, then optionally filter by selected circle
   const posts = rawPosts
@@ -132,13 +142,15 @@ const Index = () => {
     ? isLoadingSearch 
     : selectedRelay 
       ? isLoadingRelay 
-      : isLoadingFeed;
+      : isMutualFeed
+        ? isLoadingMutualFeed
+        : isLoadingFeed;
 
-  const fetchNextPage = selectedRelay ? fetchNextRelayPage : fetchNextFeedPage;
-  const hasNextPage = selectedRelay ? hasNextRelayPage : hasNextFeedPage;
-  const isFetchingNextPage = selectedRelay ? isFetchingNextRelayPage : isFetchingNextFeedPage;
-  const refetch = selectedRelay ? refetchRelay : refetchFeed;
-  const isRefetching = selectedRelay ? isRefetchingRelay : isRefetchingFeed;
+  const fetchNextPage = selectedRelay ? fetchNextRelayPage : isMutualFeed ? fetchNextMutualPage : fetchNextFeedPage;
+  const hasNextPage = selectedRelay ? hasNextRelayPage : isMutualFeed ? hasNextMutualPage : hasNextFeedPage;
+  const isFetchingNextPage = selectedRelay ? isFetchingNextRelayPage : isMutualFeed ? isFetchingNextMutualPage : isFetchingNextFeedPage;
+  const refetch = selectedRelay ? refetchRelay : isMutualFeed ? refetchMutual : refetchFeed;
+  const isRefetching = selectedRelay ? isRefetchingRelay : isMutualFeed ? isRefetchingMutual : isRefetchingFeed;
 
   const handleRefresh = () => {
     refetch();
@@ -282,7 +294,7 @@ const Index = () => {
           {/* Sidebar */}
           <Sidebar
             selectedCategory={selectedCategory}
-            onCategoryChange={(cat) => { setSelectedCategory(cat); setSelectedCircleDTag(null); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); }}
+            onCategoryChange={(cat) => { setSelectedCategory(cat); setSelectedCircleDTag(null); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setIsMutualFeed(false); setSelectedRelay(null); }}
             onCircleSelect={(pubkeys, label) => {
               if (pubkeys === null) {
                 setSelectedCircleDTag(null);
@@ -317,12 +329,17 @@ const Index = () => {
                   </Badge>
                 )}
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                    <DropdownMenuTrigger asChild>
                     <Button variant="secondary" size="sm" className="gap-2 bg-gradient-to-r from-primary/10 to-orange-100/50 text-primary border-primary/20 dark:from-primary/20 dark:to-primary/10">
                       {selectedRelay ? (
                         <>
                           <Wifi className="h-4 w-4" />
                           {selectedRelay.replace('wss://', '').split('/')[0]}
+                        </>
+                      ) : isMutualFeed ? (
+                        <>
+                          <UserCheck className="h-4 w-4" />
+                          Mutual Follows
                         </>
                       ) : (
                         <>
@@ -337,12 +354,30 @@ const Index = () => {
                     <DropdownMenuItem
                       onClick={() => {
                         setSelectedRelay(null);
+                        setIsMutualFeed(false);
                       }}
-                      className={`cursor-pointer ${!selectedRelay ? 'bg-accent' : ''}`}
+                      className={`cursor-pointer ${!selectedRelay && !isMutualFeed ? 'bg-accent' : ''}`}
                     >
                       <Users className="h-4 w-4 mr-2" />
                       My Feed (Following)
                     </DropdownMenuItem>
+                    {user && (
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setSelectedRelay(null);
+                          setIsMutualFeed(true);
+                        }}
+                        className={`cursor-pointer ${isMutualFeed ? 'bg-accent' : ''}`}
+                      >
+                        <UserCheck className="h-4 w-4 mr-2" />
+                        <div className="flex flex-col">
+                          <span>Mutual Follows</span>
+                          {mutualFollowsPubkeys.length > 0 && (
+                            <span className="text-[10px] text-muted-foreground">{mutualFollowsPubkeys.length} mutual{mutualFollowsPubkeys.length !== 1 ? 's' : ''}</span>
+                          )}
+                        </div>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
                       Relay Firehose
@@ -352,6 +387,7 @@ const Index = () => {
                         key={relay.url}
                         onClick={() => {
                           setSelectedRelay(relay.url);
+                          setIsMutualFeed(false);
                         }}
                         className={`cursor-pointer ${selectedRelay === relay.url ? 'bg-accent' : ''}`}
                       >
@@ -489,10 +525,22 @@ const Index = () => {
             ) : (
               <Card className="border-dashed">
                 <CardContent className="py-12 px-8 text-center">
-                  <div className="max-w-sm mx-auto space-y-6">
-                    <p className="text-muted-foreground">
-                      No posts found. Check your relay connections or wait a moment for content to load.
-                    </p>
+                  <div className="max-w-sm mx-auto space-y-4">
+                    {isMutualFeed ? (
+                      <>
+                        <div className="inline-flex p-4 rounded-full bg-primary/10 mb-2">
+                          <UserCheck className="h-8 w-8 text-primary" />
+                        </div>
+                        <p className="font-semibold text-foreground">No mutual follows found</p>
+                        <p className="text-sm text-muted-foreground">
+                          This feed shows posts from people who follow you back. Follow more people and wait for them to follow you back!
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-muted-foreground">
+                        No posts found. Check your relay connections or wait a moment for content to load.
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
