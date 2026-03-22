@@ -20,6 +20,7 @@ import { ColumnSelector } from '@/components/ColumnSelector';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { InstallPWA } from '@/components/InstallPWA';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { MobileComposeFAB } from '@/components/MobileComposeFAB';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useUnreadDMCount } from '@/hooks/useUnreadDMCount';
@@ -659,6 +660,9 @@ const Index = () => {
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
+
+      {/* Mobile Floating Compose Button */}
+      <MobileComposeFAB onPostPublished={handleRefresh} />
 
       {/* Edit Profile Dialog */}
       <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>

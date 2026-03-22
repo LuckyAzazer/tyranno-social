@@ -5,7 +5,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Home, Bell, Settings, PenSquare, MessageCircle, Flame, Users } from 'lucide-react';
+import { Home, Bell, Settings, MessageCircle, Flame } from 'lucide-react';
 
 export function MobileBottomNav() {
   const { user } = useCurrentUser();
@@ -61,23 +61,6 @@ export function MobileBottomNav() {
             </Badge>
           )}
           <span className="text-[10px] font-medium">Messages</span>
-        </Button>
-
-        {/* Compose — prominent centre button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/compose')}
-          className={`relative ${btnClass('/compose')}`}
-        >
-          <div className={`p-1.5 rounded-full transition-colors ${
-            isActive('/compose')
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-primary/10 text-primary group-hover:bg-primary/20'
-          }`}>
-            <PenSquare className="h-5 w-5" />
-          </div>
-          <span className="text-[10px] font-medium">Compose</span>
         </Button>
 
         {/* Notifications */}
