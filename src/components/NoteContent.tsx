@@ -40,6 +40,15 @@ export function NoteContent({
     return null;
   }, [event.content]);
 
+  // If content is a stringified Nostr event (has a `content` string field),
+  // derive the inner text now so we can use it later without breaking hook order.
+  const innerContent = useMemo<string | null>(() => {
+    if (jsonData && typeof jsonData.content === 'string') {
+      return jsonData.content;
+    }
+    return null;
+  }, [jsonData]);
+
   // Check if content is mostly hexadecimal hash data
   const isHashData = useMemo(() => {
     const cleaned = event.content.replace(/\s+/g, '');
@@ -93,27 +102,6 @@ export function NoteContent({
         <HashDataCard content={event.content} />
       </div>
     );
-  }
-
-  // If content parsed as JSON but didn't match any known card type, it may be
-  // a stringified Nostr event (e.g. a kind-1 whose content field is a raw event
-  // JSON). Extract the inner `content` string and render that instead so users
-  // don't see a wall of raw JSON.
-  if (jsonData && typeof jsonData.content === 'string') {
-    // Render a synthetic event with the extracted content so all the normal
-    // link/hashtag/mention processing still runs below.
-    return (
-      <NoteContent
-        event={{ ...event, content: jsonData.content }}
-        className={className}
-      />
-    );
-  }
-
-  // If content is JSON but has no `content` field we can extract, just hide it
-  // (it's structured data we don't know how to display).
-  if (jsonData) {
-    return null;
   }
 
   // Get mentioned pubkeys from p tags for replacements
@@ -306,6 +294,22 @@ export function NoteContent({
   }, [event.content, mentionedPubkeys, mediaUrls, showHiddenLinks]);
 
   const { content, hiddenLinkCount } = processedContent;
+
+  // After all hooks: if content was a stringified Nostr event, render the
+  // extracted inner content string instead (all hooks have already run safely).
+  if (innerContent !== null) {
+    return (
+      <NoteContent
+        event={{ ...event, content: innerContent }}
+        className={className}
+      />
+    );
+  }
+
+  // If content is unrecognised JSON with no extractable text, hide it.
+  if (jsonData) {
+    return null;
+  }
 
   return (
     <div className={cn("whitespace-pre-wrap break-words", className)}>
