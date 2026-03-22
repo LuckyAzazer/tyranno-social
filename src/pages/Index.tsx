@@ -63,6 +63,29 @@ const Index = () => {
   const [selectedCircleDTag, setSelectedCircleDTag] = useState<string | null>(null);
   const [selectedCirclePubkeys, setSelectedCirclePubkeys] = useState<string[] | null>(null);
   const [selectedCircleLabel, setSelectedCircleLabel] = useState<string | null>(null);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  // Hide header on scroll down, show on scroll up (mobile only)
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const diff = currentScrollY - lastScrollY.current;
+
+      if (diff > 4 && currentScrollY > 80) {
+        // Scrolling down & past the top area → hide
+        setHeaderVisible(false);
+      } else if (diff < -4) {
+        // Scrolling up → show
+        setHeaderVisible(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useSeoMeta({
     title: 'Tyrannosocial - A Beautiful Nostr Experience',
@@ -229,7 +252,7 @@ const Index = () => {
         </div>
       </div>
       {/* Hero Header - Sticky */}
-      <header className="sticky top-0 z-40 relative border-b border-border/50 bg-background/95 backdrop-blur-lg shadow-sm">
+      <header className={`sticky top-0 z-40 relative border-b border-border/50 bg-background/95 backdrop-blur-lg shadow-sm transition-transform duration-300 md:translate-y-0 ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-rose-500/5 to-primary/10 -z-10" />
         <div className="px-4 py-4">
           <div className="flex items-center justify-between gap-3">
