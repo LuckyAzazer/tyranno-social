@@ -1,12 +1,12 @@
 /**
  * InlineSuggestions
  *
- * A full-width card injected into the feed every ~20-25 posts.
+ * A vertical post-card–style card injected into the masonry feed columns.
  * Shows 3 users recommended via Web-of-Trust score (friends-of-friends),
- * each with avatar, name, handle and a follow button.
+ * each as a horizontal row: avatar | name + handle + mutuals | follow button.
  *
  * The `batchIndex` prop selects which slice of the ranked suggestion list
- * to display, so each occurrence shows a different trio.
+ * to display, so each occurrence in the feed shows a different trio.
  */
 
 import { Link } from 'react-router-dom';
@@ -22,7 +22,7 @@ import type { NostrMetadata } from '@nostrify/nostrify';
 
 const BATCH_SIZE = 3;
 
-function SuggestionUser({ pubkey, score }: { pubkey: string; score: number }) {
+function SuggestionUserRow({ pubkey, score }: { pubkey: string; score: number }) {
   const author = useAuthor(pubkey);
   const meta: NostrMetadata | undefined = author.data?.metadata;
   const displayName = meta?.display_name || meta?.name || genUserName(pubkey);
@@ -31,36 +31,38 @@ function SuggestionUser({ pubkey, score }: { pubkey: string; score: number }) {
 
   if (author.isLoading) {
     return (
-      <div className="flex flex-col items-center gap-2 flex-1 min-w-0 px-2">
-        <Skeleton className="h-12 w-12 rounded-full" />
-        <Skeleton className="h-3 w-20" />
-        <Skeleton className="h-3 w-14" />
-        <Skeleton className="h-7 w-16 rounded-md" />
+      <div className="flex items-center gap-3 py-2.5">
+        <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+        <div className="flex-1 space-y-1.5">
+          <Skeleton className="h-3.5 w-24" />
+          <Skeleton className="h-3 w-16" />
+        </div>
+        <Skeleton className="h-8 w-8 rounded-md shrink-0" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center gap-2 flex-1 min-w-0 px-2 text-center">
+    <div className="flex items-center gap-3 py-2.5">
       <Link to={`/${npub}`} className="shrink-0">
-        <Avatar className="h-12 w-12 ring-2 ring-background hover:ring-primary/30 transition-all">
+        <Avatar className="h-10 w-10 ring-2 ring-background hover:ring-primary/20 transition-all">
           <AvatarImage src={meta?.picture} alt={displayName} />
-          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold">
+          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-sm">
             {displayName[0]?.toUpperCase()}
           </AvatarFallback>
         </Avatar>
       </Link>
 
-      <div className="min-w-0 w-full">
+      <div className="flex-1 min-w-0">
         <Link
           to={`/${npub}`}
-          className="text-xs font-semibold hover:text-primary transition-colors block truncate"
+          className="text-sm font-semibold hover:text-primary transition-colors block truncate leading-tight"
         >
           {displayName}
         </Link>
-        <p className="text-[10px] text-muted-foreground truncate">@{username}</p>
+        <p className="text-xs text-muted-foreground truncate">@{username}</p>
         {score > 1 && (
-          <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+          <p className="text-[10px] text-muted-foreground/70 leading-tight mt-0.5">
             {score} mutual{score !== 1 ? 's' : ''} follow
           </p>
         )}
@@ -86,31 +88,34 @@ export function InlineSuggestions({ batchIndex }: InlineSuggestionsProps) {
   if (!isLoading && batch.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-card via-primary/5 to-card shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-4 pt-3 pb-2 border-b border-border/40">
-        <div className="p-1 rounded-md bg-primary/10">
-          <Users className="h-3.5 w-3.5 text-primary" />
+    <div className="rounded-xl border border-border/50 bg-gradient-to-br from-card to-primary/5 dark:from-card dark:to-card shadow-sm overflow-hidden">
+      {/* Header — mimics a post card header */}
+      <div className="flex items-center gap-2 px-4 pt-4 pb-1">
+        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center shrink-0">
+          <Users className="h-4 w-4 text-primary" />
         </div>
-        <span className="text-xs font-semibold text-foreground">People you might like</span>
-        <span className="text-[10px] text-muted-foreground ml-auto">Based on who you follow</span>
+        <div>
+          <p className="text-sm font-semibold leading-tight">People you might like</p>
+          <p className="text-[10px] text-muted-foreground">Based on who you follow</p>
+        </div>
       </div>
 
-      {/* User row */}
-      <div className="flex items-start justify-around py-4 px-2">
+      {/* Vertical user list */}
+      <div className="px-4 pb-3 divide-y divide-border/30">
         {isLoading && batch.length === 0 ? (
-          // Loading skeletons
           Array.from({ length: BATCH_SIZE }).map((_, i) => (
-            <div key={i} className="flex flex-col items-center gap-2 flex-1 px-2">
-              <Skeleton className="h-12 w-12 rounded-full" />
-              <Skeleton className="h-3 w-20" />
-              <Skeleton className="h-3 w-14" />
-              <Skeleton className="h-7 w-16 rounded-md" />
+            <div key={i} className="flex items-center gap-3 py-2.5">
+              <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <Skeleton className="h-3.5 w-24" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+              <Skeleton className="h-8 w-8 rounded-md shrink-0" />
             </div>
           ))
         ) : (
           batch.map((s) => (
-            <SuggestionUser key={s.pubkey} pubkey={s.pubkey} score={s.score} />
+            <SuggestionUserRow key={s.pubkey} pubkey={s.pubkey} score={s.score} />
           ))
         )}
       </div>
