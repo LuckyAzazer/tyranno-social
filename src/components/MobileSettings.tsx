@@ -17,9 +17,37 @@ export function MobileSettings() {
   const { isActive: wotActive, wotEnabled, setWotEnabled, canUseWoT } = useWebOfTrust();
 
   const isDark = theme === 'dark';
+  const hasPersonalizedTheme = !!config.personalizedTheme;
 
   const toggleTheme = () => {
-    setTheme(isDark ? 'light' : 'dark');
+    const newTheme = isDark ? 'light' : 'dark';
+
+    // If personalized mode is active, turn it off when toggling theme
+    if (hasPersonalizedTheme) {
+      updateConfig((current) => {
+        const newConfig = { ...current, theme: newTheme };
+        delete newConfig.personalizedTheme;
+        return newConfig;
+      });
+
+      // Remove personalized theme from DOM
+      const root = document.documentElement;
+      const body = document.body;
+
+      root.classList.remove('personalized-theme', 'light', 'dark');
+      root.style.removeProperty('--wallpaper-url');
+      root.classList.add(newTheme);
+
+      // Clear body background styles
+      body.style.removeProperty('background-image');
+      body.style.removeProperty('background-size');
+      body.style.removeProperty('background-position');
+      body.style.removeProperty('background-attachment');
+      body.style.removeProperty('background-repeat');
+    } else {
+      // Normal theme toggle
+      setTheme(newTheme);
+    }
   };
 
   return (
@@ -55,7 +83,9 @@ export function MobileSettings() {
                 <Label htmlFor="mobile-theme-toggle" className="cursor-pointer font-medium">
                   {isDark ? 'Dark Mode' : 'Light Mode'}
                 </Label>
-                <p className="text-xs text-muted-foreground">Switch between light and dark</p>
+                {hasPersonalizedTheme && (
+                  <p className="text-xs text-muted-foreground">Will disable personalized theme</p>
+                )}
               </div>
             </div>
             <Switch

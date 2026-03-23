@@ -366,8 +366,14 @@ function applyPersonalizedTheme(
   root.style.setProperty('--card-blur',           `${cardBlur}px`);
   root.style.setProperty('--wallpaper-position',  wallpaperPosition);
   root.classList.add('personalized-theme');
-  // Note: dark/light class is managed by useApplyTheme in AppProvider,
-  // not here — so the user's theme toggle works even with a wallpaper active.
+
+  if (bgHSL.l < 50) {
+    root.classList.add('dark');
+    root.classList.remove('light');
+  } else {
+    root.classList.add('light');
+    root.classList.remove('dark');
+  }
 }
 
 function removePersonalizedTheme() {

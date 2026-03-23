@@ -365,12 +365,13 @@ export function AppearancePanel() {
         <div className="space-y-0.5">
           <SectionLabel icon={isDark ? Moon : Sun} label="Dark Mode" />
           <p className="text-xs text-muted-foreground pl-6">
-            Switch between light and dark themes
+            {hasWallpaper ? 'Disabled while wallpaper is active' : 'Switch between light and dark themes'}
           </p>
         </div>
         <Switch
           checked={isDark}
           onCheckedChange={(v) => setTheme(v ? 'dark' : 'light')}
+          disabled={hasWallpaper}
           className="data-[state=checked]:bg-primary"
         />
       </div>
@@ -382,7 +383,7 @@ export function AppearancePanel() {
         <div>
           <SectionLabel icon={Palette} label="Theme Color" />
           <p className="text-xs text-muted-foreground pl-6 mt-0.5">
-            {hasWallpaper ? 'Colors extracted from your wallpaper' : 'Pick any color — it tints the whole app'}
+            {hasWallpaper ? 'Colors are generated from your wallpaper' : 'Pick any color — it tints the whole app'}
           </p>
         </div>
 
