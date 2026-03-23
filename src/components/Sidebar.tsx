@@ -51,6 +51,7 @@ import {
   ShieldAlert,
   UserCheck,
   Flame,
+  ImageOff,
 } from 'lucide-react';
 import {
   Sheet,
@@ -215,24 +216,45 @@ export function Sidebar({ selectedCategory, onCategoryChange, onCircleSelect, se
         {/* Theme Toggle */}
         <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-rose-50/30 dark:from-card dark:to-card">
           <CardContent className="pt-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {isDark ? (
-                  <Moon className="h-5 w-5 text-primary" />
-                ) : (
-                  <Sun className="h-5 w-5 text-primary" />
-                )}
-                <Label htmlFor="theme-toggle" className="cursor-pointer font-medium">
-                  {isDark ? 'Dark Mode' : 'Light Mode'}
-                </Label>
+            {config.personalizedTheme ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <ImageOff className="h-5 w-5 text-primary" />
+                  <Label className="font-medium">Custom Wallpaper</Label>
+                </div>
+                <button
+                  onClick={() => {
+                    updateConfig((current) => { const n = { ...current }; delete n.personalizedTheme; return n; });
+                    const root = document.documentElement;
+                    root.classList.remove('personalized-theme');
+                    root.style.removeProperty('--wallpaper-url');
+                    root.style.removeProperty('--wallpaper-position');
+                  }}
+                  className="text-xs text-destructive hover:text-destructive/80 font-medium transition-colors"
+                >
+                  Remove
+                </button>
               </div>
-              <Switch
-                id="theme-toggle"
-                checked={isDark}
-                onCheckedChange={toggleTheme}
-                className="data-[state=checked]:bg-primary"
-              />
-            </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {isDark ? (
+                    <Moon className="h-5 w-5 text-primary" />
+                  ) : (
+                    <Sun className="h-5 w-5 text-primary" />
+                  )}
+                  <Label htmlFor="theme-toggle" className="cursor-pointer font-medium">
+                    {isDark ? 'Dark Mode' : 'Light Mode'}
+                  </Label>
+                </div>
+                <Switch
+                  id="theme-toggle"
+                  checked={isDark}
+                  onCheckedChange={toggleTheme}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <AlertTriangle className="h-5 w-5 text-primary" />

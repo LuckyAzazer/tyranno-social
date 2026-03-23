@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Settings, Moon, Sun, AlertTriangle, ShieldCheck, Users } from 'lucide-react';
+import { Settings, Moon, Sun, AlertTriangle, ShieldCheck, Users, ImageOff } from 'lucide-react';
 
 export function MobileSettings() {
   const [open, setOpen] = useState(false);
@@ -71,29 +71,60 @@ export function MobileSettings() {
         </SheetHeader>
 
         <div className="space-y-4 mt-6">
-          {/* Dark Mode Toggle */}
+          {/* Dark Mode Toggle / Remove Wallpaper */}
           <div className="flex items-center justify-between p-4 rounded-lg border bg-card">
-            <div className="flex items-center gap-3">
-              {isDark ? (
-                <Moon className="h-5 w-5 text-primary" />
-              ) : (
-                <Sun className="h-5 w-5 text-primary" />
-              )}
-              <div>
-                <Label htmlFor="mobile-theme-toggle" className="cursor-pointer font-medium">
-                  {isDark ? 'Dark Mode' : 'Light Mode'}
-                </Label>
-                {hasPersonalizedTheme && (
-                  <p className="text-xs text-muted-foreground">Will disable personalized theme</p>
-                )}
-              </div>
-            </div>
-            <Switch
-              id="mobile-theme-toggle"
-              checked={isDark}
-              onCheckedChange={toggleTheme}
-              className="data-[state=checked]:bg-primary"
-            />
+            {hasPersonalizedTheme ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <ImageOff className="h-5 w-5 text-primary" />
+                  <div>
+                    <Label className="font-medium">Custom Wallpaper</Label>
+                    <p className="text-xs text-muted-foreground">Active</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    updateConfig((current) => {
+                      const newConfig = { ...current };
+                      delete newConfig.personalizedTheme;
+                      return newConfig;
+                    });
+                    const root = document.documentElement;
+                    const body = document.body;
+                    root.classList.remove('personalized-theme', 'light', 'dark');
+                    root.style.removeProperty('--wallpaper-url');
+                    root.style.removeProperty('--wallpaper-position');
+                    body.style.removeProperty('background-image');
+                    body.style.removeProperty('background-size');
+                    body.style.removeProperty('background-position');
+                    body.style.removeProperty('background-attachment');
+                    body.style.removeProperty('background-repeat');
+                  }}
+                  className="text-sm text-destructive hover:text-destructive/80 font-medium transition-colors"
+                >
+                  Remove
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-3">
+                  {isDark ? (
+                    <Moon className="h-5 w-5 text-primary" />
+                  ) : (
+                    <Sun className="h-5 w-5 text-primary" />
+                  )}
+                  <Label htmlFor="mobile-theme-toggle" className="cursor-pointer font-medium">
+                    {isDark ? 'Dark Mode' : 'Light Mode'}
+                  </Label>
+                </div>
+                <Switch
+                  id="mobile-theme-toggle"
+                  checked={isDark}
+                  onCheckedChange={toggleTheme}
+                  className="data-[state=checked]:bg-primary"
+                />
+              </>
+            )}
           </div>
 
           {/* NSFW Filter Toggle */}
