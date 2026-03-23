@@ -47,6 +47,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 const Index = () => {
@@ -131,7 +138,7 @@ const Index = () => {
   } = useInfinitePosts(selectedCategory);
 
   // Mutual follows feed
-  const { data: mutualFollowsData, isLoading: isLoadingMutualFeed, fetchNextPage: fetchNextMutualPage, hasNextPage: hasNextMutualPage, isFetchingNextPage: isFetchingNextMutualPage, refetch: refetchMutual, isRefetching: isRefetchingMutual } = useInfiniteMutualFollowsPosts();
+  const { data: mutualFollowsData, isLoading: isLoadingMutualFeed, fetchNextPage: fetchNextMutualPage, hasNextPage: hasNextMutualPage, isFetchingNextPage: isFetchingNextMutualPage, refetch: refetchMutual, isRefetching: isRefetchingMutual } = useInfiniteMutualFollowsPosts(selectedCategory);
   const { data: mutualFollowsPubkeys = [] } = useMutualFollows();
 
   // Conversations feed
@@ -232,6 +239,15 @@ const Index = () => {
     music: 'Music',
     videos: 'Videos',
   };
+
+  const feedCategories: Array<{ id: FeedCategory; label: string }> = [
+    { id: 'following', label: 'All Notes' },
+    { id: 'text', label: 'Text' },
+    { id: 'articles', label: 'Articles' },
+    { id: 'photos', label: 'Photos' },
+    { id: 'music', label: 'Music' },
+    { id: 'videos', label: 'Videos' },
+  ];
 
   const CategoryIcon = categoryIcons[selectedCategory];
 
@@ -457,6 +473,34 @@ const Index = () => {
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+
+                {/* Inline Category Selector — shown on mobile next to the feed button, hidden on desktop (sidebar handles it) */}
+                {!isConversationsFeed && (
+                  <div className="xl:hidden">
+                    <Select
+                      value={selectedCategory}
+                      onValueChange={(value) => setSelectedCategory(value as FeedCategory)}
+                    >
+                      <SelectTrigger className="h-9 gap-1.5 bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors text-sm font-medium text-primary w-auto pr-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {feedCategories.map((cat) => {
+                          const Icon = categoryIcons[cat.id];
+                          return (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              <div className="flex items-center gap-2">
+                                <Icon className="h-4 w-4" />
+                                <span>{cat.label}</span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -555,9 +599,9 @@ const Index = () => {
             ) : posts && posts.length > 0 ? (
               <>
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-                  {selectedCategory === 'photos' && !selectedRelay && !isMutualFeed && !isConversationsFeed ? (
+                  {selectedCategory === 'photos' && !isConversationsFeed ? (
                     <PhotoGalleryGrid posts={posts} onPostClick={setSelectedPost} />
-                  ) : selectedCategory === 'videos' && !selectedRelay && !isMutualFeed && !isConversationsFeed ? (
+                  ) : selectedCategory === 'videos' && !isConversationsFeed ? (
                     <VideoGalleryGrid posts={posts} onPostClick={setSelectedPost} />
                   ) : (
                     <MasonryGrid posts={posts} columns={columns} onPostClick={setSelectedPost} />

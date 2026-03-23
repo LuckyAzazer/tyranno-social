@@ -17,13 +17,20 @@ import { useNSFWFilter } from '@/hooks/useNSFWFilter';
 import { filterNSFWContent } from '@/lib/nsfwDetection';
 import { filterEventsByTopic } from '@/lib/topicFilter';
 import type { NostrEvent } from '@nostrify/nostrify';
+import type { FeedCategory } from './usePosts';
 
 const PAGE_SIZE = 100;
 
-// All the kinds that can appear in the "following" feed
-const FEED_KINDS = [1, 6, 16, 30023, 31337, 34235];
+const categoryKinds: Record<FeedCategory, number[]> = {
+  following: [1, 6, 16, 30023, 31337, 34235],
+  text: [1, 6, 16],
+  articles: [30023],
+  photos: [1, 6, 16],
+  music: [1, 6, 16, 31337],
+  videos: [34235],
+};
 
-export function useInfiniteMutualFollowsPosts() {
+export function useInfiniteMutualFollowsPosts(category: FeedCategory = 'following') {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { config } = useAppContext();
@@ -33,6 +40,7 @@ export function useInfiniteMutualFollowsPosts() {
   return useInfiniteQuery({
     queryKey: [
       'posts-infinite-mutual-follows',
+      category,
       user?.pubkey,
       mutualPubkeys.length,
       config.relayMetadata.updatedAt,
@@ -50,17 +58,51 @@ export function useInfiniteMutualFollowsPosts() {
 
       const relayGroup = relayUrls.length > 0 ? nostr.group(relayUrls) : nostr;
 
+      const kinds = categoryKinds[category];
+
       const events = await relayGroup.query([
         {
-          kinds: FEED_KINDS,
+          kinds,
           authors: mutualPubkeys,
           limit: PAGE_SIZE,
           ...(pageParam ? { until: pageParam as number } : {}),
         },
       ]);
 
+      // For photos, filter kind 1 to only those with image URLs
+      let filtered = events;
+      if (category === 'photos') {
+        filtered = events.filter((event) => {
+          if (event.kind !== 1) return true;
+          const hasImageUrl = /https?:\/\/.*\.(jpg|jpeg|png|gif|webp|bmp|svg)/i.test(event.content);
+          const hasImetaTag = event.tags.some(([name]) => name === 'imeta');
+          return hasImageUrl || hasImetaTag;
+        });
+      }
+
+      // For music, filter kind 1 to only those with music content
+      if (category === 'music') {
+        filtered = events.filter((event) => {
+          if (event.kind === 31337) return true;
+          if (event.kind === 6 || event.kind === 16) return true;
+          if (event.kind === 1) {
+            const hasAudioUrl = /https?:\/\/.*\.(mp3|wav|ogg|m4a|aac|flac|opus)/i.test(event.content);
+            const hasSpotify = /spotify\.com\/(track|album|playlist|episode|show)/i.test(event.content);
+            const hasSoundCloud = /soundcloud\.com\/[a-zA-Z0-9-_]+\/[a-zA-Z0-9-_]+/i.test(event.content);
+            const hasZapstr = /zapstr\.live\/t\/naddr1[a-z0-9]+/i.test(event.content);
+            const hasAudioImeta = event.tags.some(([name, ...values]) => {
+              if (name !== 'imeta') return false;
+              const mimeTag = values.find(v => v.startsWith('m ') || v.startsWith('type '));
+              return mimeTag && /audio\//i.test(mimeTag);
+            });
+            return hasAudioUrl || hasSpotify || hasSoundCloud || hasZapstr || hasAudioImeta;
+          }
+          return false;
+        });
+      }
+
       // Strip replies (keep reposts)
-      let filtered = events.filter((event) => {
+      filtered = filtered.filter((event) => {
         if (event.kind === 6 || event.kind === 16) return true;
         return !event.tags.some(([name]) => name === 'e');
       });
