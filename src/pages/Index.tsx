@@ -239,41 +239,7 @@ const Index = () => {
 
   const CategoryIcon = categoryIcons[selectedCategory];
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-rose-50/30 to-pink-50/40 dark:from-background dark:via-background dark:to-primary/5">
-      {/* Small Zap Link - Top Banner */}
-      <div className="bg-gradient-to-r from-amber-50/50 via-yellow-50/30 to-amber-50/50 dark:from-amber-950/20 dark:via-yellow-950/10 dark:to-amber-950/20 border-b border-amber-200/30 dark:border-amber-900/20">
-        <div className="px-4 py-1.5">
-          <div className="flex justify-center">
-            <a
-              href="lightning:deadwolf170@minibits.cash"
-              className="text-[10px] sm:text-xs text-amber-700/80 dark:text-amber-400/70 hover:text-amber-900 dark:hover:text-amber-300 transition-colors flex items-center gap-1.5 group"
-            >
-              <Zap className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-amber-500/50 dark:fill-amber-400/30 group-hover:fill-amber-600 dark:group-hover:fill-amber-300 transition-colors" />
-              <span className="font-medium">Appreciate the Zaps!</span>
-            </a>
-          </div>
-        </div>
-      </div>
-      {/* Hero Header - Sticky */}
-      <header className={`sticky top-0 z-40 relative border-b border-border/50 bg-background/95 backdrop-blur-lg shadow-sm transition-transform duration-300 md:translate-y-0 ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-rose-500/5 to-primary/10 -z-10" />
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between gap-3">
-            {/* Hamburger menu — opens sidebar drawer on all screen sizes */}
-            <SidebarDrawer
-              selectedCategory={selectedCategory}
-              open={sidebarOpen}
-              onOpenChange={setSidebarOpen}
-              onCategoryChange={(cat) => {
-                setSelectedCategory(cat);
-                setSelectedCircleDTag(null);
-                setSelectedCirclePubkeys(null);
-                setSelectedCircleLabel(null);
-                setIsMutualFeed(false);
-                setIsConversationsFeed(false);
-                setSelectedRelay(null);
-              }}
+  
               onCircleSelect={(pubkeys, label) => {
                 if (pubkeys === null) {
                   setSelectedCircleDTag(null);
