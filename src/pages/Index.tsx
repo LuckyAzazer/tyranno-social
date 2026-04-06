@@ -308,7 +308,6 @@ const Index = () => {
                     alt="Tyrannosocial Logo"
                     className="h-10 w-10 sm:h-12 sm:w-12 drop-shadow-2xl filter brightness-110 rounded-full transition-transform group-hover:scale-105"
 >>>>>>> 53f00b889b18ff6557d6b6bca2b239f71e8a4b4a
-      </header>
                   />
                 </div>
               </div>
@@ -527,7 +526,7 @@ const Index = () => {
             </div>
           </div>
         </div>
-
+      </header>
 
       {/* Main Content */}
       <main className="px-4 py-6 pb-24 lg:pb-8">

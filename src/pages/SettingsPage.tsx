@@ -90,7 +90,16 @@ export default function SettingsPage() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
+<<<<<<< HEAD
 
+                    />
+                  </div>
+                </div>
+                <h1 className="text-base font-bold text-foreground leading-tight truncate">Settings</h1>
+              </div>
+=======
+              <h1 className="text-base font-bold text-foreground leading-tight truncate">Settings</h1>
+>>>>>>> 53f00b889b18ff6557d6b6bca2b239f71e8a4b4a
             </div>
             <div className="shrink-0">
               <LoginArea className="max-w-[180px]" />
