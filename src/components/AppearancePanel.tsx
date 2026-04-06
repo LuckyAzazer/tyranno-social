@@ -306,16 +306,19 @@ export function AppearancePanel() {
     setHue(h);
     localStorage.setItem('nostr:color-hue', String(h));
     const root = document.documentElement;
+    // Only update the primary/ring — keep borders, backgrounds, and surfaces neutral
     root.style.setProperty('--primary', `${h} 65% 45%`);
     root.style.setProperty('--ring',    `${h} 65% 45%`);
-    root.style.setProperty('--accent',  `${h} 40% 92%`);
-    root.style.setProperty('--secondary', `${h} 20% 95%`);
-    root.style.setProperty('--muted',   `${h} 15% 94%`);
-    root.style.setProperty('--border',  `${h} 20% 88%`);
-    root.style.setProperty('--input',   `${h} 20% 88%`);
+    // Neutrals stay fixed (no hue tint on borders, backgrounds, muted, etc.)
+    root.style.removeProperty('--accent');
+    root.style.removeProperty('--secondary');
+    root.style.removeProperty('--muted');
+    root.style.removeProperty('--border');
+    root.style.removeProperty('--input');
     let style = document.getElementById('dark-mode-colors');
     if (!style) { style = document.createElement('style'); style.id = 'dark-mode-colors'; document.head.appendChild(style); }
-    style.textContent = `.dark { --background:${h} 8% 7%;--card:${h} 12% 10%;--popover:${h} 12% 10%;--primary:${h} 70% 60%;--ring:${h} 70% 60%;--secondary:${h} 8% 15%;--muted:${h} 8% 14%;--accent:${h} 10% 16%;--border:${h} 8% 18%;--input:${h} 8% 18%;--sidebar-background:${h} 8% 8%;--sidebar-primary:${h} 70% 60%;--sidebar-accent:${h} 8% 14%;--sidebar-border:${h} 8% 16%;--sidebar-ring:${h} 70% 60%; }`;
+    // Dark mode: only primary and ring pick up the hue; everything else stays neutral grey
+    style.textContent = `.dark { --primary:${h} 70% 60%;--ring:${h} 70% 60%;--sidebar-primary:${h} 70% 60%;--sidebar-ring:${h} 70% 60%; }`;
   };
 
   const currentRadius  = config.cardRadius  ?? 'md';
