@@ -19,7 +19,7 @@ import { filterEventsByTopic } from '@/lib/topicFilter';
 import type { NostrEvent } from '@nostrify/nostrify';
 import type { FeedCategory } from './usePosts';
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 50; // Smaller first page for faster initial render
 
 const categoryKinds: Record<FeedCategory, number[]> = {
   following: [1, 6, 16, 30023, 31337, 34235],
@@ -125,7 +125,7 @@ export function useInfiniteMutualFollowsPosts(category: FeedCategory = 'followin
     },
     initialPageParam: undefined as number | undefined,
     enabled: !!user?.pubkey && !isLoadingMutuals,
-    staleTime: 60_000,
-    gcTime: Infinity,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 60 * 24,
   });
 }

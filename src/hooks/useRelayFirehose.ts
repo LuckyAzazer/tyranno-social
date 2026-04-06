@@ -39,7 +39,7 @@ export function useRelayFirehose(relayUrl: string | null, category: FeedCategory
       const events = await relay.query([
         {
           kinds,
-          limit: 100,
+          limit: 50, // Smaller page for faster initial render
           until: pageParam,
         },
       ]);
@@ -142,6 +142,7 @@ export function useRelayFirehose(relayUrl: string | null, category: FeedCategory
       const oldestEvent = lastPage[lastPage.length - 1];
       return oldestEvent?.created_at;
     },
-    staleTime: 30000, // 30 seconds
+    staleTime: 1000 * 60 * 2,        // 2 min — firehose is more real-time
+    gcTime: 1000 * 60 * 60 * 24,
   });
 }

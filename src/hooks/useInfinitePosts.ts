@@ -20,7 +20,7 @@ const categoryKinds: Record<FeedCategory, number[]> = {
   videos: [34235],
 };
 
-const PAGE_SIZE = 100; // Increased to ensure enough posts for all columns
+const PAGE_SIZE = 50; // First page loads faster; infinite scroll fetches more
 
 export function useInfinitePosts(category: FeedCategory = 'following') {
   const { nostr } = useNostr();
@@ -163,7 +163,7 @@ export function useInfinitePosts(category: FeedCategory = 'following') {
       return oldestTimestamp;
     },
     initialPageParam: undefined as number | undefined,
-    staleTime: 60000, // 1 minute
-    gcTime: Infinity,
+    staleTime: 1000 * 60 * 5,         // Show cached feed instantly; refresh after 5 min
+    gcTime: 1000 * 60 * 60 * 24,      // Keep pages in cache for 24 h
   });
 }
