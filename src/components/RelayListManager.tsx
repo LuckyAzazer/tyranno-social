@@ -1,20 +1,131 @@
 import { useState, useEffect } from 'react';
-import { Plus, X, Wifi, Settings, Mail, Lock } from 'lucide-react';
+import { Plus, X, Wifi, Settings, Mail, Lock, HardDrive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
+import { useRelayStatus } from '@/hooks/useRelayStatus';
+import type { RelayStatus } from '@/hooks/useRelayStatus';
 
 interface Relay {
   url: string;
   read: boolean;
   write: boolean;
+}
+
+const statusStyles: Record<RelayStatus, { dot: string; label: string }> = {
+  connecting: {
+    dot: 'bg-amber-400 animate-pulse shadow-amber-400/60',
+    label: 'Connecting…',
+  },
+  connected: {
+    dot: 'bg-emerald-500 shadow-emerald-500/60',
+    label: 'Connected',
+  },
+  error: {
+    dot: 'bg-red-500 shadow-red-500/60',
+    label: 'Unreachable',
+  },
+};
+
+function StatusDot({ url }: { url: string }) {
+  const status = useRelayStatus(url);
+  const { dot, label } = statusStyles[status];
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className={`shrink-0 h-2 w-2 rounded-full shadow-sm ${dot}`}
+            aria-label={label}
+          />
+        </TooltipTrigger>
+        <TooltipContent side="left">
+          <p className="text-xs">{label}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function RelayRow({
+  relay,
+  onToggleRead,
+  onToggleWrite,
+  onRemove,
+  removable,
+  renderRelayUrl,
+  local = false,
+}: {
+  relay: Relay;
+  onToggleRead: () => void;
+  onToggleWrite: () => void;
+  onRemove: () => void;
+  removable: boolean;
+  renderRelayUrl: (url: string) => string;
+  local?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-md border bg-muted/20">
+      {local
+        ? <HardDrive className="h-4 w-4 text-amber-500 shrink-0" />
+        : <Wifi className="h-4 w-4 text-muted-foreground shrink-0" />
+      }
+      <StatusDot url={relay.url} />
+      <span className="font-mono text-sm flex-1 truncate" title={relay.url}>
+        {renderRelayUrl(relay.url)}
+      </span>
+
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon" className="size-5 text-muted-foreground hover:text-foreground shrink-0">
+            <Settings className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-48" align="end">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor={`read-${relay.url}`} className="text-sm cursor-pointer">Read</Label>
+              <Switch
+                id={`read-${relay.url}`}
+                checked={relay.read}
+                onCheckedChange={onToggleRead}
+                className="data-[state=checked]:bg-green-500 scale-75"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor={`write-${relay.url}`} className="text-sm cursor-pointer">Write</Label>
+              <Switch
+                id={`write-${relay.url}`}
+                checked={relay.write}
+                onCheckedChange={onToggleWrite}
+                className="data-[state=checked]:bg-blue-500 scale-75"
+              />
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onRemove}
+        className="size-5 text-muted-foreground hover:text-destructive hover:bg-transparent shrink-0"
+        disabled={!removable}
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
+  );
 }
 
 export function RelayListManager() {
@@ -26,6 +137,7 @@ export function RelayListManager() {
   // General relays state
   const [relays, setRelays] = useState<Relay[]>(config.relayMetadata.relays);
   const [newRelayUrl, setNewRelayUrl] = useState('');
+  const [newLocalRelayUrl, setNewLocalRelayUrl] = useState('');
 
   // DM inbox relays state
   const [dmRelays, setDmRelays] = useState<string[]>(config.dmInboxRelays?.relays || []);
@@ -64,15 +176,42 @@ export function RelayListManager() {
   const isValidRelayUrl = (url: string): boolean => {
     const trimmed = url.trim();
     if (!trimmed) return false;
-
     const normalized = normalizeRelayUrl(trimmed);
     try {
-      new URL(normalized);
-      return true;
+      const parsed = new URL(normalized);
+      return parsed.protocol === 'wss:' || parsed.protocol === 'ws:';
     } catch {
       return false;
     }
   };
+
+  /** Returns true for localhost / RFC-1918 / loopback addresses */
+  const isLocalRelayUrl = (url: string): boolean => {
+    try {
+      const { hostname, protocol } = new URL(url);
+      if (protocol === 'ws:') return true; // ws:// is almost always local
+      return (
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname === '::1' ||
+        /^192\.168\./.test(hostname) ||
+        /^10\./.test(hostname) ||
+        /^172\.(1[6-9]|2\d|3[01])\./.test(hostname)
+      );
+    } catch {
+      return false;
+    }
+  };
+
+  const LOCAL_PRESETS = [
+    { label: 'localhost:4869', url: 'ws://localhost:4869' },
+    { label: 'localhost:7777', url: 'ws://localhost:7777' },
+    { label: 'localhost:8080', url: 'ws://localhost:8080' },
+    { label: 'localhost:3000', url: 'ws://localhost:3000' },
+  ];
+
+  const localRelays  = relays.filter(r => isLocalRelayUrl(r.url));
+  const remoteRelays = relays.filter(r => !isLocalRelayUrl(r.url));
 
   // General relays handlers
   const handleAddRelay = () => {
@@ -176,6 +315,32 @@ export function RelayListManager() {
         },
       }
     );
+  };
+
+  // Local relay handler — same underlying array, just prefills ws://
+  const handleAddLocalRelay = (urlOverride?: string) => {
+    const raw = urlOverride ?? newLocalRelayUrl;
+    if (!isValidRelayUrl(raw)) {
+      toast({
+        title: 'Invalid relay URL',
+        description: 'Please enter a valid local relay URL (e.g., ws://localhost:4869)',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const normalized = normalizeRelayUrl(raw);
+    if (relays.some(r => r.url === normalized)) {
+      toast({
+        title: 'Relay already exists',
+        description: 'This relay is already in your list.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const newRelays = [...relays, { url: normalized, read: true, write: true }];
+    setRelays(newRelays);
+    if (!urlOverride) setNewLocalRelayUrl('');
+    saveRelays(newRelays);
   };
 
   // DM inbox relays handlers
@@ -377,7 +542,7 @@ export function RelayListManager() {
 
   return (
     <div className="space-y-8">
-      {/* General Relays Section */}
+      {/* General (Remote) Relays Section */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Wifi className="h-5 w-5 text-primary" />
@@ -390,93 +555,111 @@ export function RelayListManager() {
         </div>
 
         <div className="space-y-2">
-          {relays.map((relay) => (
-            <div
+          {remoteRelays.map((relay) => (
+            <RelayRow
               key={relay.url}
-              className="flex items-center gap-3 p-3 rounded-md border bg-muted/20"
-            >
-              <Wifi className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="font-mono text-sm flex-1 truncate" title={relay.url}>
-                {renderRelayUrl(relay.url)}
-              </span>
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-5 text-muted-foreground hover:text-foreground shrink-0"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48" align="end">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor={`read-${relay.url}`} className="text-sm cursor-pointer">
-                        Read
-                      </Label>
-                      <Switch
-                        id={`read-${relay.url}`}
-                        checked={relay.read}
-                        onCheckedChange={() => handleToggleRead(relay.url)}
-                        className="data-[state=checked]:bg-green-500 scale-75"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor={`write-${relay.url}`} className="text-sm cursor-pointer">
-                        Write
-                      </Label>
-                      <Switch
-                        id={`write-${relay.url}`}
-                        checked={relay.write}
-                        onCheckedChange={() => handleToggleWrite(relay.url)}
-                        className="data-[state=checked]:bg-blue-500 scale-75"
-                      />
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemoveRelay(relay.url)}
-                className="size-5 text-muted-foreground hover:text-destructive hover:bg-transparent shrink-0"
-                disabled={relays.length <= 1}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+              relay={relay}
+              onToggleRead={() => handleToggleRead(relay.url)}
+              onToggleWrite={() => handleToggleWrite(relay.url)}
+              onRemove={() => handleRemoveRelay(relay.url)}
+              removable={relays.length > 1}
+              renderRelayUrl={renderRelayUrl}
+            />
           ))}
+          {remoteRelays.length === 0 && (
+            <div className="p-4 rounded-md border border-dashed bg-muted/20 text-center text-sm text-muted-foreground">
+              No remote relays configured.
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2">
           <div className="flex-1">
-            <Label htmlFor="new-relay-url" className="sr-only">
-              Relay URL
-            </Label>
+            <Label htmlFor="new-relay-url" className="sr-only">Relay URL</Label>
             <Input
               id="new-relay-url"
-              placeholder="Enter relay URL (e.g., wss://relay.example.com)"
+              placeholder="wss://relay.example.com"
               value={newRelayUrl}
               onChange={(e) => setNewRelayUrl(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleAddRelay();
-                }
-              }}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAddRelay(); }}
             />
           </div>
-          <Button
-            onClick={handleAddRelay}
-            disabled={!newRelayUrl.trim()}
-            variant="outline"
-            size="sm"
-            className="h-10 shrink-0"
-          >
+          <Button onClick={handleAddRelay} disabled={!newRelayUrl.trim()} variant="outline" size="sm" className="h-10 shrink-0">
             <Plus className="h-4 w-4 mr-2" />
-            Add Relay
+            Add
+          </Button>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Local Relays Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <HardDrive className="h-5 w-5 text-primary" />
+          <div>
+            <h3 className="text-lg font-semibold">Local Relays</h3>
+            <p className="text-sm text-muted-foreground">
+              Relays running on your device or local network (<code className="text-xs">ws://</code>). Useful for developers and self-hosted setups.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {localRelays.map((relay) => (
+            <RelayRow
+              key={relay.url}
+              relay={relay}
+              onToggleRead={() => handleToggleRead(relay.url)}
+              onToggleWrite={() => handleToggleWrite(relay.url)}
+              onRemove={() => handleRemoveRelay(relay.url)}
+              removable={relays.length > 1}
+              renderRelayUrl={renderRelayUrl}
+              local
+            />
+          ))}
+          {localRelays.length === 0 && (
+            <div className="p-4 rounded-md border border-dashed bg-muted/20 text-center text-sm text-muted-foreground">
+              No local relays configured.
+            </div>
+          )}
+        </div>
+
+        {/* Quick-add presets */}
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground font-medium">Quick add</p>
+          <div className="flex flex-wrap gap-2">
+            {LOCAL_PRESETS.map((preset) => {
+              const already = relays.some(r => r.url === preset.url || r.url === preset.url + '/');
+              return (
+                <Badge
+                  key={preset.url}
+                  variant={already ? 'secondary' : 'outline'}
+                  className={already ? 'opacity-50 cursor-default' : 'cursor-pointer hover:bg-primary/10 hover:border-primary/40 transition-colors'}
+                  onClick={() => { if (!already) handleAddLocalRelay(preset.url); }}
+                >
+                  {already ? '✓ ' : '+ '}
+                  {preset.label}
+                </Badge>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <Label htmlFor="new-local-relay-url" className="sr-only">Local Relay URL</Label>
+            <Input
+              id="new-local-relay-url"
+              placeholder="ws://localhost:4869"
+              value={newLocalRelayUrl}
+              onChange={(e) => setNewLocalRelayUrl(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleAddLocalRelay(); }}
+            />
+          </div>
+          <Button onClick={() => handleAddLocalRelay()} disabled={!newLocalRelayUrl.trim()} variant="outline" size="sm" className="h-10 shrink-0">
+            <Plus className="h-4 w-4 mr-2" />
+            Add
           </Button>
         </div>
       </div>
@@ -507,6 +690,7 @@ export function RelayListManager() {
                 className="flex items-center gap-3 p-3 rounded-md border bg-muted/20"
               >
                 <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                <StatusDot url={url} />
                 <span className="font-mono text-sm flex-1 truncate" title={url}>
                   {renderRelayUrl(url)}
                 </span>
@@ -580,6 +764,7 @@ export function RelayListManager() {
                 className="flex items-center gap-3 p-3 rounded-md border bg-muted/20"
               >
                 <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                <StatusDot url={url} />
                 <span className="font-mono text-sm flex-1 truncate" title={url}>
                   {renderRelayUrl(url)}
                 </span>

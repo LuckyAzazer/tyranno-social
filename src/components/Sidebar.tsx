@@ -1,10 +1,10 @@
 import { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@/hooks/useTheme';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useBookmarkSets, useBookmarkSetItems } from '@/hooks/useBookmarkSets';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useNSFWFilter } from '@/hooks/useNSFWFilter';
 import { useWebOfTrust } from '@/hooks/useWebOfTrust';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,7 +26,6 @@ import { PostCard } from '@/components/PostCard';
 import { PostModal } from '@/components/PostModal';
 import { TrendingHashtags } from '@/components/TrendingHashtags';
 import { PeopleToFollow } from '@/components/PeopleToFollow';
-import { CirclesManager } from '@/components/CirclesManager';
 import {
   Moon,
   Sun,
@@ -37,21 +36,18 @@ import {
   Music,
   Video,
   Hash,
-  ChevronRight,
   Users,
   Lock,
   Globe,
   FolderOpen,
   RefreshCw,
   AlertTriangle,
-  MessageCircle,
-  ChevronLeft,
-  ChevronRightIcon,
   ShieldCheck,
   ShieldAlert,
   UserCheck,
   Flame,
   ImageOff,
+  CircleDot,
 } from 'lucide-react';
 import {
   Sheet,
@@ -76,6 +72,8 @@ interface SidebarProps {
   onCategoryChange: (category: FeedCategory) => void;
   onCircleSelect?: (pubkeys: string[] | null, label: string | null) => void;
   selectedCircleDTag?: string | null;
+  /** Optional callback called when user picks a category/circle (to close drawer) */
+  onNavigate?: () => void;
 }
 
 function BookmarkSetContent({ setId }: { setId: string }) {
@@ -124,7 +122,8 @@ function BookmarkSetContent({ setId }: { setId: string }) {
   );
 }
 
-export function Sidebar({ selectedCategory, onCategoryChange, onCircleSelect, selectedCircleDTag }: SidebarProps) {
+/** Pure sidebar content — no wrapper, no collapse button. Used inside SidebarDrawer. */
+export function SidebarContent({ selectedCategory, onCategoryChange, onCircleSelect, selectedCircleDTag, onNavigate }: SidebarProps) {
   const { theme, setTheme } = useTheme();
   const { config, updateConfig } = useAppContext();
   const { user } = useCurrentUser();
@@ -134,11 +133,9 @@ export function Sidebar({ selectedCategory, onCategoryChange, onCircleSelect, se
   const [relaysOpen, setRelaysOpen] = useState(false);
   const [bookmarksOpen, setBookmarksOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useLocalStorage<boolean>('sidebar-collapsed', false);
   const navigate = useNavigate();
 
   const isDark = theme === 'dark';
-
   const totalBookmarks = bookmarkSets?.reduce((sum, set) => sum + set.itemCount, 0) || 0;
 
   const handleRefreshBookmarks = async () => {
@@ -159,9 +156,7 @@ export function Sidebar({ selectedCategory, onCategoryChange, onCircleSelect, se
   const selectedCategoryData = categories.find(c => c.id === selectedCategory) || categories[0];
   const SelectedIcon = selectedCategoryData.icon;
 
-  const toggleTheme = () => {
-    setTheme(isDark ? 'light' : 'dark');
-  };
+  const toggleTheme = () => setTheme(isDark ? 'light' : 'dark');
 
   const toggleContentWarnings = () => {
     updateConfig((current) => ({
@@ -170,398 +165,379 @@ export function Sidebar({ selectedCategory, onCategoryChange, onCircleSelect, se
     }));
   };
 
+  const handleNavigate = (path: string) => {
+    navigate(path);
+    onNavigate?.();
+  };
+
   return (
-    <aside className={`${isCollapsed ? 'w-12' : 'w-80'} shrink-0 hidden xl:block transition-all duration-300 relative`}>
-      {/* Collapse/Expand Button */}
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-4 top-4 z-50 h-8 w-8 rounded-full shadow-lg bg-background border-2 border-primary/20 hover:border-primary/40"
-        title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        {isCollapsed ? (
-          <ChevronLeft className="h-4 w-4" />
-        ) : (
-          <ChevronRightIcon className="h-4 w-4" />
-        )}
-      </Button>
+    <div className="space-y-4">
+      {/* Quick Nav */}
+      <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-indigo-50/20 dark:from-card dark:to-card">
+        <CardContent className="pt-4 pb-3 space-y-1">
+          <button
+            className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors text-sm font-medium group"
+            onClick={() => handleNavigate('/explore')}
+          >
+            <Flame className="h-4 w-4 text-orange-500 group-hover:text-orange-500" />
+            Explore / What's Hot
+          </button>
+          <button
+            className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors text-sm font-medium group"
+            onClick={() => handleNavigate('/communities')}
+          >
+            <Users className="h-4 w-4 text-indigo-500 group-hover:text-indigo-500" />
+            Communities
+          </button>
+          <button
+            className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors text-sm font-medium group"
+            onClick={() => handleNavigate('/circles')}
+          >
+            <CircleDot className="h-4 w-4 text-violet-500 group-hover:text-violet-500" />
+            Circles
+            <span className="ml-auto text-xs text-muted-foreground group-hover:text-primary transition-colors">Manage →</span>
+          </button>
+        </CardContent>
+      </Card>
 
-      {isCollapsed ? (
-        // Collapsed state - just show the toggle button
-        <div className="sticky top-4" />
-      ) : (
-        <div className="sticky top-20 flex flex-col" style={{ maxHeight: 'calc(100vh - 7rem)' }}>
-        <div className="overflow-y-auto overscroll-contain space-y-4 pl-0 pr-4 pb-16 scrollbar-thin scrollbar-thumb-border hover:scrollbar-thumb-primary/30">
-        {/* Quick Nav */}
-        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-indigo-50/20 dark:from-card dark:to-card">
-          <CardContent className="pt-4 pb-3 space-y-1">
-            <button
-              className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors text-sm font-medium group"
-              onClick={() => navigate('/explore')}
-            >
-              <Flame className="h-4 w-4 text-orange-500 group-hover:text-orange-500" />
-              Explore / What's Hot
-            </button>
-            <button
-              className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors text-sm font-medium group"
-              onClick={() => navigate('/communities')}
-            >
-              <Users className="h-4 w-4 text-indigo-500 group-hover:text-indigo-500" />
-              Communities
-            </button>
-          </CardContent>
-        </Card>
-
-        {/* Theme Toggle */}
-        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-rose-50/30 dark:from-card dark:to-card">
-          <CardContent className="pt-6 space-y-4">
-            {config.personalizedTheme ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <ImageOff className="h-5 w-5 text-primary" />
-                  <Label className="font-medium">Custom Wallpaper</Label>
-                </div>
-                <button
-                  onClick={() => {
-                    updateConfig((current) => { const n = { ...current }; delete n.personalizedTheme; return n; });
-                    setTimeout(() => window.location.reload(), 100);
-                  }}
-                  className="text-xs text-destructive hover:text-destructive/80 font-medium transition-colors"
-                >
-                  Remove
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {isDark ? (
-                    <Moon className="h-5 w-5 text-primary" />
-                  ) : (
-                    <Sun className="h-5 w-5 text-primary" />
-                  )}
-                  <Label htmlFor="theme-toggle" className="cursor-pointer font-medium">
-                    {isDark ? 'Dark Mode' : 'Light Mode'}
-                  </Label>
-                </div>
-                <Switch
-                  id="theme-toggle"
-                  checked={isDark}
-                  onCheckedChange={toggleTheme}
-                  className="data-[state=checked]:bg-primary"
-                />
-              </div>
-            )}
+      {/* Theme & Filters */}
+      <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-rose-50/30 dark:from-card dark:to-card">
+        <CardContent className="pt-6 space-y-4">
+          {config.personalizedTheme ? (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 text-primary" />
-                <Label htmlFor="content-warnings-toggle" className="cursor-pointer font-medium">
-                  Content Warnings
+                <ImageOff className="h-5 w-5 text-primary" />
+                <Label className="font-medium">Custom Wallpaper</Label>
+              </div>
+              <button
+                onClick={() => {
+                  updateConfig((current) => { const n = { ...current }; delete n.personalizedTheme; return n; });
+                  setTimeout(() => window.location.reload(), 100);
+                }}
+                className="text-xs text-destructive hover:text-destructive/80 font-medium transition-colors"
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {isDark ? (
+                  <Moon className="h-5 w-5 text-primary" />
+                ) : (
+                  <Sun className="h-5 w-5 text-primary" />
+                )}
+                <Label htmlFor="theme-toggle" className="cursor-pointer font-medium">
+                  {isDark ? 'Dark Mode' : 'Light Mode'}
                 </Label>
               </div>
               <Switch
-                id="content-warnings-toggle"
-                checked={config.showContentWarnings}
-                onCheckedChange={toggleContentWarnings}
+                id="theme-toggle"
+                checked={isDark}
+                onCheckedChange={toggleTheme}
                 className="data-[state=checked]:bg-primary"
               />
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {shouldFilter ? (
-                  <ShieldCheck className="h-5 w-5 text-primary" />
-                ) : (
-                  <ShieldAlert className="h-5 w-5 text-muted-foreground" />
+          )}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-primary" />
+              <Label htmlFor="content-warnings-toggle" className="cursor-pointer font-medium">
+                Content Warnings
+              </Label>
+            </div>
+            <Switch
+              id="content-warnings-toggle"
+              checked={config.showContentWarnings}
+              onCheckedChange={toggleContentWarnings}
+              className="data-[state=checked]:bg-primary"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {shouldFilter ? (
+                <ShieldCheck className="h-5 w-5 text-primary" />
+              ) : (
+                <ShieldAlert className="h-5 w-5 text-muted-foreground" />
+              )}
+              <div className="flex flex-col">
+                <Label
+                  htmlFor="nsfw-filter-toggle"
+                  className={`cursor-pointer font-medium ${!canToggle ? 'opacity-50' : ''}`}
+                >
+                  NSFW Filter
+                </Label>
+                {!canToggle && (
+                  <span className="text-xs text-muted-foreground">Login to toggle</span>
                 )}
-                <div className="flex flex-col">
-                  <Label 
-                    htmlFor="nsfw-filter-toggle" 
-                    className={`cursor-pointer font-medium ${!canToggle ? 'opacity-50' : ''}`}
-                  >
-                    NSFW Filter
-                  </Label>
-                  {!canToggle && (
-                    <span className="text-xs text-muted-foreground">Login to toggle</span>
-                  )}
+              </div>
+            </div>
+            <Switch
+              id="nsfw-filter-toggle"
+              checked={filterEnabled}
+              onCheckedChange={setFilterEnabled}
+              disabled={!canToggle}
+              className="data-[state=checked]:bg-primary"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <UserCheck className={`h-5 w-5 ${wotActive ? 'text-primary' : 'text-muted-foreground'}`} />
+              <div className="flex flex-col">
+                <Label
+                  htmlFor="wot-toggle"
+                  className={`cursor-pointer font-medium ${!canUseWoT ? 'opacity-50' : ''}`}
+                >
+                  Web of Trust
+                </Label>
+                {!canUseWoT && (
+                  <span className="text-xs text-muted-foreground">Login to enable</span>
+                )}
+              </div>
+            </div>
+            <Switch
+              id="wot-toggle"
+              checked={wotEnabled}
+              onCheckedChange={setWotEnabled}
+              disabled={!canUseWoT}
+              className="data-[state=checked]:bg-primary"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Feed Categories */}
+      <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-orange-50/20 dark:from-card dark:to-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Hash className="h-5 w-5 text-primary" />
+            Feed Category
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Select value={selectedCategory} onValueChange={(value) => { onCategoryChange(value as FeedCategory); onNavigate?.(); }}>
+            <SelectTrigger className="w-full bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors">
+              <SelectValue>
+                <div className="flex items-center gap-2">
+                  <SelectedIcon className="h-4 w-4 text-primary" />
+                  <span className="font-medium">{selectedCategoryData.label}</span>
                 </div>
-              </div>
-              <Switch
-                id="nsfw-filter-toggle"
-                checked={filterEnabled}
-                onCheckedChange={setFilterEnabled}
-                disabled={!canToggle}
-                className="data-[state=checked]:bg-primary"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {wotActive ? (
-                  <UserCheck className="h-5 w-5 text-primary" />
-                ) : (
-                  <UserCheck className="h-5 w-5 text-muted-foreground" />
-                )}
-                <div className="flex flex-col">
-                  <Label 
-                    htmlFor="wot-toggle" 
-                    className={`cursor-pointer font-medium ${!canUseWoT ? 'opacity-50' : ''}`}
-                  >
-                    Web of Trust
-                  </Label>
-                  {!canUseWoT && (
-                    <span className="text-xs text-muted-foreground">Login to enable</span>
-                  )}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((category) => {
+                const Icon = category.icon;
+                return (
+                  <SelectItem key={category.id} value={category.id}>
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-4 w-4" />
+                      <span>{category.label}</span>
+                    </div>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      {/* Relays */}
+      <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-blue-50/20 dark:from-card dark:to-card">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Wifi className="h-5 w-5 text-primary" />
+              Relays
+            </CardTitle>
+            <Badge variant="secondary" className="font-mono text-xs bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200 dark:bg-card dark:from-card dark:to-card dark:text-foreground dark:border-border">
+              {config.relayMetadata.relays.length}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="text-sm text-muted-foreground space-y-1">
+              {config.relayMetadata.relays.slice(0, 2).map((relay) => (
+                <div key={relay.url} className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 shadow-sm shadow-green-500/50 animate-pulse" />
+                  <span className="text-xs font-mono truncate">
+                    {relay.url.replace('wss://', '')}
+                  </span>
                 </div>
-              </div>
-              <Switch
-                id="wot-toggle"
-                checked={wotEnabled}
-                onCheckedChange={setWotEnabled}
-                disabled={!canUseWoT}
-                className="data-[state=checked]:bg-primary"
-              />
+              ))}
+              {config.relayMetadata.relays.length > 2 && (
+                <div className="text-xs text-muted-foreground pl-4">
+                  +{config.relayMetadata.relays.length - 2} more
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Feed Categories */}
-        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-orange-50/20 dark:from-card dark:to-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Hash className="h-5 w-5 text-primary" />
-              Feed Category
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Select value={selectedCategory} onValueChange={(value) => onCategoryChange(value as FeedCategory)}>
-              <SelectTrigger className="w-full bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors">
-                <SelectValue>
-                  <div className="flex items-center gap-2">
-                    <SelectedIcon className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{selectedCategoryData.label}</span>
-                  </div>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => {
-                  const Icon = category.icon;
-                  return (
-                    <SelectItem key={category.id} value={category.id}>
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4" />
-                        <span>{category.label}</span>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-
-        {/* Circles */}
-        <CirclesManager
-          onCircleSelect={onCircleSelect}
-          selectedCircleDTag={selectedCircleDTag}
-        />
-
-        {/* Relays */}
-        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-blue-50/20 dark:from-card dark:to-card">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Wifi className="h-5 w-5 text-primary" />
-                Relays
-              </CardTitle>
-              <Badge variant="secondary" className="font-mono text-xs bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200 dark:bg-card dark:from-card dark:to-card dark:text-foreground dark:border-border">
-                {config.relayMetadata.relays.length}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="text-sm text-muted-foreground space-y-1">
-                {config.relayMetadata.relays.slice(0, 2).map((relay) => (
-                  <div key={relay.url} className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 shadow-sm shadow-green-500/50 animate-pulse" />
-                    <span className="text-xs font-mono truncate">
-                      {relay.url.replace('wss://', '')}
-                    </span>
-                  </div>
-                ))}
-                {config.relayMetadata.relays.length > 2 && (
-                  <div className="text-xs text-muted-foreground pl-4">
-                    +{config.relayMetadata.relays.length - 2} more
-                  </div>
-                )}
-              </div>
-              <Sheet open={relaysOpen} onOpenChange={setRelaysOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full mt-2">
-                    Manage Relays
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-full sm:w-[540px]">
-                  <SheetHeader>
-                    <SheetTitle className="flex items-center gap-2">
-                      <Wifi className="h-5 w-5 text-primary" />
-                      Manage Relays
-                    </SheetTitle>
-                    <SheetDescription>
-                      Connect to Nostr relays to read and publish events
-                    </SheetDescription>
-                  </SheetHeader>
-                  <Separator className="my-4" />
-                  <ScrollArea className="h-[calc(100vh-140px)] pr-4">
-                    <RelayListManager />
-                  </ScrollArea>
-                </SheetContent>
-              </Sheet>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Trending Hashtags */}
-        <TrendingHashtags />
-
-        {/* Who to Follow */}
-        <PeopleToFollow />
-
-        {/* Bookmark Lists */}
-        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-pink-50/20 dark:from-card dark:to-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Bookmark className="h-5 w-5 text-primary" />
-              Bookmark Lists
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Sheet open={bookmarksOpen} onOpenChange={setBookmarksOpen}>
+            <Sheet open={relaysOpen} onOpenChange={setRelaysOpen}>
               <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="w-full group">
-                  <FolderOpen className="h-4 w-4 mr-2 group-hover:text-pink-500 transition-colors" />
-                  View Lists
-                  <Badge variant="secondary" className="ml-auto bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 border-pink-200 dark:bg-card dark:from-card dark:to-card dark:text-foreground dark:border-border">
-                    {totalBookmarks}
-                  </Badge>
+                <Button variant="outline" size="sm" className="w-full mt-2">
+                  Manage Relays
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-full sm:w-[540px]">
                 <SheetHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <SheetTitle className="flex items-center gap-2">
-                        <Bookmark className="h-5 w-5 text-primary" />
-                        Bookmark Lists
-                      </SheetTitle>
-                      <SheetDescription>
-                        Organize your saved posts into custom lists
-                      </SheetDescription>
-                    </div>
-                    {user && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleRefreshBookmarks}
-                        disabled={isRefreshing || isLoadingBookmarks}
-                        className="shrink-0"
-                        title="Refresh bookmarks from relays"
-                      >
-                        <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                      </Button>
-                    )}
-                  </div>
+                  <SheetTitle className="flex items-center gap-2">
+                    <Wifi className="h-5 w-5 text-primary" />
+                    Manage Relays
+                  </SheetTitle>
+                  <SheetDescription>
+                    Connect to Nostr relays to read and publish events
+                  </SheetDescription>
                 </SheetHeader>
                 <Separator className="my-4" />
                 <ScrollArea className="h-[calc(100vh-140px)] pr-4">
-                  {!user ? (
-                    <div className="flex items-center justify-center h-64">
-                      <div className="text-center space-y-2">
-                        <Bookmark className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">Log in to see your bookmark lists</p>
-                      </div>
-                    </div>
-                  ) : isLoadingBookmarks ? (
-                    <div className="space-y-4">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <Card key={i} className="overflow-hidden">
-                          <div className="p-4 space-y-3">
-                            <Skeleton className="h-5 w-32" />
-                            <Skeleton className="h-4 w-full" />
-                            <div className="flex gap-2">
-                              <Skeleton className="h-5 w-16" />
-                              <Skeleton className="h-5 w-20" />
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : bookmarkSets && bookmarkSets.length > 0 ? (
-                    <Accordion type="multiple" className="space-y-3">
-                      {bookmarkSets.map((set) => (
-                        <AccordionItem
-                          key={set.id}
-                          value={set.id}
-                          className="border rounded-lg overflow-hidden bg-card"
-                        >
-                          <AccordionTrigger className="px-4 hover:no-underline hover:bg-accent/50 transition-colors">
-                            <div className="flex items-start justify-between w-full pr-2">
-                              <div className="flex-1 text-left">
-                                <div className="font-medium flex items-center gap-2">
-                                  <Bookmark className="h-4 w-4 text-primary" />
-                                  {set.title}
-                                </div>
-                                {set.description && (
-                                  <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
-                                    {set.description}
-                                  </p>
-                                )}
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Badge variant="secondary" className="text-xs">
-                                    {set.itemCount} {set.itemCount === 1 ? 'item' : 'items'}
-                                  </Badge>
-                                  {set.publicItems.length > 0 && (
-                                    <Badge variant="outline" className="text-xs">
-                                      <Globe className="h-3 w-3 mr-1" />
-                                      {set.publicItems.length}
-                                    </Badge>
-                                  )}
-                                  {set.privateItems.length > 0 && (
-                                    <Badge variant="outline" className="text-xs">
-                                      <Lock className="h-3 w-3 mr-1" />
-                                      {set.privateItems.length}
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="px-4 pb-4">
-                            <Separator className="mb-3" />
-                            <BookmarkSetContent setId={set.id} />
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
-                  ) : (
-                    <div className="flex items-center justify-center h-64">
-                      <div className="text-center space-y-2">
-                        <Bookmark className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground">No bookmark lists yet</p>
-                        <p className="text-xs text-muted-foreground">
-                          Create lists to organize your saved posts
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  <RelayListManager />
                 </ScrollArea>
               </SheetContent>
             </Sheet>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-        </div>
-        </div>
-      )}
-    </aside>
+      {/* Trending Hashtags */}
+      <TrendingHashtags />
+
+      {/* Who to Follow */}
+      <PeopleToFollow />
+
+      {/* Bookmark Lists */}
+      <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-pink-50/20 dark:from-card dark:to-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Bookmark className="h-5 w-5 text-primary" />
+            Bookmark Lists
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Sheet open={bookmarksOpen} onOpenChange={setBookmarksOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="w-full group">
+                <FolderOpen className="h-4 w-4 mr-2 group-hover:text-pink-500 transition-colors" />
+                View Lists
+                <Badge variant="secondary" className="ml-auto bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 border-pink-200 dark:bg-card dark:from-card dark:to-card dark:text-foreground dark:border-border">
+                  {totalBookmarks}
+                </Badge>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full sm:w-[540px]">
+              <SheetHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <SheetTitle className="flex items-center gap-2">
+                      <Bookmark className="h-5 w-5 text-primary" />
+                      Bookmark Lists
+                    </SheetTitle>
+                    <SheetDescription>
+                      Organize your saved posts into custom lists
+                    </SheetDescription>
+                  </div>
+                  {user && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleRefreshBookmarks}
+                      disabled={isRefreshing || isLoadingBookmarks}
+                      className="shrink-0"
+                      title="Refresh bookmarks from relays"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </Button>
+                  )}
+                </div>
+              </SheetHeader>
+              <Separator className="my-4" />
+              <ScrollArea className="h-[calc(100vh-140px)] pr-4">
+                {!user ? (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-center space-y-2">
+                      <Bookmark className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">Log in to see your bookmark lists</p>
+                    </div>
+                  </div>
+                ) : isLoadingBookmarks ? (
+                  <div className="space-y-4">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <Card key={i} className="overflow-hidden">
+                        <div className="p-4 space-y-3">
+                          <Skeleton className="h-5 w-32" />
+                          <Skeleton className="h-4 w-full" />
+                          <div className="flex gap-2">
+                            <Skeleton className="h-5 w-16" />
+                            <Skeleton className="h-5 w-20" />
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : bookmarkSets && bookmarkSets.length > 0 ? (
+                  <Accordion type="multiple" className="space-y-3">
+                    {bookmarkSets.map((set) => (
+                      <AccordionItem
+                        key={set.id}
+                        value={set.id}
+                        className="border rounded-lg overflow-hidden bg-card"
+                      >
+                        <AccordionTrigger className="px-4 hover:no-underline hover:bg-accent/50 transition-colors">
+                          <div className="flex items-start justify-between w-full pr-2">
+                            <div className="flex-1 text-left">
+                              <div className="font-medium flex items-center gap-2">
+                                <Bookmark className="h-4 w-4 text-primary" />
+                                {set.title}
+                              </div>
+                              {set.description && (
+                                <p className="text-sm text-muted-foreground mt-1 line-clamp-1">
+                                  {set.description}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-2 mt-2">
+                                <Badge variant="secondary" className="text-xs">
+                                  {set.itemCount} {set.itemCount === 1 ? 'item' : 'items'}
+                                </Badge>
+                                {set.publicItems.length > 0 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    <Globe className="h-3 w-3 mr-1" />
+                                    {set.publicItems.length}
+                                  </Badge>
+                                )}
+                                {set.privateItems.length > 0 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    <Lock className="h-3 w-3 mr-1" />
+                                    {set.privateItems.length}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-4 pb-4">
+                          <Separator className="mb-3" />
+                          <BookmarkSetContent setId={set.id} />
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                ) : (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-center space-y-2">
+                      <Bookmark className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No bookmark lists yet</p>
+                      <p className="text-xs text-muted-foreground">
+                        Create lists to organize your saved posts
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </ScrollArea>
+            </SheetContent>
+          </Sheet>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
+
+// Keep the old Sidebar export for any pages that might still reference it
+export { SidebarContent as Sidebar };

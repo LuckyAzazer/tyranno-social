@@ -253,7 +253,7 @@ export function ComposePost({ onPostPublished }: ComposePostProps = {}) {
                 )}
 
                 <div className="flex items-center justify-between gap-2">
-                  {/* Left side - Media and Warning buttons */}
+                  {/* Left side — icon toolbar buttons */}
                   <div className="flex items-center gap-1">
                     <input
                       ref={fileInputRef}
@@ -270,7 +270,7 @@ export function ComposePost({ onPostPublished }: ComposePostProps = {}) {
                       size="sm"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isPending || isUploading}
-                      className="h-9 px-3 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10"
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10"
                       title="Attach media"
                     >
                       {isUploading ? (
@@ -285,7 +285,7 @@ export function ComposePost({ onPostPublished }: ComposePostProps = {}) {
                       size="sm"
                       onClick={() => setShowContentWarning(!showContentWarning)}
                       disabled={isPending}
-                      className={`h-9 px-3 transition-colors ${
+                      className={`h-8 w-8 p-0 transition-colors ${
                         showContentWarning
                           ? 'text-orange-500 bg-orange-500/10 hover:text-orange-600 hover:bg-orange-500/20'
                           : 'text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10'
@@ -296,29 +296,29 @@ export function ComposePost({ onPostPublished }: ComposePostProps = {}) {
                     </Button>
                   </div>
 
-                  {/* Right side - Preview and Post buttons */}
-                  <div className="flex gap-2">
+                  {/* Right side — Preview and Post buttons, same height as icons */}
+                  <div className="flex items-center gap-2 shrink-0">
                     <Button
                       type="button"
                       variant="outline"
+                      size="sm"
                       disabled={!content.trim() && attachedMedia.length === 0}
                       onClick={() => setShowPreview(true)}
+                      className="h-8"
                     >
-                      <Eye className="h-4 w-4 mr-2" />
+                      <Eye className="h-4 w-4 mr-1.5" />
                       Preview
                     </Button>
                     <Button
                       type="submit"
+                      size="sm"
                       disabled={isPending || isUploading || (!content.trim() && attachedMedia.length === 0)}
-                      className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all"
+                      className="h-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all"
                     >
                       {isPending ? (
-                        <>Publishing...</>
+                        <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" />Publishing…</>
                       ) : (
-                        <>
-                          <Send className="h-4 w-4 mr-2" />
-                          Post
-                        </>
+                        <><Send className="h-4 w-4 mr-1.5" />Post</>
                       )}
                     </Button>
                   </div>

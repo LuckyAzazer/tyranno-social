@@ -11,6 +11,7 @@ import SettingsPage from "./pages/SettingsPage";
 import { ExplorePage } from "./pages/ExplorePage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { CommunitiesPage } from "./pages/CommunitiesPage";
+import { CirclesPage } from "./pages/CirclesPage";
 import NotFound from "./pages/NotFound";
 
 export function AppRouter() {
@@ -27,6 +28,7 @@ export function AppRouter() {
         <Route path="/explore" element={<ExplorePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/communities" element={<CommunitiesPage />} />
+        <Route path="/circles" element={<CirclesPage />} />
         {/* NIP-19 route for npub1, note1, naddr1, nevent1, nprofile1 */}
         <Route path="/:nip19" element={<NIP19Page />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

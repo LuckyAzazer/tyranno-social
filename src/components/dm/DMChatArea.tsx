@@ -17,6 +17,7 @@ import { ArrowLeft, Send, Loader2, AlertTriangle, Key, ShieldCheck, Phone, Video
 import { cn } from '@/lib/utils';
 import { NoteContent } from '@/components/NoteContent';
 import { useWebRTCCall } from '@/hooks/useWebRTCCall';
+import { useMutualFollows } from '@/hooks/useMutualFollows';
 import { WebRTCCallUI } from '@/components/WebRTCCallUI';
 import { IncomingCallModal } from '@/components/IncomingCallModal';
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -161,12 +162,15 @@ const ChatHeader = ({
   onAudioCall,
   onVideoCall,
   callActive,
+  isMutual,
 }: {
   pubkey: string;
   onBack?: () => void;
   onAudioCall?: () => void;
   onVideoCall?: () => void;
   callActive?: boolean;
+  /** Whether this contact is a mutual follow. Calls are only allowed for mutuals. */
+  isMutual?: boolean;
 }) => {
   const author = useAuthor(pubkey);
   const metadata = author.data?.metadata;
@@ -174,6 +178,13 @@ const ChatHeader = ({
   const displayName = metadata?.name || genUserName(pubkey);
   const avatarUrl = metadata?.picture;
   const initials = displayName.slice(0, 2).toUpperCase();
+
+  const callsDisabled = callActive || !isMutual;
+  const callTooltip = !isMutual
+    ? 'Calls are only available with mutual follows'
+    : callActive
+    ? 'A call is already in progress'
+    : undefined;
 
   return (
     <div className="p-4 border-b flex items-center gap-3">
@@ -200,28 +211,66 @@ const ChatHeader = ({
         )}
       </div>
 
-      {/* Call buttons */}
+      {/* Call buttons — only enabled for mutual follows */}
       <div className="flex items-center gap-1 shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onAudioCall}
-          disabled={callActive}
-          className="h-9 w-9 text-muted-foreground hover:text-green-500 hover:bg-green-500/10 transition-colors"
-          title="Audio call"
-        >
-          <Phone className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onVideoCall}
-          disabled={callActive}
-          className="h-9 w-9 text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
-          title="Video call"
-        >
-          <Video className="h-4 w-4" />
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* span wrapper keeps the tooltip working even when the button is disabled */}
+              <span tabIndex={callsDisabled ? 0 : undefined} className="inline-flex">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onAudioCall}
+                  disabled={callsDisabled}
+                  className={cn(
+                    "h-9 w-9 transition-colors",
+                    isMutual
+                      ? "text-muted-foreground hover:text-green-500 hover:bg-green-500/10"
+                      : "text-muted-foreground/30 cursor-not-allowed",
+                  )}
+                  aria-label="Audio call"
+                >
+                  <Phone className="h-4 w-4" />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {callTooltip && (
+              <TooltipContent side="bottom">
+                <p className="text-xs">{callTooltip}</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span tabIndex={callsDisabled ? 0 : undefined} className="inline-flex">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onVideoCall}
+                  disabled={callsDisabled}
+                  className={cn(
+                    "h-9 w-9 transition-colors",
+                    isMutual
+                      ? "text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10"
+                      : "text-muted-foreground/30 cursor-not-allowed",
+                  )}
+                  aria-label="Video call"
+                >
+                  <Video className="h-4 w-4" />
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {callTooltip && (
+              <TooltipContent side="bottom">
+                <p className="text-xs">{callTooltip}</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   );
@@ -256,6 +305,10 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
   const { user } = useCurrentUser();
   const { sendMessage, protocolMode, isLoading } = useDMContext();
   const { messages, hasMoreMessages, loadEarlierMessages } = useConversationMessages(pubkey || '');
+
+  // Calls are restricted to mutual follows only
+  const { data: mutualPubkeys = [] } = useMutualFollows();
+  const isMutual = !!pubkey && mutualPubkeys.includes(pubkey);
 
   const {
     callState,
@@ -386,6 +439,7 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
         onAudioCall={() => startCall(pubkey, 'audio')}
         onVideoCall={() => startCall(pubkey, 'video')}
         callActive={callActive}
+        isMutual={isMutual}
       />
       
       <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">

@@ -25,7 +25,7 @@ import { filterNSFWContent } from '@/lib/nsfwDetection';
 import { filterEventsByTopic } from '@/lib/topicFilter';
 import type { NostrEvent } from '@nostrify/nostrify';
 
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 50; // Smaller first page for faster initial render
 
 export function useInfiniteConversationsFeed() {
   const { nostr } = useNostr();
@@ -89,7 +89,7 @@ export function useInfiniteConversationsFeed() {
     },
     initialPageParam: undefined as number | undefined,
     enabled: !!user?.pubkey && !isLoadingFollows && followPubkeys.length > 0,
-    staleTime: 60_000,
-    gcTime: Infinity,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 60 * 24,
   });
 }

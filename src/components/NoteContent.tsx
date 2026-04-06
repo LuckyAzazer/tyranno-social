@@ -312,7 +312,7 @@ export function NoteContent({
   }
 
   return (
-    <div className={cn("whitespace-pre-wrap break-words", className)}>
+    <div className={cn("whitespace-pre-wrap break-words", className)} style={{ fontSize: 'var(--text-size)' }}>
       {content.length > 0 ? content : event.content}
       
       {hiddenLinkCount > 0 && !showHiddenLinks && (

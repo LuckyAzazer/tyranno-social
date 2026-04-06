@@ -344,7 +344,7 @@ export function AppearancePanel() {
     const size = FONT_SIZES.find(s => s.value === v);
     if (!size) return;
     updateConfig(c => ({ ...c, fontSize: size.size }));
-    document.documentElement.style.fontSize = size.size;
+    document.documentElement.style.setProperty('--text-size', size.size);
   };
 
   const previewProps: StickyPreviewProps = {

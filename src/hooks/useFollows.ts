@@ -43,5 +43,7 @@ export function useFollows(pubkey: string | undefined) {
       return followPubkeys;
     },
     enabled: !!pubkey,
+    staleTime: 1000 * 60 * 5,  // 5 minutes — contact list rarely changes
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }

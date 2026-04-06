@@ -180,7 +180,9 @@ function useApplyFontSettings(fontFamily?: string, fontSize?: string) {
     }
 
     if (fontSize) {
-      root.style.fontSize = fontSize;
+      root.style.setProperty('--text-size', fontSize);
+    } else {
+      root.style.setProperty('--text-size', '1rem');
     }
   }, [fontFamily, fontSize]);
 }

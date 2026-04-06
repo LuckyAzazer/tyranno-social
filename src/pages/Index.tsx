@@ -18,7 +18,7 @@ import { NotificationItem } from '@/components/NotificationItem';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useEventById } from '@/hooks/useEventById';
 import type { NotificationEvent } from '@/hooks/useNotifications';
-import { Sidebar } from '@/components/Sidebar';
+import { SidebarDrawer } from '@/components/SidebarDrawer';
 import { ColumnSelector } from '@/components/ColumnSelector';
 import { ColorPickerButton } from '@/components/ColorPickerButton';
 import { ScrollToTop } from '@/components/ScrollToTop';
@@ -34,7 +34,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sparkles, FileText, Image, Music, Video, Users, UserCheck, MessagesSquare, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit, CircleDot, X as XIcon } from 'lucide-react';
+import { Sparkles, FileText, Image, Music, Video, Users, UserCheck, MessagesSquare, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit, CircleDot, X as XIcon, List } from 'lucide-react';
+import { useFollowSets } from '@/hooks/useFollowSets';
 import { EditProfileForm } from '@/components/EditProfileForm';
 import { WalletBalance } from '@/components/WalletBalance';
 import { useAppContext } from '@/hooks/useAppContext';
@@ -48,13 +49,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 const Index = () => {
@@ -72,6 +66,7 @@ const Index = () => {
   const [selectedCirclePubkeys, setSelectedCirclePubkeys] = useState<string[] | null>(null);
   const [selectedCircleLabel, setSelectedCircleLabel] = useState<string | null>(null);
   const [headerVisible, setHeaderVisible] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const lastScrollY = useRef(0);
 
   // Hide header on scroll down, show on scroll up (mobile only)
@@ -107,6 +102,7 @@ const Index = () => {
   const unreadDMCount = useUnreadDMCount();
   const { shouldFilter } = useNSFWFilter();
   const { data: notifications, isLoading: isLoadingNotifications } = useNotifications(50);
+  const { followSets } = useFollowSets();
   const { data: pendingEvent } = useEventById(pendingEventId);
 
   // Once the pending event loads, open the modal and clear the pending ID
@@ -241,15 +237,6 @@ const Index = () => {
     videos: 'Videos',
   };
 
-  const feedCategories: Array<{ id: FeedCategory; label: string }> = [
-    { id: 'following', label: 'All Notes' },
-    { id: 'text', label: 'Text' },
-    { id: 'articles', label: 'Articles' },
-    { id: 'photos', label: 'Photos' },
-    { id: 'music', label: 'Music' },
-    { id: 'videos', label: 'Videos' },
-  ];
-
   const CategoryIcon = categoryIcons[selectedCategory];
 
   return (
@@ -273,6 +260,34 @@ const Index = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-rose-500/5 to-primary/10 -z-10" />
         <div className="px-4 py-4">
           <div className="flex items-center justify-between gap-3">
+            {/* Hamburger menu — opens sidebar drawer on all screen sizes */}
+            <SidebarDrawer
+              selectedCategory={selectedCategory}
+              open={sidebarOpen}
+              onOpenChange={setSidebarOpen}
+              onCategoryChange={(cat) => {
+                setSelectedCategory(cat);
+                setSelectedCircleDTag(null);
+                setSelectedCirclePubkeys(null);
+                setSelectedCircleLabel(null);
+                setIsMutualFeed(false);
+                setIsConversationsFeed(false);
+                setSelectedRelay(null);
+              }}
+              onCircleSelect={(pubkeys, label) => {
+                if (pubkeys === null) {
+                  setSelectedCircleDTag(null);
+                  setSelectedCirclePubkeys(null);
+                  setSelectedCircleLabel(null);
+                } else {
+                  setSelectedCircleDTag(label?.toLowerCase().replace(/\s+/g, '-') ?? null);
+                  setSelectedCirclePubkeys(pubkeys);
+                  setSelectedCircleLabel(label);
+                }
+              }}
+              selectedCircleDTag={selectedCircleDTag}
+            />
+
             {/* Logo and Title */}
             <div className="flex items-center gap-3 shrink-0">
               <div className="relative shrink-0">
@@ -315,75 +330,42 @@ const Index = () => {
 
             {/* Login/Avatar — always visible */}
             <div className="shrink-0 flex items-center gap-2">
-              {user && (
-                <>
-                  <WalletBalance />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setEditProfileOpen(true)}
-                    className="hidden sm:flex gap-1.5 text-muted-foreground hover:text-primary"
-                    title="Edit your profile"
-                  >
-                    <Edit className="h-4 w-4" />
-                    <span className="hidden lg:inline">Edit Profile</span>
-                  </Button>
-                </>
-              )}
+              {user && <WalletBalance />}
               <LoginArea className="max-w-60" />
             </div>
           </div>
 
           {/* Search Bar - Mobile (below header on small screens) */}
-          <div className="md:hidden mt-4">
+          <div className="md:hidden mt-3">
             <SearchBar onSearch={setSearchQuery} />
           </div>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="px-4 py-8 pb-24 lg:pb-8">
-        <div className="flex gap-6">
-          {/* Sidebar */}
-          <Sidebar
-            selectedCategory={selectedCategory}
-            onCategoryChange={(cat) => { setSelectedCategory(cat); setSelectedCircleDTag(null); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setIsMutualFeed(false); setIsConversationsFeed(false); setSelectedRelay(null); }}
-            onCircleSelect={(pubkeys, label) => {
-              if (pubkeys === null) {
-                setSelectedCircleDTag(null);
-                setSelectedCirclePubkeys(null);
-                setSelectedCircleLabel(null);
-              } else {
-                setSelectedCircleDTag(label?.toLowerCase().replace(/\s+/g, '-') ?? null);
-                setSelectedCirclePubkeys(pubkeys);
-                setSelectedCircleLabel(label);
-              }
-            }}
-            selectedCircleDTag={selectedCircleDTag}
-          />
+          {/* Toolbar row — feed selector, refresh, colors, columns */}
+          <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 min-w-0">
+              {/* Circle badge */}
+              {selectedCircleLabel && (
+                <Badge className="gap-1.5 bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-950/30 dark:text-violet-300 dark:border-violet-800/50 pr-1 shrink-0">
+                  <CircleDot className="h-3 w-3" />
+                  {selectedCircleLabel}
+                  <button
+                    onClick={() => { setSelectedCircleDTag(null); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); }}
+                    className="ml-0.5 hover:bg-violet-200 dark:hover:bg-violet-800/50 rounded p-0.5 transition-colors"
+                  >
+                    <XIcon className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
 
-          {/* Feed Section */}
-          <div className="flex-1 min-w-0 space-y-6">
-
-          {/* Feed Selector and Column Selector */}
-          {!searchQuery && (
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                {selectedCircleLabel && (
-                  <Badge className="gap-1.5 bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-950/30 dark:text-violet-300 dark:border-violet-800/50 pr-1">
-                    <CircleDot className="h-3 w-3" />
-                    {selectedCircleLabel}
-                    <button
-                      onClick={() => { setSelectedCircleDTag(null); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); }}
-                      className="ml-0.5 hover:bg-violet-200 dark:hover:bg-violet-800/50 rounded p-0.5 transition-colors"
-                    >
-                      <XIcon className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
+              {/* Feed / search label */}
+              {searchQuery ? (
+                <Badge variant="secondary" className="text-sm py-1 px-3 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200 dark:from-secondary dark:to-secondary dark:text-secondary-foreground dark:border-border shrink-0">
+                  Search Results
+                </Badge>
+              ) : (
                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                    <Button variant="secondary" size="sm" className="gap-2 bg-background/90 backdrop-blur-sm text-foreground border border-border shadow-sm hover:bg-accent hover:text-accent-foreground dark:bg-background/95 dark:text-foreground dark:border-border">
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="secondary" size="sm" className="gap-2 bg-background/90 backdrop-blur-sm text-foreground border border-border shadow-sm hover:bg-accent hover:text-accent-foreground dark:bg-background/95 dark:text-foreground dark:border-border shrink-0">
                       {selectedRelay ? (
                         <>
                           <Wifi className="h-4 w-4" />
@@ -399,6 +381,11 @@ const Index = () => {
                           <MessagesSquare className="h-4 w-4" />
                           Conversations
                         </>
+                      ) : selectedCircleLabel ? (
+                        <>
+                          <CircleDot className="h-4 w-4 text-violet-500" />
+                          {selectedCircleLabel}
+                        </>
                       ) : (
                         <>
                           <CategoryIcon className="h-4 w-4" />
@@ -409,24 +396,16 @@ const Index = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-64">
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setSelectedRelay(null);
-                        setIsMutualFeed(false);
-                        setIsConversationsFeed(false);
-                      }}
-                      className={`cursor-pointer ${!selectedRelay && !isMutualFeed && !isConversationsFeed ? 'bg-accent' : ''}`}
+                     <DropdownMenuItem
+                      onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(false); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setSelectedCircleDTag(null); }}
+                      className={`cursor-pointer ${!selectedRelay && !isMutualFeed && !isConversationsFeed && !selectedCircleLabel ? 'bg-accent' : ''}`}
                     >
                       <Users className="h-4 w-4 mr-2" />
                       My Feed (Following)
                     </DropdownMenuItem>
                     {user && (
                       <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedRelay(null);
-                          setIsMutualFeed(true);
-                          setIsConversationsFeed(false);
-                        }}
+                        onClick={() => { setSelectedRelay(null); setIsMutualFeed(true); setIsConversationsFeed(false); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setSelectedCircleDTag(null); }}
                         className={`cursor-pointer ${isMutualFeed ? 'bg-accent' : ''}`}
                       >
                         <UserCheck className="h-4 w-4 mr-2" />
@@ -440,11 +419,7 @@ const Index = () => {
                     )}
                     {user && (
                       <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedRelay(null);
-                          setIsMutualFeed(false);
-                          setIsConversationsFeed(true);
-                        }}
+                        onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(true); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setSelectedCircleDTag(null); }}
                         className={`cursor-pointer ${isConversationsFeed ? 'bg-accent' : ''}`}
                       >
                         <MessagesSquare className="h-4 w-4 mr-2" />
@@ -454,18 +429,45 @@ const Index = () => {
                         </div>
                       </DropdownMenuItem>
                     )}
+                    {user && followSets.length > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                          <List className="h-3 w-3" />
+                          My Lists
+                        </div>
+                        {followSets.map((circle) => (
+                          <DropdownMenuItem
+                            key={circle.dTag}
+                            onClick={() => {
+                              setSelectedRelay(null);
+                              setIsMutualFeed(false);
+                              setIsConversationsFeed(false);
+                              setSelectedCirclePubkeys(circle.pubkeys);
+                              setSelectedCircleLabel(circle.title);
+                              setSelectedCircleDTag(circle.dTag);
+                            }}
+                            className={`cursor-pointer ${selectedCircleDTag === circle.dTag ? 'bg-accent' : ''}`}
+                          >
+                            <CircleDot className="h-4 w-4 mr-2 text-violet-500" />
+                            <div className="flex flex-col min-w-0">
+                              <span className="truncate">{circle.title}</span>
+                              <span className="text-[10px] text-muted-foreground">{circle.pubkeys.length} {circle.pubkeys.length === 1 ? 'member' : 'members'}</span>
+                            </div>
+                          </DropdownMenuItem>
+                        ))}
+                      </>
+                    )}
                     <DropdownMenuSeparator />
                     <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
                       Relay Firehose
                     </div>
-                    {config.relayMetadata.relays.map((relay) => (
+                    {config.relayMetadata.relays.filter((relay) => {
+                        try { const h = new URL(relay.url).hostname; return h !== 'localhost' && h !== '127.0.0.1' && h !== '::1'; } catch { return false; }
+                      }).map((relay) => (
                       <DropdownMenuItem
                         key={relay.url}
-                        onClick={() => {
-                          setSelectedRelay(relay.url);
-                          setIsMutualFeed(false);
-                          setIsConversationsFeed(false);
-                        }}
+                        onClick={() => { setSelectedRelay(relay.url); setIsMutualFeed(false); setIsConversationsFeed(false); }}
                         className={`cursor-pointer ${selectedRelay === relay.url ? 'bg-accent' : ''}`}
                       >
                         <Wifi className="h-4 w-4 mr-2" />
@@ -474,77 +476,51 @@ const Index = () => {
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+              )}
 
-                {/* Inline Category Selector — shown on mobile next to the feed button, hidden on desktop (sidebar handles it) */}
-                {!isConversationsFeed && (
-                  <div className="xl:hidden">
-                    <Select
-                      value={selectedCategory}
-                      onValueChange={(value) => setSelectedCategory(value as FeedCategory)}
-                    >
-                      <SelectTrigger className="h-9 gap-1.5 bg-background/90 backdrop-blur-sm border border-border shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors text-sm font-medium text-foreground dark:bg-background/95 dark:text-foreground dark:border-border w-auto pr-2">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {feedCategories.map((cat) => {
-                          const Icon = categoryIcons[cat.id];
-                          return (
-                            <SelectItem key={cat.id} value={cat.id}>
-                              <div className="flex items-center gap-2">
-                                <Icon className="h-4 w-4" />
-                                <span>{cat.label}</span>
-                              </div>
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={isRefetching}
-                  className="gap-2"
-                  title="Refresh feed"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
-                  <span className="hidden sm:inline">Refresh</span>
-                </Button>
-                {posts && (
-                  <span className="text-sm text-muted-foreground">
-                    {posts.length} {posts.length === 1 ? 'post' : 'posts'}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <ColorPickerButton />
-                <ColumnSelector columns={columns} onColumnsChange={setColumns} />
-              </div>
-            </div>
-          )}
-
-          {/* Search Results Header */}
-          {searchQuery && (
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-sm py-1.5 px-3 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200 dark:from-secondary dark:to-secondary dark:text-secondary-foreground dark:border-border">
-                  Search Results
-                </Badge>
-                {posts && (
-                  <span className="text-sm text-muted-foreground">
+              {/* Refresh + post/result count */}
+              {!searchQuery ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRefresh}
+                    disabled={isRefetching}
+                    className="gap-2 shrink-0"
+                    title="Refresh feed"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">Refresh</span>
+                  </Button>
+                  {posts && (
+                    <span className="text-sm text-muted-foreground shrink-0">
+                      {posts.length} {posts.length === 1 ? 'post' : 'posts'}
+                    </span>
+                  )}
+                </>
+              ) : (
+                posts && (
+                  <span className="text-sm text-muted-foreground truncate">
                     {posts.length} {posts.length === 1 ? 'result' : 'results'} for "{searchQuery}"
                   </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <ColorPickerButton />
-                <ColumnSelector columns={columns} onColumnsChange={setColumns} />
-              </div>
+                )
+              )}
             </div>
-          )}
+
+            {/* Right side: Colors + Columns */}
+            <div className="flex items-center gap-2 shrink-0">
+              <ColorPickerButton />
+              <ColumnSelector columns={columns} onColumnsChange={setColumns} />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="px-4 py-6 pb-24 lg:pb-8">
+        <div className="flex gap-6">
+          {/* Feed Section */}
+          <div className="flex-1 min-w-0 space-y-6">
 
           {/* Posts */}
           <div className="space-y-4">
@@ -671,8 +647,8 @@ const Index = () => {
           </div>
           </div>
 
-          {/* Right Sidebar */}
-          <aside className="w-96 shrink-0 hidden xl:block">
+          {/* Right Sidebar — always visible on non-mobile (md+) */}
+          <aside className="w-96 shrink-0 hidden md:block">
             <div className="sticky top-4 space-y-4">
               {user ? (
                 <ComposePost onPostPublished={handleRefresh} />
@@ -786,7 +762,7 @@ const Index = () => {
       <InstallPWA />
 
       {/* Mobile Bottom Navigation */}
-      <MobileBottomNav />
+      <MobileBottomNav onMenuOpen={() => setSidebarOpen(true)} />
 
       {/* Mobile Floating Compose Button */}
       <MobileComposeFAB onPostPublished={handleRefresh} />

@@ -28,6 +28,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { useNavigate } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
 import { EditProfileForm } from '@/components/EditProfileForm';
+import { ProfileBadges } from '@/components/ProfileBadges';
 import type { NostrMetadata, NostrEvent } from '@nostrify/nostrify';
 import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -238,7 +239,28 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
                               <span className="truncate max-w-xs">{website.replace(/^https?:\/\//, '')}</span>
                             </a>
                           )}
-                          
+
+                          {/* Personal links stored in kind-0 metadata */}
+                          {Array.isArray((metadata as Record<string, unknown> | undefined)?.links) &&
+                            ((metadata as Record<string, unknown>).links as Array<{ label?: string; url: string }>)
+                              .filter((l) => l?.url)
+                              .slice(0, 7)
+                              .map((link, i) => (
+                                <a
+                                  key={i}
+                                  href={link.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+                                >
+                                  <LinkIcon className="h-4 w-4 shrink-0" />
+                                  <span className="truncate max-w-xs">
+                                    {link.label || link.url.replace(/^https?:\/\//, '')}
+                                  </span>
+                                </a>
+                              ))
+                          }
+
                           {(lud16 || lud06) && (
                             <button
                               onClick={() => copyToClipboard(lud16 || lud06 || '', 'Lightning address')}
@@ -254,6 +276,9 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
                           )}
                         </div>
                         
+                        {/* NIP-58 Badges */}
+                        <ProfileBadges pubkey={pubkey} />
+
                         {/* Nostr Address */}
                         <div className="mt-4 pt-4 border-t border-border/50">
                           <button

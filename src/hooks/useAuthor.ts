@@ -40,7 +40,8 @@ export function useAuthor(pubkey: string | undefined) {
         return { event };
       }
     },
-    staleTime: 5 * 60 * 1000, // Keep cached data fresh for 5 minutes
-    retry: 3,
+    staleTime: 1000 * 60 * 10, // 10 minutes — profiles rarely change
+    gcTime: 1000 * 60 * 60 * 24, // 24 hours — keep profiles in cache
+    retry: 1, // One retry is enough; avoid blocking renders with 3× retries
   });
 }
