@@ -1,5 +1,31 @@
 import { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from '@/hooks/useTheme';
+import { useAppContext } from '@/hooks/useAppContext';
+import { useBookmarkSets, useBookmarkSetItems } from '@/hooks/useBookmarkSets';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useNSFWFilter } from '@/hooks/useNSFWFilter';
+import { useWebOfTrust } from '@/hooks/useWebOfTrust';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { RelayListManager } from '@/components/RelayListManager';
+import { PostCard } from '@/components/PostCard';
+import { PostModal } from '@/components/PostModal';
+import { TrendingHashtags } from '@/components/TrendingHashtags';
+import { PeopleToFollow } from '@/components/PeopleToFollow';
 import {
   Moon,
   Sun,
