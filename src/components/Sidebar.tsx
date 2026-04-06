@@ -189,6 +189,14 @@ export function SidebarContent({ selectedCategory, onCategoryChange, onCircleSel
             <Users className="h-4 w-4 text-indigo-500 group-hover:text-indigo-500" />
             Communities
           </button>
+          <button
+            className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors text-sm font-medium group"
+            onClick={() => handleNavigate('/circles')}
+          >
+            <CircleDot className="h-4 w-4 text-violet-500 group-hover:text-violet-500" />
+            Circles
+            <span className="ml-auto text-xs text-muted-foreground group-hover:text-primary transition-colors">Manage →</span>
+          </button>
         </CardContent>
       </Card>
 
@@ -330,20 +338,6 @@ export function SidebarContent({ selectedCategory, onCategoryChange, onCircleSel
               })}
             </SelectContent>
           </Select>
-        </CardContent>
-      </Card>
-
-      {/* Circles — link to dedicated page */}
-      <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-violet-50/20 dark:from-card dark:to-card">
-        <CardContent className="pt-4 pb-3">
-          <button
-            className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors text-sm font-medium group"
-            onClick={() => handleNavigate('/circles')}
-          >
-            <CircleDot className="h-4 w-4 text-violet-500 group-hover:text-violet-500" />
-            Circles
-            <span className="ml-auto text-xs text-muted-foreground group-hover:text-primary transition-colors">Manage →</span>
-          </button>
         </CardContent>
       </Card>
 
