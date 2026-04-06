@@ -34,7 +34,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sparkles, FileText, Image, Music, Video, Users, UserCheck, MessagesSquare, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit, CircleDot, X as XIcon } from 'lucide-react';
+import { Sparkles, FileText, Image, Music, Video, Users, UserCheck, MessagesSquare, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit, CircleDot, X as XIcon, List } from 'lucide-react';
+import { useFollowSets } from '@/hooks/useFollowSets';
 import { EditProfileForm } from '@/components/EditProfileForm';
 import { WalletBalance } from '@/components/WalletBalance';
 import { useAppContext } from '@/hooks/useAppContext';
@@ -101,6 +102,7 @@ const Index = () => {
   const unreadDMCount = useUnreadDMCount();
   const { shouldFilter } = useNSFWFilter();
   const { data: notifications, isLoading: isLoadingNotifications } = useNotifications(50);
+  const { followSets } = useFollowSets();
   const { data: pendingEvent } = useEventById(pendingEventId);
 
   // Once the pending event loads, open the modal and clear the pending ID
@@ -379,6 +381,11 @@ const Index = () => {
                           <MessagesSquare className="h-4 w-4" />
                           Conversations
                         </>
+                      ) : selectedCircleLabel ? (
+                        <>
+                          <CircleDot className="h-4 w-4 text-violet-500" />
+                          {selectedCircleLabel}
+                        </>
                       ) : (
                         <>
                           <CategoryIcon className="h-4 w-4" />
@@ -389,16 +396,16 @@ const Index = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-64">
-                    <DropdownMenuItem
-                      onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(false); }}
-                      className={`cursor-pointer ${!selectedRelay && !isMutualFeed && !isConversationsFeed ? 'bg-accent' : ''}`}
+                     <DropdownMenuItem
+                      onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(false); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setSelectedCircleDTag(null); }}
+                      className={`cursor-pointer ${!selectedRelay && !isMutualFeed && !isConversationsFeed && !selectedCircleLabel ? 'bg-accent' : ''}`}
                     >
                       <Users className="h-4 w-4 mr-2" />
                       My Feed (Following)
                     </DropdownMenuItem>
                     {user && (
                       <DropdownMenuItem
-                        onClick={() => { setSelectedRelay(null); setIsMutualFeed(true); setIsConversationsFeed(false); }}
+                        onClick={() => { setSelectedRelay(null); setIsMutualFeed(true); setIsConversationsFeed(false); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setSelectedCircleDTag(null); }}
                         className={`cursor-pointer ${isMutualFeed ? 'bg-accent' : ''}`}
                       >
                         <UserCheck className="h-4 w-4 mr-2" />
@@ -412,7 +419,7 @@ const Index = () => {
                     )}
                     {user && (
                       <DropdownMenuItem
-                        onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(true); }}
+                        onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(true); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setSelectedCircleDTag(null); }}
                         className={`cursor-pointer ${isConversationsFeed ? 'bg-accent' : ''}`}
                       >
                         <MessagesSquare className="h-4 w-4 mr-2" />
@@ -421,6 +428,35 @@ const Index = () => {
                           <span className="text-[10px] text-muted-foreground">Replies your follows are writing</span>
                         </div>
                       </DropdownMenuItem>
+                    )}
+                    {user && followSets.length > 0 && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                          <List className="h-3 w-3" />
+                          My Lists
+                        </div>
+                        {followSets.map((circle) => (
+                          <DropdownMenuItem
+                            key={circle.dTag}
+                            onClick={() => {
+                              setSelectedRelay(null);
+                              setIsMutualFeed(false);
+                              setIsConversationsFeed(false);
+                              setSelectedCirclePubkeys(circle.pubkeys);
+                              setSelectedCircleLabel(circle.title);
+                              setSelectedCircleDTag(circle.dTag);
+                            }}
+                            className={`cursor-pointer ${selectedCircleDTag === circle.dTag ? 'bg-accent' : ''}`}
+                          >
+                            <CircleDot className="h-4 w-4 mr-2 text-violet-500" />
+                            <div className="flex flex-col min-w-0">
+                              <span className="truncate">{circle.title}</span>
+                              <span className="text-[10px] text-muted-foreground">{circle.pubkeys.length} {circle.pubkeys.length === 1 ? 'member' : 'members'}</span>
+                            </div>
+                          </DropdownMenuItem>
+                        ))}
+                      </>
                     )}
                     <DropdownMenuSeparator />
                     <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
