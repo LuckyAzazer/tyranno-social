@@ -88,7 +88,25 @@ export default function SettingsPage() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-
+<<<<<<< HEAD
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 blur-xl opacity-60 animate-pulse dark:from-yellow-600 dark:via-red-900 dark:to-yellow-700 dark:opacity-50" />
+                  <div className="relative p-1 bg-gradient-to-br from-rose-100/50 to-pink-100/30 rounded-full dark:from-transparent dark:to-transparent">
+                    <img 
+                      src={`${import.meta.env.BASE_URL}icon-512.png`} 
+                      alt="Tyrannosocial Logo" 
+                      className="h-10 w-10 drop-shadow-2xl filter brightness-110 rounded-full"
+=======
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="relative shrink-0">
+                  <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 blur-xl opacity-60 animate-pulse dark:opacity-50" />
+                  <div className="relative p-0.5 bg-gradient-to-br from-rose-100/50 to-pink-100/30 rounded-full dark:from-transparent dark:to-transparent">
+                    <img
+                      src="/icon-512.png"
+                      alt="Tyrannosocial Logo"
+                      className="h-8 w-8 drop-shadow-2xl filter brightness-110 rounded-full"
+>>>>>>> daab20d2016e89e25a60f35ca3a91f5f47ea6166
                     />
                   </div>
                 </div>
