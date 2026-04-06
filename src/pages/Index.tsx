@@ -257,12 +257,7 @@ const Index = () => {
       </div>
       {/* Hero Header - Sticky */}
    
-                  <img
-                    src="/icon-512.png"
-                    alt="Tyrannosocial Logo"
-                    className="h-10 w-10 sm:h-12 sm:w-12 drop-shadow-2xl filter brightness-110 rounded-full transition-transform group-hover:scale-105"
->>>>>>> 53f00b889b18ff6557d6b6bca2b239f71e8a4b4a
-                  />
+                
                 </div>
               </div>
               <div>
