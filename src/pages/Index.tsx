@@ -239,22 +239,45 @@ const Index = () => {
 
   const CategoryIcon = categoryIcons[selectedCategory];
 
-  
-              onCircleSelect={(pubkeys, label) => {
-                if (pubkeys === null) {
-                  setSelectedCircleDTag(null);
-                  setSelectedCirclePubkeys(null);
-                  setSelectedCircleLabel(null);
-                } else {
-                  setSelectedCircleDTag(label?.toLowerCase().replace(/\s+/g, '-') ?? null);
-                  setSelectedCirclePubkeys(pubkeys);
-                  setSelectedCircleLabel(label);
-                }
-              }}
-              selectedCircleDTag={selectedCircleDTag}
-            />
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-rose-50/30 to-pink-50/40 dark:from-background dark:via-background dark:to-primary/5">
+      {/* Small Zap Link - Top Banner */}
+      <div className="bg-gradient-to-r from-amber-50/50 via-yellow-50/30 to-amber-50/50 dark:from-amber-950/20 dark:via-yellow-950/10 dark:to-amber-950/20 border-b border-amber-200/30 dark:border-amber-900/20">
+        <div className="px-4 py-1.5">
+          <div className="flex justify-center">
+            <a
+              href="lightning:deadwolf170@minibits.cash"
+              className="text-[10px] sm:text-xs text-amber-700/80 dark:text-amber-400/70 hover:text-amber-900 dark:hover:text-amber-300 transition-colors flex items-center gap-1.5 group"
+            >
+              <Zap className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-amber-500/50 dark:fill-amber-400/30 group-hover:fill-amber-600 dark:group-hover:fill-amber-300 transition-colors" />
+              <span className="font-medium">Appreciate the Zaps!</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      {/* Hero Header - Sticky */}
+ 
 
-          
+            {/* Logo and Title */}
+            <button
+              className="flex items-center gap-3 shrink-0 group"
+              onClick={() => navigate('/')}
+              aria-label="Go to home"
+            >
+              <div className="relative shrink-0">
+                <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 blur-xl opacity-60 animate-pulse dark:from-yellow-600 dark:via-red-900 dark:to-yellow-700 dark:opacity-50" />
+                <div className="relative p-1 bg-gradient-to-br from-rose-100/50 to-pink-100/30 rounded-full dark:from-transparent dark:to-transparent">
+<<<<<<< HEAD
+                  <img 
+                    src={`${import.meta.env.BASE_URL}icon-512.png`} 
+                    alt="Tyrannosocial Logo" 
+                    className="h-12 w-12 sm:h-14 sm:w-14 drop-shadow-2xl filter brightness-110 rounded-full"
+=======
+                  <img
+                    src="/icon-512.png"
+                    alt="Tyrannosocial Logo"
+                    className="h-10 w-10 sm:h-12 sm:w-12 drop-shadow-2xl filter brightness-110 rounded-full transition-transform group-hover:scale-105"
+>>>>>>> 53f00b889b18ff6557d6b6bca2b239f71e8a4b4a
                   />
                 </div>
               </div>
