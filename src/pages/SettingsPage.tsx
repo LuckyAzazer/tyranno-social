@@ -76,7 +76,28 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-background via-rose-50/30 to-pink-50/40 dark:from-background dark:via-background dark:to-primary/5">
       {/* Header */}
-     
+      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/95 backdrop-blur-lg shadow-sm">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-rose-500/5 to-primary/10 -z-10" />
+        <div className="px-3 py-3">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/')}
+                className="shrink-0 -ml-1"
+                aria-label="Back to home"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+
+            </div>
+            <div className="shrink-0">
+              <LoginArea className="max-w-[180px]" />
+            </div>
+          </div>
+        </div>
+      </header>
 
       {/* Main Content */}
       <main className="px-3 py-5 max-w-5xl mx-auto pb-24 overflow-x-hidden">
