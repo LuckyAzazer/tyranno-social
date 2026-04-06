@@ -462,7 +462,9 @@ const Index = () => {
                     <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
                       Relay Firehose
                     </div>
-                    {config.relayMetadata.relays.map((relay) => (
+                    {config.relayMetadata.relays.filter((relay) => {
+                        try { const h = new URL(relay.url).hostname; return h !== 'localhost' && h !== '127.0.0.1' && h !== '::1'; } catch { return false; }
+                      }).map((relay) => (
                       <DropdownMenuItem
                         key={relay.url}
                         onClick={() => { setSelectedRelay(relay.url); setIsMutualFeed(false); setIsConversationsFeed(false); }}
