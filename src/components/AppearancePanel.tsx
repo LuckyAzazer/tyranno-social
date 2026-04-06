@@ -428,9 +428,8 @@ export function AppearancePanel() {
                   className="h-7 w-full rounded-md border-2 transition-transform hover:scale-110 active:scale-95"
                   style={{
                     background: `hsl(${p.hue}, 65%, 45%)`,
-                    borderColor: hue === p.hue ? `hsl(${p.hue}, 65%, 45%)` : 'transparent',
-                    outline: hue === p.hue ? `2px solid white` : 'none',
-                    outlineOffset: '-3px',
+                    borderColor: 'transparent',
+                    boxShadow: hue === p.hue ? `0 0 0 2px hsl(${p.hue}, 65%, 45%)` : 'none',
                   }}
                 />
               ))}
