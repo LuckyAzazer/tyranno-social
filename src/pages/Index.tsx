@@ -328,21 +328,7 @@ const Index = () => {
 
             {/* Login/Avatar — always visible */}
             <div className="shrink-0 flex items-center gap-2">
-              {user && (
-                <>
-                  <WalletBalance />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setEditProfileOpen(true)}
-                    className="hidden sm:flex gap-1.5 text-muted-foreground hover:text-primary"
-                    title="Edit your profile"
-                  >
-                    <Edit className="h-4 w-4" />
-                    <span className="hidden lg:inline">Edit Profile</span>
-                  </Button>
-                </>
-              )}
+              {user && <WalletBalance />}
               <LoginArea className="max-w-60" />
             </div>
           </div>
