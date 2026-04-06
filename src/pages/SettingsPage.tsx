@@ -72,13 +72,13 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-rose-50/30 to-pink-50/40 dark:from-background dark:via-background dark:to-primary/5">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-background via-rose-50/30 to-pink-50/40 dark:from-background dark:via-background dark:to-primary/5">
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border/50 bg-background/95 backdrop-blur-lg shadow-sm">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-rose-500/5 to-primary/10 -z-10" />
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+        <div className="px-3 py-3">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
               <Button
                 variant="ghost"
                 size="icon"
@@ -87,7 +87,7 @@ export default function SettingsPage() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2 min-w-0">
                 <div className="relative shrink-0">
                   <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 blur-xl opacity-60 animate-pulse dark:opacity-50" />
                   <div className="relative p-0.5 bg-gradient-to-br from-rose-100/50 to-pink-100/30 rounded-full dark:from-transparent dark:to-transparent">
@@ -98,81 +98,88 @@ export default function SettingsPage() {
                     />
                   </div>
                 </div>
-                <div>
-                  <h1 className="text-lg font-bold text-foreground leading-tight">Settings</h1>
-                  <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                    <Sparkles className="h-2.5 w-2.5" />
-                    Customize your experience
-                  </p>
-                </div>
+                <h1 className="text-base font-bold text-foreground leading-tight truncate">Settings</h1>
               </div>
             </div>
 
-            {/* Login area — visible on all sizes; LoginArea handles add-account internally */}
-            <LoginArea className="max-w-60" />
+            {/* Login area — shrinks gracefully on small screens */}
+            <div className="shrink-0">
+              <LoginArea className="max-w-[180px]" />
+            </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="px-4 py-6 max-w-5xl mx-auto pb-24">
-        <div className="space-y-5">
+      <main className="px-3 py-5 max-w-5xl mx-auto pb-24 overflow-x-hidden">
+        <div className="space-y-4">
 
           {/* ── Account ── */}
-          <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-purple-50/20 dark:from-card dark:to-card">
-            <CardHeader className="pb-3">
+          <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-purple-50/20 dark:from-card dark:to-card overflow-hidden">
+            <CardHeader className="pb-3 px-4">
               <CardTitle className="flex items-center gap-2 text-base">
-                <User className="h-4 w-4 text-primary" />
+                <User className="h-4 w-4 text-primary shrink-0" />
                 Account
               </CardTitle>
               <CardDescription className="text-xs">
                 Manage your Nostr account and profile
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 px-4">
               {currentUser ? (
                 <div className="space-y-4">
-                  {/* Current Account */}
-                  <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20">
-                    <Avatar className="h-14 w-14 ring-2 ring-primary/20 shrink-0">
-                      <AvatarImage src={currentMetadata?.picture} alt={currentMetadata?.name || 'User'} />
-                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-lg">
-                        {(currentMetadata?.name || currentMetadata?.display_name || genUserName(currentUser.pubkey))[0]?.toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0 space-y-1.5">
-                      <h3 className="font-semibold text-base truncate">
-                        {currentMetadata?.display_name || currentMetadata?.name || genUserName(currentUser.pubkey)}
-                      </h3>
-                      {currentMetadata?.name && currentMetadata?.display_name && (
-                        <p className="text-xs text-muted-foreground truncate">@{currentMetadata.name}</p>
-                      )}
-                      {currentMetadata?.nip05 && (
-                        <Badge variant="secondary" className="gap-1 text-xs bg-green-100 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800">
-                          <Check className="h-3 w-3" />
-                          {currentMetadata.nip05}
-                        </Badge>
-                      )}
-                      {currentMetadata?.about && (
-                        <p className="text-xs text-muted-foreground line-clamp-2">{currentMetadata.about}</p>
-                      )}
-                      <div className="flex gap-1.5 flex-wrap">
-                        {currentMetadata?.website && (
-                          <Badge variant="outline" className="gap-1 text-xs py-0">
-                            <LinkIcon className="h-2.5 w-2.5" />
-                            Website
-                          </Badge>
-                        )}
-                        {(currentMetadata?.lud16 || currentMetadata?.lud06) && (
-                          <Badge variant="outline" className="gap-1 text-xs py-0">
-                            <Zap className="h-2.5 w-2.5" />
-                            Lightning
-                          </Badge>
+                  {/* Current Account — stacked layout so nothing overflows */}
+                  <div className="p-3 rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 space-y-3">
+                    {/* Avatar + name row */}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Avatar className="h-12 w-12 ring-2 ring-primary/20 shrink-0">
+                        <AvatarImage src={currentMetadata?.picture} alt={currentMetadata?.name || 'User'} />
+                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-base">
+                          {(currentMetadata?.name || currentMetadata?.display_name || genUserName(currentUser.pubkey))[0]?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-sm truncate">
+                          {currentMetadata?.display_name || currentMetadata?.name || genUserName(currentUser.pubkey)}
+                        </h3>
+                        {currentMetadata?.name && currentMetadata?.display_name && (
+                          <p className="text-xs text-muted-foreground truncate">@{currentMetadata.name}</p>
                         )}
                       </div>
-                      <code className="text-[10px] text-muted-foreground font-mono block truncate">
+                    </div>
+
+                    {/* Bio */}
+                    {currentMetadata?.about && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">{currentMetadata.about}</p>
+                    )}
+
+                    {/* Badges row */}
+                    <div className="flex gap-1.5 flex-wrap">
+                      {currentMetadata?.nip05 && (
+                        <Badge variant="secondary" className="gap-1 text-xs bg-green-100 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800 max-w-full">
+                          <Check className="h-3 w-3 shrink-0" />
+                          <span className="truncate">{currentMetadata.nip05}</span>
+                        </Badge>
+                      )}
+                      {currentMetadata?.website && (
+                        <Badge variant="outline" className="gap-1 text-xs py-0">
+                          <LinkIcon className="h-2.5 w-2.5 shrink-0" />
+                          Website
+                        </Badge>
+                      )}
+                      {(currentMetadata?.lud16 || currentMetadata?.lud06) && (
+                        <Badge variant="outline" className="gap-1 text-xs py-0">
+                          <Zap className="h-2.5 w-2.5 shrink-0" />
+                          Lightning
+                        </Badge>
+                      )}
+                    </div>
+
+                    {/* npub — full width row, wraps with break-all so it never causes horizontal scroll */}
+                    <div className="rounded-md bg-muted/50 px-2.5 py-1.5">
+                      <p className="text-[10px] text-muted-foreground font-mono break-all leading-relaxed">
                         {nip19.npubEncode(currentUser.pubkey)}
-                      </code>
+                      </p>
                     </div>
                   </div>
 
@@ -253,33 +260,33 @@ export default function SettingsPage() {
           </Card>
 
           {/* ── Appearance ── */}
-          <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-rose-50/30 dark:from-card dark:to-card">
-            <CardHeader className="pb-3">
+          <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-rose-50/30 dark:from-card dark:to-card overflow-hidden">
+            <CardHeader className="pb-3 px-4">
               <CardTitle className="flex items-center gap-2 text-base">
-                {isDark ? <Moon className="h-4 w-4 text-primary" /> : <Sun className="h-4 w-4 text-primary" />}
+                {isDark ? <Moon className="h-4 w-4 text-primary shrink-0" /> : <Sun className="h-4 w-4 text-primary shrink-0" />}
                 Appearance
               </CardTitle>
               <CardDescription className="text-xs">
                 Customize the look and feel — changes apply live
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4">
               <AppearancePanel />
             </CardContent>
           </Card>
 
           {/* ── Content ── */}
-          <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-orange-50/20 dark:from-card dark:to-card">
-            <CardHeader className="pb-3">
+          <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-orange-50/20 dark:from-card dark:to-card overflow-hidden">
+            <CardHeader className="pb-3 px-4">
               <CardTitle className="flex items-center gap-2 text-base">
-                <AlertTriangle className="h-4 w-4 text-primary" />
+                <AlertTriangle className="h-4 w-4 text-primary shrink-0" />
                 Content
               </CardTitle>
               <CardDescription className="text-xs">Manage content filtering and warnings</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
+            <CardContent className="px-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5 min-w-0">
                   <Label htmlFor="content-warnings-toggle" className="cursor-pointer font-medium text-sm">
                     Content Warnings
                   </Label>
@@ -289,104 +296,98 @@ export default function SettingsPage() {
                   id="content-warnings-toggle"
                   checked={config.showContentWarnings}
                   onCheckedChange={toggleContentWarnings}
-                  className="data-[state=checked]:bg-primary"
+                  className="data-[state=checked]:bg-primary shrink-0"
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* ── Topic Filter ── */}
-          <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-purple-50/20 dark:from-card dark:to-card">
-            <CardHeader className="pb-0">
-              <button
-                className="flex items-center justify-between w-full text-left"
-                onClick={() => setTopicFilterExpanded(!topicFilterExpanded)}
-              >
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Filter className="h-4 w-4 text-primary" />
-                    Topic Filter
-                  </CardTitle>
-                  <CardDescription className="text-xs mt-0.5">Block posts by keywords, hashtags, and emojis</CardDescription>
-                </div>
-                {topicFilterExpanded
-                  ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                  : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                }
-              </button>
-            </CardHeader>
-            <CardContent className="pt-3">
+          <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-purple-50/20 dark:from-card dark:to-card overflow-hidden">
+            <button
+              className="flex items-center justify-between w-full text-left px-4 pt-4 pb-3 gap-3"
+              onClick={() => setTopicFilterExpanded(!topicFilterExpanded)}
+            >
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 text-base font-semibold">
+                  <Filter className="h-4 w-4 text-primary shrink-0" />
+                  Topic Filter
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">Block posts by keywords, hashtags, and emojis</p>
+              </div>
+              {topicFilterExpanded
+                ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              }
+            </button>
+            <div className="px-4 pb-4">
               {topicFilterExpanded ? (
                 <TopicFilterManager />
               ) : (
                 <p className="text-xs text-muted-foreground">
                   {(config.topicFilter?.keywords.length || 0) + (config.topicFilter?.hashtags.length || 0) + (config.topicFilter?.emojis.length || 0)} filters active
                   {config.topicFilter?.keywords && config.topicFilter.keywords.length > 0 && (
-                    <span className="block mt-0.5">Keywords: {config.topicFilter.keywords.slice(0, 3).join(', ')}{config.topicFilter.keywords.length > 3 ? ` +${config.topicFilter.keywords.length - 3} more` : ''}</span>
+                    <span className="block mt-0.5 truncate">Keywords: {config.topicFilter.keywords.slice(0, 3).join(', ')}{config.topicFilter.keywords.length > 3 ? ` +${config.topicFilter.keywords.length - 3} more` : ''}</span>
                   )}
                 </p>
               )}
-            </CardContent>
+            </div>
           </Card>
 
           {/* ── Relays ── */}
-          <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-blue-50/20 dark:from-card dark:to-card">
-            <CardHeader className="pb-0">
-              <button
-                className="flex items-center justify-between w-full text-left"
-                onClick={() => setRelaysExpanded(!relaysExpanded)}
-              >
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Wifi className="h-4 w-4 text-primary" />
-                    Relays
-                  </CardTitle>
-                  <CardDescription className="text-xs mt-0.5">Manage your Nostr relay connections</CardDescription>
-                </div>
-                {relaysExpanded
-                  ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                  : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                }
-              </button>
-            </CardHeader>
-            <CardContent className="pt-3">
+          <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-blue-50/20 dark:from-card dark:to-card overflow-hidden">
+            <button
+              className="flex items-center justify-between w-full text-left px-4 pt-4 pb-3 gap-3"
+              onClick={() => setRelaysExpanded(!relaysExpanded)}
+            >
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 text-base font-semibold">
+                  <Wifi className="h-4 w-4 text-primary shrink-0" />
+                  Relays
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">Manage your Nostr relay connections</p>
+              </div>
+              {relaysExpanded
+                ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              }
+            </button>
+            <div className="px-4 pb-4">
               {relaysExpanded ? (
                 <RelayListManager />
               ) : (
                 <div className="space-y-1.5">
                   <p className="text-xs text-muted-foreground">{config.relayMetadata.relays.length} {config.relayMetadata.relays.length === 1 ? 'relay' : 'relays'} configured</p>
                   {config.relayMetadata.relays.slice(0, 3).map((relay) => (
-                    <div key={relay.url} className="flex items-center gap-2">
+                    <div key={relay.url} className="flex items-center gap-2 min-w-0">
                       <div className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 shadow-sm shadow-green-500/50 animate-pulse shrink-0" />
                       <span className="text-xs font-mono text-muted-foreground truncate">{relay.url.replace('wss://', '')}</span>
                     </div>
                   ))}
                 </div>
               )}
-            </CardContent>
+            </div>
           </Card>
 
           {/* ── Backup & Export ── */}
-          <Card className="border-border/50 dark:border-transparent">
-            <CardHeader className="pb-0">
-              <button
-                className="flex items-center justify-between w-full text-left"
-                onClick={() => setBackupExpanded(!backupExpanded)}
-              >
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Database className="h-4 w-4 text-primary" />
-                    Backup & Export
-                  </CardTitle>
-                  <CardDescription className="text-xs mt-0.5">Export and restore your Nostr data</CardDescription>
-                </div>
-                {backupExpanded
-                  ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                  : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                }
-              </button>
-            </CardHeader>
-            <CardContent className="pt-3">
+          <Card className="border-border/50 dark:border-transparent overflow-hidden">
+            <button
+              className="flex items-center justify-between w-full text-left px-4 pt-4 pb-3 gap-3"
+              onClick={() => setBackupExpanded(!backupExpanded)}
+            >
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 text-base font-semibold">
+                  <Database className="h-4 w-4 text-primary shrink-0" />
+                  Backup & Export
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">Export and restore your Nostr data</p>
+              </div>
+              {backupExpanded
+                ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              }
+            </button>
+            <div className="px-4 pb-4">
               {backupExpanded ? (
                 <BackupManager />
               ) : (
@@ -394,7 +395,7 @@ export default function SettingsPage() {
                   Download a complete backup of your posts, profile, and bookmarks
                 </p>
               )}
-            </CardContent>
+            </div>
           </Card>
 
         </div>
