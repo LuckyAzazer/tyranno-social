@@ -7,15 +7,54 @@ import { Switch } from '@/components/ui/switch';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
+import { useRelayStatus } from '@/hooks/useRelayStatus';
+import type { RelayStatus } from '@/hooks/useRelayStatus';
 
 interface Relay {
   url: string;
   read: boolean;
   write: boolean;
+}
+
+const statusStyles: Record<RelayStatus, { dot: string; label: string }> = {
+  connecting: {
+    dot: 'bg-amber-400 animate-pulse shadow-amber-400/60',
+    label: 'Connecting…',
+  },
+  connected: {
+    dot: 'bg-emerald-500 shadow-emerald-500/60',
+    label: 'Connected',
+  },
+  error: {
+    dot: 'bg-red-500 shadow-red-500/60',
+    label: 'Unreachable',
+  },
+};
+
+function StatusDot({ url }: { url: string }) {
+  const status = useRelayStatus(url);
+  const { dot, label } = statusStyles[status];
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className={`shrink-0 h-2 w-2 rounded-full shadow-sm ${dot}`}
+            aria-label={label}
+          />
+        </TooltipTrigger>
+        <TooltipContent side="left">
+          <p className="text-xs">{label}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 function RelayRow({
@@ -41,6 +80,7 @@ function RelayRow({
         ? <HardDrive className="h-4 w-4 text-amber-500 shrink-0" />
         : <Wifi className="h-4 w-4 text-muted-foreground shrink-0" />
       }
+      <StatusDot url={relay.url} />
       <span className="font-mono text-sm flex-1 truncate" title={relay.url}>
         {renderRelayUrl(relay.url)}
       </span>
@@ -650,6 +690,7 @@ export function RelayListManager() {
                 className="flex items-center gap-3 p-3 rounded-md border bg-muted/20"
               >
                 <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                <StatusDot url={url} />
                 <span className="font-mono text-sm flex-1 truncate" title={url}>
                   {renderRelayUrl(url)}
                 </span>
@@ -723,6 +764,7 @@ export function RelayListManager() {
                 className="flex items-center gap-3 p-3 rounded-md border bg-muted/20"
               >
                 <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                <StatusDot url={url} />
                 <span className="font-mono text-sm flex-1 truncate" title={url}>
                   {renderRelayUrl(url)}
                 </span>
