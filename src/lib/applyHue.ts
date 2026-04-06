@@ -30,11 +30,11 @@ export function applyHue(h: number): void {
     `.dark{--primary:${h} 70% 60%;--ring:${h} 70% 60%;--sidebar-primary:${h} 70% 60%;--sidebar-ring:${h} 70% 60%;}`;
 }
 
-/** Read the saved hue from localStorage (defaults to G+ red 4°). */
+/** Read the saved hue from localStorage (defaults to 345° burgundy). */
 export function getSavedHue(): number {
   try {
-    return parseInt(localStorage.getItem('nostr:color-hue') ?? '4') || 4;
+    return parseInt(localStorage.getItem('nostr:color-hue') ?? '345') || 345;
   } catch {
-    return 4;
+    return 345;
   }
 }

@@ -173,7 +173,7 @@ export function SidebarContent({ selectedCategory, onCategoryChange, onCircleSel
   return (
     <div className="space-y-4">
       {/* Quick Nav */}
-      <Card className="border border-border bg-card">
+      <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-indigo-50/20 dark:from-card dark:to-card">
         <CardContent className="pt-4 pb-3 space-y-1">
           <button
             className="w-full flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-primary/5 hover:text-primary transition-colors text-sm font-medium group"
@@ -201,7 +201,7 @@ export function SidebarContent({ selectedCategory, onCategoryChange, onCircleSel
       </Card>
 
       {/* Theme & Filters */}
-      <Card className="border border-border bg-card">
+      <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-rose-50/30 dark:from-card dark:to-card">
         <CardContent className="pt-6 space-y-4">
           {config.personalizedTheme ? (
             <div className="flex items-center justify-between">
@@ -307,7 +307,7 @@ export function SidebarContent({ selectedCategory, onCategoryChange, onCircleSel
       </Card>
 
       {/* Feed Categories */}
-      <Card className="border border-border bg-card">
+      <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-orange-50/20 dark:from-card dark:to-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Hash className="h-5 w-5 text-primary" />
@@ -316,7 +316,7 @@ export function SidebarContent({ selectedCategory, onCategoryChange, onCircleSel
         </CardHeader>
         <CardContent>
           <Select value={selectedCategory} onValueChange={(value) => { onCategoryChange(value as FeedCategory); onNavigate?.(); }}>
-            <SelectTrigger className="w-full bg-card border-border hover:border-primary/40 transition-colors">
+            <SelectTrigger className="w-full bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20 hover:border-primary/40 transition-colors">
               <SelectValue>
                 <div className="flex items-center gap-2">
                   <SelectedIcon className="h-4 w-4 text-primary" />
@@ -342,14 +342,14 @@ export function SidebarContent({ selectedCategory, onCategoryChange, onCircleSel
       </Card>
 
       {/* Relays */}
-      <Card className="border border-border bg-card">
+      <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-blue-50/20 dark:from-card dark:to-card">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg flex items-center gap-2">
               <Wifi className="h-5 w-5 text-primary" />
               Relays
             </CardTitle>
-            <Badge variant="secondary" className="font-mono text-xs">
+            <Badge variant="secondary" className="font-mono text-xs bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200 dark:bg-card dark:from-card dark:to-card dark:text-foreground dark:border-border">
               {config.relayMetadata.relays.length}
             </Badge>
           </div>
@@ -404,7 +404,7 @@ export function SidebarContent({ selectedCategory, onCategoryChange, onCircleSel
       <PeopleToFollow />
 
       {/* Bookmark Lists */}
-      <Card className="border border-border bg-card">
+      <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-pink-50/20 dark:from-card dark:to-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Bookmark className="h-5 w-5 text-primary" />
@@ -417,7 +417,7 @@ export function SidebarContent({ selectedCategory, onCategoryChange, onCircleSel
               <Button variant="outline" size="sm" className="w-full group">
                 <FolderOpen className="h-4 w-4 mr-2 group-hover:text-pink-500 transition-colors" />
                 View Lists
-                <Badge variant="secondary" className="ml-auto">
+                <Badge variant="secondary" className="ml-auto bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 border-pink-200 dark:bg-card dark:from-card dark:to-card dark:text-foreground dark:border-border">
                   {totalBookmarks}
                 </Badge>
               </Button>

@@ -11,16 +11,16 @@ import { useAppContext } from '@/hooks/useAppContext';
 import { applyHue, getSavedHue } from '@/lib/applyHue';
 
 const PRESET_COLORS = [
-  { name: 'Red',     hue: 4   },
-  { name: 'Blue',    hue: 210 },
-  { name: 'Green',   hue: 150 },
-  { name: 'Purple',  hue: 270 },
-  { name: 'Orange',  hue: 30  },
-  { name: 'Pink',    hue: 330 },
-  { name: 'Teal',    hue: 180 },
-  { name: 'Amber',   hue: 45  },
-  { name: 'Cyan',    hue: 195 },
-  { name: 'Burgundy',hue: 345 },
+  { name: 'Burgundy', hue: 345 },
+  { name: 'Blue',     hue: 210 },
+  { name: 'Green',    hue: 150 },
+  { name: 'Purple',   hue: 270 },
+  { name: 'Orange',   hue: 30  },
+  { name: 'Pink',     hue: 330 },
+  { name: 'Teal',     hue: 180 },
+  { name: 'Amber',    hue: 45  },
+  { name: 'Red',      hue: 0   },
+  { name: 'Cyan',     hue: 195 },
 ];
 
 export function ColorPickerButton() {

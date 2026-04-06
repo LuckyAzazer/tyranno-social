@@ -121,7 +121,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
 
   return (
     <Card
-      className="group overflow-hidden transition-all duration-200 hover:shadow-md border border-border cursor-pointer bg-card"
+      className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border/50 hover:border-primary/20 dark:border-transparent cursor-pointer bg-gradient-to-br from-card via-card to-rose-50/20 dark:from-card dark:via-card dark:to-card"
       onClick={() => onClick?.(displayEvent)}
     >
       {isRepost && repostedEvent && (
@@ -140,9 +140,9 @@ export function PostCard({ event, onClick }: PostCardProps) {
             className="shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
-            <Avatar className="h-10 w-10">
+            <Avatar className="h-10 w-10 ring-2 ring-background transition-all group-hover:ring-primary/20">
               <AvatarImage src={profileImage} alt={displayName} />
-              <AvatarFallback className="bg-muted text-muted-foreground">
+              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
                 {displayName[0]?.toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -211,16 +211,16 @@ export function PostCard({ event, onClick }: PostCardProps) {
 
         {/* Action bar */}
         <div
-          className="flex items-center justify-between pt-3 border-t border-border"
+          className="flex items-center justify-between pt-2 border-t border-border/50"
           onClick={(e) => e.stopPropagation()}
         >
             <Button
               variant="ghost"
               size="sm"
-              className={`h-8 px-2 flex items-center justify-center gap-1.5 rounded transition-colors ${
+              className={`h-8 px-1.5 flex items-center justify-center gap-1 transition-colors ${
                 replyOpen
-                  ? 'text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'text-blue-500 bg-blue-500/10'
+                  : 'text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10'
               }`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -238,7 +238,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 flex items-center justify-center text-muted-foreground hover:text-foreground rounded transition-colors"
+              className="h-8 w-8 p-0 flex items-center justify-center text-muted-foreground hover:text-green-500 hover:bg-green-500/10 transition-colors"
               onClick={() => {
                 if (!user) {
                   toast({ title: 'Login required', description: 'Please log in to repost.', variant: 'destructive' });
@@ -252,16 +252,16 @@ export function PostCard({ event, onClick }: PostCardProps) {
             </Button>
             <ZapButton
               target={displayEvent as any}
-              className="h-8 px-2 text-muted-foreground hover:text-foreground rounded transition-colors flex items-center justify-center gap-1.5"
+              className="h-8 px-1.5 text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10 transition-colors flex items-center justify-center gap-1"
               showCount={true}
             />
             <Button
               variant="ghost"
               size="sm"
-              className={`h-8 w-8 p-0 flex items-center justify-center rounded transition-colors ${
+              className={`h-8 w-8 p-0 flex items-center justify-center transition-colors ${
                 isBookmarked
-                  ? 'text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-500/10'
+                  : 'text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10'
               }`}
               onClick={handleBookmarkClick}
               title={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
@@ -270,7 +270,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
             </Button>
             <EmojiReactionPicker
               eventId={displayEvent.id}
-              className="h-8 w-8 p-0 flex items-center justify-center text-muted-foreground hover:text-foreground rounded transition-colors"
+              className="h-8 w-8 p-0 flex items-center justify-center text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
             />
 
           <DropdownMenu>

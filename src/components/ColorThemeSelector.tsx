@@ -17,14 +17,14 @@ import { Paintbrush } from 'lucide-react';
 import { applyHue, getSavedHue } from '@/lib/applyHue';
 
 const PRESET_COLORS = [
-  { name: 'Red (Default)', hue: 4   },
-  { name: 'Blue',          hue: 210 },
-  { name: 'Green',         hue: 150 },
-  { name: 'Purple',        hue: 270 },
-  { name: 'Orange',        hue: 30  },
-  { name: 'Pink',          hue: 330 },
-  { name: 'Teal',          hue: 180 },
-  { name: 'Amber',         hue: 45  },
+  { name: 'Burgundy (Default)', hue: 345 },
+  { name: 'Blue',               hue: 210 },
+  { name: 'Green',              hue: 150 },
+  { name: 'Purple',             hue: 270 },
+  { name: 'Orange',             hue: 30  },
+  { name: 'Pink',               hue: 330 },
+  { name: 'Teal',               hue: 180 },
+  { name: 'Amber',              hue: 45  },
 ];
 
 export function ColorThemeSelector() {
@@ -88,7 +88,7 @@ export function ColorThemeSelector() {
 
           <DropdownMenuSeparator />
 
-          <Button variant="outline" size="sm" className="w-full" onClick={() => handleHue(4)}>
+          <Button variant="outline" size="sm" className="w-full" onClick={() => handleHue(345)}>
             Reset to Default
           </Button>
         </div>

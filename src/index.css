@@ -4,87 +4,84 @@
 
 @layer base {
   :root {
-    /* Google Plus Color Scheme - Clean white dominant with signature red accent */
-    --background: 0 0% 95%;
-    --foreground: 0 0% 20%;
+    --background: 345 25% 98%;
+    --foreground: 345 15% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 20%;
+    --card-foreground: 345 15% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 20%;
+    --popover-foreground: 345 15% 15%;
 
-    /* Google Plus signature red - #DC4E41 */
-    --primary: 4 69% 58%;
+    --primary: 345 65% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 20%;
+    --secondary: 345 20% 95%;
+    --secondary-foreground: 345 15% 15%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 345 15% 94%;
+    --muted-foreground: 345 8% 42%;
 
-    --accent: 0 0% 97%;
-    --accent-foreground: 0 0% 20%;
+    --accent: 345 40% 92%;
+    --accent-foreground: 345 15% 15%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 4 69% 58%;
+    --border: 345 20% 88%;
+    --input: 345 20% 88%;
+    --ring: 345 65% 45%;
 
-    --radius: 0.25rem;
+    --radius: 1rem;
     --text-size: 1rem;
 
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 0 0% 20%;
-    --sidebar-primary: 4 69% 58%;
+    --sidebar-background: 345 15% 97%;
+    --sidebar-foreground: 345 12% 30%;
+    --sidebar-primary: 345 65% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 97%;
-    --sidebar-accent-foreground: 0 0% 20%;
-    --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 4 69% 58%;
+    --sidebar-accent: 345 20% 95%;
+    --sidebar-accent-foreground: 345 15% 15%;
+    --sidebar-border: 345 15% 90%;
+    --sidebar-ring: 345 65% 45%;
   }
 
   .dark {
-    /* G+ didn't have a dark mode, but keep a clean version */
-    --background: 0 0% 12%;
-    --foreground: 0 0% 95%;
+    --background: 0 8% 7%;
+    --foreground: 0 0% 98%;
 
-    --card: 0 0% 16%;
-    --card-foreground: 0 0% 95%;
+    --card: 0 12% 10%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 16%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 0 12% 10%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 4 69% 58%;
+    --primary: 0 70% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 20%;
+    --secondary: 0 8% 15%;
     --secondary-foreground: 0 0% 90%;
 
-    --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 0 8% 14%;
+    --muted-foreground: 0 0% 65%;
 
-    --accent: 0 0% 22%;
-    --accent-foreground: 0 0% 95%;
+    --accent: 0 10% 16%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 24%;
-    --input: 0 0% 24%;
-    --ring: 4 69% 58%;
+    --border: 0 8% 18%;
+    --input: 0 8% 18%;
+    --ring: 0 70% 60%;
 
-    --sidebar-background: 0 0% 14%;
-    --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 4 69% 58%;
+    --sidebar-background: 0 8% 8%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 0 70% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 20%;
-    --sidebar-accent-foreground: 0 0% 90%;
-    --sidebar-border: 0 0% 22%;
-    --sidebar-ring: 4 69% 58%;
+    --sidebar-accent: 0 8% 14%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 8% 16%;
+    --sidebar-ring: 0 70% 60%;
   }
 }
 
