@@ -19,6 +19,7 @@ import { NoteContent } from '@/components/NoteContent';
 import { MediaContent } from '@/components/MediaContent';
 import { ContentWarningWrapper } from '@/components/ContentWarningWrapper';
 import { LoginArea } from '@/components/auth/LoginArea';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -309,6 +310,8 @@ export function ExplorePage() {
       {selectedPost && (
         <PostModal event={selectedPost} onClose={() => setSelectedPost(null)} />
       )}
+
+      <MobileBottomNav />
     </div>
   );
 }
