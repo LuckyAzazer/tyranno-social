@@ -348,37 +348,36 @@ const Index = () => {
           </div>
 
           {/* Search Bar - Mobile (below header on small screens) */}
-          <div className="md:hidden mt-4">
+          <div className="md:hidden mt-3">
             <SearchBar onSearch={setSearchQuery} />
           </div>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="px-4 py-8 pb-24 lg:pb-8">
-        <div className="flex gap-6">
-          {/* Feed Section */}
-          <div className="flex-1 min-w-0 space-y-6">
+          {/* Toolbar row — feed selector, refresh, colors, columns */}
+          <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 min-w-0">
+              {/* Circle badge */}
+              {selectedCircleLabel && (
+                <Badge className="gap-1.5 bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-950/30 dark:text-violet-300 dark:border-violet-800/50 pr-1 shrink-0">
+                  <CircleDot className="h-3 w-3" />
+                  {selectedCircleLabel}
+                  <button
+                    onClick={() => { setSelectedCircleDTag(null); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); }}
+                    className="ml-0.5 hover:bg-violet-200 dark:hover:bg-violet-800/50 rounded p-0.5 transition-colors"
+                  >
+                    <XIcon className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
 
-          {/* Feed Selector and Column Selector */}
-          {!searchQuery && (
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                {selectedCircleLabel && (
-                  <Badge className="gap-1.5 bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-950/30 dark:text-violet-300 dark:border-violet-800/50 pr-1">
-                    <CircleDot className="h-3 w-3" />
-                    {selectedCircleLabel}
-                    <button
-                      onClick={() => { setSelectedCircleDTag(null); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); }}
-                      className="ml-0.5 hover:bg-violet-200 dark:hover:bg-violet-800/50 rounded p-0.5 transition-colors"
-                    >
-                      <XIcon className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                )}
+              {/* Feed / search label */}
+              {searchQuery ? (
+                <Badge variant="secondary" className="text-sm py-1 px-3 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200 dark:from-secondary dark:to-secondary dark:text-secondary-foreground dark:border-border shrink-0">
+                  Search Results
+                </Badge>
+              ) : (
                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                    <Button variant="secondary" size="sm" className="gap-2 bg-background/90 backdrop-blur-sm text-foreground border border-border shadow-sm hover:bg-accent hover:text-accent-foreground dark:bg-background/95 dark:text-foreground dark:border-border">
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="secondary" size="sm" className="gap-2 bg-background/90 backdrop-blur-sm text-foreground border border-border shadow-sm hover:bg-accent hover:text-accent-foreground dark:bg-background/95 dark:text-foreground dark:border-border shrink-0">
                       {selectedRelay ? (
                         <>
                           <Wifi className="h-4 w-4" />
@@ -405,11 +404,7 @@ const Index = () => {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-64">
                     <DropdownMenuItem
-                      onClick={() => {
-                        setSelectedRelay(null);
-                        setIsMutualFeed(false);
-                        setIsConversationsFeed(false);
-                      }}
+                      onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(false); }}
                       className={`cursor-pointer ${!selectedRelay && !isMutualFeed && !isConversationsFeed ? 'bg-accent' : ''}`}
                     >
                       <Users className="h-4 w-4 mr-2" />
@@ -417,11 +412,7 @@ const Index = () => {
                     </DropdownMenuItem>
                     {user && (
                       <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedRelay(null);
-                          setIsMutualFeed(true);
-                          setIsConversationsFeed(false);
-                        }}
+                        onClick={() => { setSelectedRelay(null); setIsMutualFeed(true); setIsConversationsFeed(false); }}
                         className={`cursor-pointer ${isMutualFeed ? 'bg-accent' : ''}`}
                       >
                         <UserCheck className="h-4 w-4 mr-2" />
@@ -435,11 +426,7 @@ const Index = () => {
                     )}
                     {user && (
                       <DropdownMenuItem
-                        onClick={() => {
-                          setSelectedRelay(null);
-                          setIsMutualFeed(false);
-                          setIsConversationsFeed(true);
-                        }}
+                        onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(true); }}
                         className={`cursor-pointer ${isConversationsFeed ? 'bg-accent' : ''}`}
                       >
                         <MessagesSquare className="h-4 w-4 mr-2" />
@@ -456,11 +443,7 @@ const Index = () => {
                     {config.relayMetadata.relays.map((relay) => (
                       <DropdownMenuItem
                         key={relay.url}
-                        onClick={() => {
-                          setSelectedRelay(relay.url);
-                          setIsMutualFeed(false);
-                          setIsConversationsFeed(false);
-                        }}
+                        onClick={() => { setSelectedRelay(relay.url); setIsMutualFeed(false); setIsConversationsFeed(false); }}
                         className={`cursor-pointer ${selectedRelay === relay.url ? 'bg-accent' : ''}`}
                       >
                         <Wifi className="h-4 w-4 mr-2" />
@@ -469,52 +452,51 @@ const Index = () => {
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+              )}
 
-
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={isRefetching}
-                  className="gap-2"
-                  title="Refresh feed"
-                >
-                  <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
-                  <span className="hidden sm:inline">Refresh</span>
-                </Button>
-                {posts && (
-                  <span className="text-sm text-muted-foreground">
-                    {posts.length} {posts.length === 1 ? 'post' : 'posts'}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <ColorPickerButton />
-                <ColumnSelector columns={columns} onColumnsChange={setColumns} />
-              </div>
-            </div>
-          )}
-
-          {/* Search Results Header */}
-          {searchQuery && (
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-sm py-1.5 px-3 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200 dark:from-secondary dark:to-secondary dark:text-secondary-foreground dark:border-border">
-                  Search Results
-                </Badge>
-                {posts && (
-                  <span className="text-sm text-muted-foreground">
+              {/* Refresh + post/result count */}
+              {!searchQuery ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRefresh}
+                    disabled={isRefetching}
+                    className="gap-2 shrink-0"
+                    title="Refresh feed"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">Refresh</span>
+                  </Button>
+                  {posts && (
+                    <span className="text-sm text-muted-foreground shrink-0">
+                      {posts.length} {posts.length === 1 ? 'post' : 'posts'}
+                    </span>
+                  )}
+                </>
+              ) : (
+                posts && (
+                  <span className="text-sm text-muted-foreground truncate">
                     {posts.length} {posts.length === 1 ? 'result' : 'results'} for "{searchQuery}"
                   </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <ColorPickerButton />
-                <ColumnSelector columns={columns} onColumnsChange={setColumns} />
-              </div>
+                )
+              )}
             </div>
-          )}
+
+            {/* Right side: Colors + Columns */}
+            <div className="flex items-center gap-2 shrink-0">
+              <ColorPickerButton />
+              <ColumnSelector columns={columns} onColumnsChange={setColumns} />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="px-4 py-6 pb-24 lg:pb-8">
+        <div className="flex gap-6">
+          {/* Feed Section */}
+          <div className="flex-1 min-w-0 space-y-6">
 
           {/* Posts */}
           <div className="space-y-4">
