@@ -32,7 +32,7 @@ const head = createHead({
 // localStorage on every update and hydrate it back on startup.
 // ---------------------------------------------------------------------------
 
-const CACHE_KEY = 'tyrannosocial-query-cache';
+const CACHE_KEY = 'tyrannosocial-query-cache-v2'; // v2: infinite queries excluded
 const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
 const CACHE_MAX_BYTES = 4 * 1024 * 1024; // 4 MB guard (localStorage limit is ~5 MB)
 
@@ -53,10 +53,15 @@ function hydrateQueryCache(client: QueryClient) {
       return;
     }
 
-    // Restore each query into the cache
+    // Restore each query into the cache, skipping any infinite-query entries
+    // that may have been persisted by an older version of the app.
     const cache = client.getQueryCache();
     for (const entry of parsed.queries) {
       try {
+        const state = entry.state as { data?: { pages?: unknown } };
+        // Skip infinite query blobs — they don't hydrate correctly
+        if (state?.data && typeof state.data === 'object' && 'pages' in state.data) continue;
+
         const query = cache.build(client, { queryKey: entry.queryKey as Parameters<typeof cache.build>[1]['queryKey'] });
         query.setState(entry.state as Parameters<typeof query.setState>[0]);
       } catch {
@@ -75,7 +80,18 @@ function persistQueryCache(client: QueryClient) {
     const queries = client
       .getQueryCache()
       .getAll()
-      .filter((q) => q.state.status === 'success')
+      // Only persist regular (non-infinite) queries.
+      // Infinite query state (pages/pageParams) doesn't round-trip cleanly
+      // through JSON serialisation and causes feeds to appear empty on
+      // restore. Fast-loading metadata like follows and author profiles is
+      // what actually benefits from persistence.
+      .filter((q) => {
+        if (q.state.status !== 'success') return false;
+        // Infinite queries store their data as { pages, pageParams }
+        const data = q.state.data as { pages?: unknown } | undefined;
+        if (data && typeof data === 'object' && 'pages' in data) return false;
+        return true;
+      })
       .map((q) => ({
         queryKey: q.queryKey,
         queryHash: q.queryHash,
