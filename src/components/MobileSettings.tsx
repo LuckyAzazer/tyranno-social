@@ -159,17 +159,17 @@ export function MobileSettings() {
                   Content Warnings
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  {config.hideContentWarnings ? 'Auto-hide enabled' : 'Always visible'}
+                  {config.showContentWarnings ? 'Warnings enabled' : 'Always visible'}
                 </p>
               </div>
             </div>
             <Switch
               id="mobile-cw-toggle"
-              checked={config.hideContentWarnings ?? false}
+              checked={config.showContentWarnings ?? true}
               onCheckedChange={(checked) => {
                 updateConfig((current) => ({
                   ...current,
-                  hideContentWarnings: checked,
+                  showContentWarnings: checked,
                 }));
               }}
               className="data-[state=checked]:bg-primary"

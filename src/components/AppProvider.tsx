@@ -15,7 +15,7 @@ interface AppProviderProps {
 // Zod schema for RelayMetadata validation
 const RelayMetadataSchema = z.object({
   relays: z.array(z.object({
-    url: z.url(),
+    url: z.string(),
     read: z.boolean(),
     write: z.boolean(),
   })),
@@ -24,13 +24,13 @@ const RelayMetadataSchema = z.object({
 
 // Zod schema for DMInboxRelays validation
 const DMInboxRelaysSchema = z.object({
-  relays: z.array(z.url()),
+  relays: z.array(z.string()),
   updatedAt: z.number(),
 }) satisfies z.ZodType<DMInboxRelays>;
 
 // Zod schema for PrivateHomeRelays validation
 const PrivateHomeRelaysSchema = z.object({
-  relays: z.array(z.url()),
+  relays: z.array(z.string()),
   updatedAt: z.number(),
 }) satisfies z.ZodType<PrivateHomeRelays>;
 

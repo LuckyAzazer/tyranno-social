@@ -59,52 +59,8 @@ export function NoteContent({
     return /^[a-fA-F0-9]{64,}$/.test(cleaned) && cleaned.length > 100;
   }, [event.content]);
 
-  // If it's movie data, render as a movie card
-  if (jsonData && (jsonData.yts_data || (jsonData.title && jsonData.year))) {
-    return (
-      <div className={className}>
-        <MovieCard data={jsonData} />
-      </div>
-    );
-  }
-
-  // If it's profile/metadata data, render as a profile card
-  if (jsonData && (jsonData.name || jsonData.display_name) && (jsonData.about || jsonData.capabilities)) {
-    return (
-      <div className={className}>
-        <ProfileCard data={jsonData} />
-      </div>
-    );
-  }
-
-  // If it's session/reflection data, render as a session card
-  if (jsonData && (jsonData.session_id || jsonData.reflection)) {
-    return (
-      <div className={className}>
-        <SessionCard data={jsonData} />
-      </div>
-    );
-  }
-
-  // If it's service provider data (VPN, network provider, etc.), render as a service provider card
-  if (jsonData && (jsonData.provider_name || jsonData.endpoint) && (jsonData.region || jsonData.wg_public_key)) {
-    return (
-      <div className={className}>
-        <ServiceProviderCard data={jsonData} />
-      </div>
-    );
-  }
-
-  // If it's hash data, render as a hash data card
-  if (isHashData) {
-    return (
-      <div className={className}>
-        <HashDataCard content={event.content} />
-      </div>
-    );
-  }
-
   // Get mentioned pubkeys from p tags for replacements
+  // (must be before any early returns to satisfy rules of hooks)
   const mentionedPubkeys = useMemo(() => {
     return event.tags
       .filter(([name]) => name === 'p')
@@ -142,6 +98,7 @@ export function NoteContent({
   }, [event.content, event.tags]);
 
   // Process the content to render mentions, links, etc.
+  // (must be before any early returns to satisfy rules of hooks)
   const processedContent = useMemo(() => {
     const text = event.content;
     
@@ -295,8 +252,48 @@ export function NoteContent({
 
   const { content, hiddenLinkCount } = processedContent;
 
-  // After all hooks: if content was a stringified Nostr event, render the
-  // extracted inner content string instead (all hooks have already run safely).
+  // Special JSON content types — return early after all hooks have run
+  if (jsonData && (jsonData.yts_data || (jsonData.title && jsonData.year))) {
+    return (
+      <div className={className}>
+        <MovieCard data={jsonData} />
+      </div>
+    );
+  }
+
+  if (jsonData && (jsonData.name || jsonData.display_name) && (jsonData.about || jsonData.capabilities)) {
+    return (
+      <div className={className}>
+        <ProfileCard data={jsonData} />
+      </div>
+    );
+  }
+
+  if (jsonData && (jsonData.session_id || jsonData.reflection)) {
+    return (
+      <div className={className}>
+        <SessionCard data={jsonData} />
+      </div>
+    );
+  }
+
+  if (jsonData && (jsonData.provider_name || jsonData.endpoint) && (jsonData.region || jsonData.wg_public_key)) {
+    return (
+      <div className={className}>
+        <ServiceProviderCard data={jsonData} />
+      </div>
+    );
+  }
+
+  if (isHashData) {
+    return (
+      <div className={className}>
+        <HashDataCard content={event.content} />
+      </div>
+    );
+  }
+
+  // If content was a stringified Nostr event, render the extracted inner content string.
   if (innerContent !== null) {
     return (
       <NoteContent
