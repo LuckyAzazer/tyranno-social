@@ -11,7 +11,6 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useLoggedInAccounts } from '@/hooks/useLoggedInAccounts';
 
 import { useAuthor } from '@/hooks/useAuthor';
-
 import { genUserName } from '@/lib/genUserName';
 
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 
 import { Separator } from '@/components/ui/separator';
-
 import { RelayListManager } from '@/components/RelayListManager';
 
 import { TopicFilterManager } from '@/components/TopicFilterManager';
@@ -37,6 +35,7 @@ import { AppearancePanel } from '@/components/AppearancePanel';
 import { BackupManager } from '@/components/BackupManager';
 
 import { LoginArea } from '@/components/auth/LoginArea';
+import { useNostrLogin } from '@nostrify/react/login';
 
 import { MobileBottomNav } from '@/components/MobileBottomNav';
 
@@ -47,7 +46,6 @@ import {
   User, Check, Link as LinkIcon, Zap, LogOut,
 
   Filter, Database, ChevronRight, ChevronDown,
-
 } from 'lucide-react';
 
 import { useSeoMeta } from '@unhead/react';
@@ -163,12 +161,39 @@ export default function SettingsPage() {
   const { user } = useCurrentUser();
 
   const { currentUser, otherUsers, setLogin, removeLogin } = useLoggedInAccounts();
-
   const [relaysExpanded, setRelaysExpanded] = useState(false);
 
   const [topicFilterExpanded, setTopicFilterExpanded] = useState(false);
 
   const [backupExpanded, setBackupExpanded] = useState(false);
+  const [keyVisible, setKeyVisible] = useState(false);
+
+  // Check whether the current login has a raw nsec available
+  const currentLogin = logins[0];
+  const nsecLogin = currentLogin?.type === 'nsec' ? currentLogin : null;
+  const nsec = nsecLogin ? nip19.nsecEncode((nsecLogin as { type: 'nsec'; secretKey: Uint8Array }).secretKey) : null;
+
+  const handleCopyNsec = async () => {
+    if (!nsec) return;
+    try {
+      await navigator.clipboard.writeText(nsec);
+      toast({ title: 'Copied!', description: 'Private key copied to clipboard — store it somewhere safe.' });
+    } catch {
+      toast({ title: 'Copy failed', description: 'Please copy the key manually.', variant: 'destructive' });
+    }
+  };
+
+  const handleDownloadNsec = () => {
+    if (!nsec) return;
+    const blob = new Blob([nsec], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'nostr-private-key.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: 'Downloaded', description: 'Keep this file private and backed up securely.' });
+  };
 
 
   const currentUserProfile = useAuthor(currentUser?.pubkey ?? '');
