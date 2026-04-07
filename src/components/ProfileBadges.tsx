@@ -1,11 +1,12 @@
 /**
  * ProfileBadges — NIP-58 badge display for profile pages.
  *
- * Shows the badges a user has chosen to display (kind 10008), fetching
- * the badge definitions (kind 30009) to get names, images, and descriptions.
+ * Always renders a "Badges" section. Shows:
+ *   - Skeletons while loading
+ *   - Badge chips when the user has badges
+ *   - An empty-state prompt when they have none
  *
- * Each badge is rendered as a thumbnail with a tooltip on hover/tap showing
- * the full name and description. Clicking opens a larger image in a dialog.
+ * Clicking a badge chip opens a detail dialog with the full image.
  */
 
 import { useState } from 'react';
@@ -74,43 +75,56 @@ export function ProfileBadges({ pubkey }: ProfileBadgesProps) {
   const { data: badges, isLoading } = useProfileBadges(pubkey);
   const [selectedBadge, setSelectedBadge] = useState<BadgeDefinition | null>(null);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center gap-2 pt-3 mt-3 border-t border-border/50">
-        <Award className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />
-        <div className="flex gap-2">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-10 w-10 rounded-full" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (!badges || badges.length === 0) return null;
-
   return (
     <>
-      <div className="mt-4 pt-4 border-t border-border/50 space-y-2">
-        {/* Header */}
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+      <div className="mt-4 pt-4 border-t border-border/50 space-y-3">
+
+        {/* Section header */}
+        <div className="flex items-center gap-1.5">
           <Award className="h-3.5 w-3.5 text-primary" />
-          Badges
-          <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold text-[10px]">
-            {badges.length}
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Badges
           </span>
+          {!isLoading && badges && badges.length > 0 && (
+            <span className="ml-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold text-[10px]">
+              {badges.length}
+            </span>
+          )}
         </div>
 
-        {/* Badge grid */}
-        <div className="flex flex-wrap gap-2">
-          {badges.map((badge) => (
-            <BadgeThumbnail
-              key={`${badge.issuerPubkey}:${badge.dTag}`}
-              badge={badge}
-              onClick={setSelectedBadge}
-            />
-          ))}
-        </div>
+        {/* Loading skeletons */}
+        {isLoading && (
+          <div className="flex flex-wrap gap-2">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-9 w-28 rounded-xl" />
+            ))}
+          </div>
+        )}
+
+        {/* Badge chips */}
+        {!isLoading && badges && badges.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {badges.map((badge) => (
+              <BadgeThumbnail
+                key={`${badge.issuerPubkey}:${badge.dTag}`}
+                badge={badge}
+                onClick={setSelectedBadge}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!isLoading && (!badges || badges.length === 0) && (
+          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-dashed border-border/60 bg-muted/30">
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-muted shrink-0">
+              <Award className="h-4 w-4 text-muted-foreground/50" />
+            </div>
+            <p className="text-xs text-muted-foreground leading-snug">
+              No badges collected yet
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Detail dialog */}
