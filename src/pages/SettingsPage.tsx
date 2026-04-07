@@ -300,100 +300,112 @@ export default function SettingsPage() {
         </Card>
 
         {/* ── Private Key Backup ── */}
-        {nsec && (
-          <Card className="border-border/50 dark:border-transparent border-orange-200/60 dark:border-orange-900/40 bg-gradient-to-br from-card to-orange-50/30 dark:from-card dark:to-orange-950/10 overflow-hidden">
-            <CardHeader className="pb-3 px-4">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <KeyRound className="h-4 w-4 text-orange-500 shrink-0" />
-                Private Key Backup
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Save your secret key somewhere safe — it's the only way to recover your account
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-4 space-y-3">
-              {/* Warning banner */}
-              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200/60 dark:border-orange-800/40">
-                <ShieldAlert className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-orange-800 dark:text-orange-300 leading-relaxed">
-                  <span className="font-semibold">Never share this key with anyone.</span> Anyone with your private key has full control of your Nostr identity. Store it in a password manager or secure offline location.
+        <Card className="border-orange-200/60 dark:border-orange-900/40 bg-gradient-to-br from-card to-orange-50/30 dark:from-card dark:to-orange-950/10 overflow-hidden">
+          <CardHeader className="pb-3 px-4">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <KeyRound className="h-4 w-4 text-orange-500 shrink-0" />
+              Private Key Backup
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Save your secret key somewhere safe — it's the only way to recover your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 space-y-3">
+            {nsec ? (
+              <>
+                {/* Warning banner */}
+                <div className="flex items-start gap-2.5 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200/60 dark:border-orange-800/40">
+                  <ShieldAlert className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-orange-800 dark:text-orange-300 leading-relaxed">
+                    <span className="font-semibold">Never share this key with anyone.</span> Anyone with your private key has full control of your Nostr identity. Store it in a password manager or secure offline location.
+                  </p>
+                </div>
+
+                {/* Key display */}
+                <div className="rounded-lg border border-border/60 bg-muted/40 p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your nsec key</span>
+                    <button
+                      onClick={() => setKeyVisible((v) => !v)}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {keyVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      {keyVisible ? 'Hide' : 'Reveal'}
+                    </button>
+                  </div>
+                  <code className="block text-xs font-mono break-all leading-relaxed text-foreground/80 select-all">
+                    {keyVisible ? nsec : '•'.repeat(Math.min(nsec.length, 64))}
+                  </code>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-2">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="flex-1 gap-1.5 border-orange-200/60 hover:border-orange-400/60 hover:bg-orange-50 dark:hover:bg-orange-950/20">
+                        <Copy className="h-3.5 w-3.5" />
+                        Copy Key
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <ShieldAlert className="h-5 w-5 text-orange-500" />
+                          Copy Private Key?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Your private key gives full access to your Nostr identity. Only copy it if you're pasting it into a secure location like a password manager. Never share it with anyone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleCopyNsec} className="bg-orange-500 hover:bg-orange-600 text-white">
+                          Copy Anyway
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="flex-1 gap-1.5 border-orange-200/60 hover:border-orange-400/60 hover:bg-orange-50 dark:hover:bg-orange-950/20">
+                        <Download className="h-3.5 w-3.5" />
+                        Download
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <ShieldAlert className="h-5 w-5 text-orange-500" />
+                          Download Private Key?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will save your private key as a plain text file. Store it in a secure, encrypted location — not in cloud storage or shared drives. Anyone who finds this file can access your account.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDownloadNsec} className="bg-orange-500 hover:bg-orange-600 text-white">
+                          Download Anyway
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </>
+            ) : (
+              /* Not logged in with nsec — explain why the feature is unavailable */
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50">
+                <KeyRound className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Private key backup is only available when you log in by entering your{' '}
+                  <span className="font-semibold text-foreground">nsec private key</span> directly.
+                  If you logged in with a browser extension or a remote signer, your key is managed externally and is not accessible here.
                 </p>
               </div>
-
-              {/* Key display */}
-              <div className="rounded-lg border border-border/60 bg-muted/40 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Your nsec key</span>
-                  <button
-                    onClick={() => setKeyVisible((v) => !v)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {keyVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                    {keyVisible ? 'Hide' : 'Reveal'}
-                  </button>
-                </div>
-                <code className="block text-xs font-mono break-all leading-relaxed text-foreground/80 select-all">
-                  {keyVisible ? nsec : '•'.repeat(Math.min(nsec.length, 64))}
-                </code>
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex gap-2">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="flex-1 gap-1.5 border-orange-200/60 hover:border-orange-400/60 hover:bg-orange-50 dark:hover:bg-orange-950/20">
-                      <Copy className="h-3.5 w-3.5" />
-                      Copy Key
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle className="flex items-center gap-2">
-                        <ShieldAlert className="h-5 w-5 text-orange-500" />
-                        Copy Private Key?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Your private key gives full access to your Nostr identity. Only copy it if you're pasting it into a secure location like a password manager. Never share it with anyone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleCopyNsec} className="bg-orange-500 hover:bg-orange-600 text-white">
-                        Copy Anyway
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="flex-1 gap-1.5 border-orange-200/60 hover:border-orange-400/60 hover:bg-orange-50 dark:hover:bg-orange-950/20">
-                      <Download className="h-3.5 w-3.5" />
-                      Download
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle className="flex items-center gap-2">
-                        <ShieldAlert className="h-5 w-5 text-orange-500" />
-                        Download Private Key?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will save your private key as a plain text file. Store it in a secure, encrypted location — not in cloud storage or shared drives. Anyone who finds this file can access your account.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDownloadNsec} className="bg-orange-500 hover:bg-orange-600 text-white">
-                        Download Anyway
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
 
         {/* ── Appearance ── */}
         <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-rose-50/30 dark:from-card dark:to-card overflow-hidden">
