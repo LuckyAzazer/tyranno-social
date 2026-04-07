@@ -7,6 +7,7 @@ import { useEventById } from '@/hooks/useEventById';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useFloatingDM } from '@/contexts/FloatingDMContext';
 import { useToast } from '@/hooks/useToast';
+import { useIdentities } from '@/hooks/useIdentities';
 import { MasonryGrid } from '@/components/MasonryGrid';
 import { PostModal } from '@/components/PostModal';
 import { ColumnSelector } from '@/components/ColumnSelector';
@@ -20,19 +21,118 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { genUserName } from '@/lib/genUserName';
-import { ArrowLeft, Link as LinkIcon, Mail, Zap, CheckCircle2, Edit, Copy, MessageCircle, CircleDot, ChevronDown, Pin } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon, Mail, Zap, CheckCircle2, Edit, Copy, MessageCircle, CircleDot, ChevronDown, Pin, Globe } from 'lucide-react';
 import { PostCard } from '@/components/PostCard';
 import { FollowButton } from '@/components/FollowButton';
 import { useFollowSets } from '@/hooks/useFollowSets';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
 import { EditProfileForm } from '@/components/EditProfileForm';
 import { ProfileBadges } from '@/components/ProfileBadges';
 import type { NostrMetadata, NostrEvent } from '@nostrify/nostrify';
-import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import type { Event } from 'nostr-tools';
+
+// ── Platform helpers ───────────────────────────────────────────────────────────
+
+/**
+ * Returns a small SVG icon (as JSX) for known social platforms.
+ * Falls back to a generic link icon.
+ */
+function getPlatformIcon(platform: string): React.ReactNode {
+  switch (platform) {
+    case 'github':
+      return <Github className="h-3.5 w-3.5 shrink-0" />;
+    case 'twitter':
+      return (
+        // X / Twitter bird-ish icon via SVG
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.747l7.73-8.835L1.254 2.25H8.08l4.253 5.622L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+      );
+    case 'mastodon':
+      return (
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M21.327 8.566c0-4.339-2.843-5.61-2.843-5.61-1.433-.658-3.894-.935-6.451-.954h-.063c-2.557.019-5.016.296-6.449.954 0 0-2.843 1.271-2.843 5.61 0 .993-.019 2.181.012 3.441.103 4.243.778 8.425 4.701 9.463 1.809.479 3.362.579 4.612.51 2.268-.126 3.541-.809 3.541-.809l-.075-1.646s-1.621.511-3.441.449c-1.804-.062-3.707-.194-3.999-2.409a4.523 4.523 0 0 1-.04-.621s1.77.433 4.014.536c1.372.063 2.658-.08 3.965-.236 2.506-.299 4.688-1.843 4.962-3.254.434-2.223.398-5.424.398-5.424zm-3.353 5.59h-2.081V9.057c0-1.075-.452-1.62-1.357-1.62-1 0-1.501.647-1.501 1.927v2.791h-2.069V9.364c0-1.28-.501-1.927-1.502-1.927-.905 0-1.357.545-1.357 1.62v5.099H6.026V8.903c0-1.074.273-1.927.823-2.558.567-.631 1.307-.955 2.228-.955 1.065 0 1.872.409 2.405 1.228l.518.869.519-.869c.533-.819 1.34-1.228 2.405-1.228.92 0 1.66.324 2.228.955.549.631.822 1.484.822 2.558v5.253z" />
+        </svg>
+      );
+    case 'telegram':
+      return (
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+        </svg>
+      );
+    case 'linkedin':
+      return (
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+        </svg>
+      );
+    case 'instagram':
+      return (
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z" />
+        </svg>
+      );
+    case 'youtube':
+      return (
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+        </svg>
+      );
+    case 'twitch':
+      return (
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z" />
+        </svg>
+      );
+    case 'discord':
+      return (
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
+        </svg>
+      );
+    case 'reddit':
+      return (
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" />
+        </svg>
+      );
+    default:
+      return <LinkIcon className="h-3.5 w-3.5 shrink-0" />;
+  }
+}
+
+/** Returns tailwind classes for platform chip colors */
+function getPlatformChipClass(platform: string): string {
+  switch (platform) {
+    case 'github':
+      return 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200 hover:border-gray-300 dark:bg-gray-800/40 dark:text-gray-300 dark:border-gray-700/50 dark:hover:bg-gray-800/70';
+    case 'twitter':
+      return 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100 hover:border-sky-300 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-800/40 dark:hover:bg-sky-900/40';
+    case 'mastodon':
+      return 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 hover:border-purple-300 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/40 dark:hover:bg-purple-900/40';
+    case 'telegram':
+      return 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 hover:border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/40 dark:hover:bg-blue-900/40';
+    case 'linkedin':
+      return 'bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100 hover:border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800/40 dark:hover:bg-blue-900/40';
+    case 'instagram':
+      return 'bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100 hover:border-pink-300 dark:bg-pink-900/20 dark:text-pink-400 dark:border-pink-800/40 dark:hover:bg-pink-900/40';
+    case 'youtube':
+      return 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/40 dark:hover:bg-red-900/40';
+    case 'twitch':
+      return 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100 hover:border-violet-300 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-800/40 dark:hover:bg-violet-900/40';
+    case 'discord':
+      return 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/40 dark:hover:bg-indigo-900/40';
+    case 'reddit':
+      return 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 hover:border-orange-300 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/40 dark:hover:bg-orange-900/40';
+    default:
+      return 'bg-primary/8 text-primary border-primary/20 hover:bg-primary/15 hover:border-primary/40';
+  }
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
 
 interface ProfilePageProps {
   pubkey: string;
@@ -55,6 +155,7 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
   // Check if this is the current user's own profile
   const isOwnProfile = user?.pubkey === pubkey;
   const { followSets, addToCircle, removeFromCircle } = useFollowSets();
+  const { data: identities = [] } = useIdentities(pubkey);
   const { pinnedEventId } = usePinnedPost(pubkey);
   const { data: pinnedEvent } = useEventById(pinnedEventId ?? null);
 
@@ -227,55 +328,64 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
                           <p className="text-sm mb-4 whitespace-pre-wrap break-words leading-relaxed">{bio}</p>
                         )}
                         
-                        <div className="flex flex-wrap gap-4 text-sm">
-                          {website && (
-                            <a
-                              href={website.startsWith('http') ? website : `https://${website}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
-                            >
-                              <LinkIcon className="h-4 w-4" />
-                              <span className="truncate max-w-xs">{website.replace(/^https?:\/\//, '')}</span>
-                            </a>
-                          )}
+                        {/* Personal links: website + NIP-39 external identities */}
+                        {(website || identities.length > 0 || lud16 || lud06) && (
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {website && (
+                              <a
+                                href={website.startsWith('http') ? website : `https://${website}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/8 text-primary border border-primary/20 hover:bg-primary/15 hover:border-primary/40 transition-all duration-150"
+                              >
+                                <Globe className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate max-w-[160px]">{website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+                              </a>
+                            )}
 
-                          {/* Personal links stored in kind-0 metadata */}
-                          {Array.isArray((metadata as Record<string, unknown> | undefined)?.links) &&
-                            ((metadata as Record<string, unknown>).links as Array<{ label?: string; url: string }>)
-                              .filter((l) => l?.url)
-                              .slice(0, 7)
-                              .map((link, i) => (
+                            {identities.map((id) => {
+                              const icon = getPlatformIcon(id.platform);
+                              const href = id.profileUrl;
+                              const label = id.identity;
+                              const chipClass = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-150 ' + getPlatformChipClass(id.platform);
+                              return href ? (
                                 <a
-                                  key={i}
-                                  href={link.url}
+                                  key={id.raw}
+                                  href={href}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+                                  title={`${id.platformLabel}: ${id.identity}`}
+                                  className={chipClass}
                                 >
-                                  <LinkIcon className="h-4 w-4 shrink-0" />
-                                  <span className="truncate max-w-xs">
-                                    {link.label || link.url.replace(/^https?:\/\//, '')}
-                                  </span>
+                                  {icon}
+                                  <span className="truncate max-w-[120px]">{label}</span>
                                 </a>
-                              ))
-                          }
+                              ) : (
+                                <span
+                                  key={id.raw}
+                                  title={`${id.platformLabel}: ${id.identity}`}
+                                  className={chipClass}
+                                >
+                                  {icon}
+                                  <span className="truncate max-w-[120px]">{label}</span>
+                                </span>
+                              );
+                            })}
 
-                          {(lud16 || lud06) && (
-                            <button
-                              onClick={() => copyToClipboard(lud16 || lud06 || '', 'Lightning address')}
-                              className="flex items-center gap-1.5 text-muted-foreground hover:text-yellow-500 transition-colors group cursor-pointer"
-                              title="Click to copy Lightning address"
-                            >
-                              <Zap className="h-4 w-4 text-yellow-500" />
-                              <span className="truncate max-w-xs font-mono text-xs">
-                                {lud16 || lud06}
-                              </span>
-                              <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
-                          )}
-                        </div>
-                        
+                            {(lud16 || lud06) && (
+                              <button
+                                onClick={() => copyToClipboard(lud16 || lud06 || '', 'Lightning address')}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20 hover:bg-yellow-500/20 hover:border-yellow-500/40 transition-all duration-150 group cursor-pointer"
+                                title="Click to copy Lightning address"
+                              >
+                                <Zap className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate max-w-[140px] font-mono">{lud16 || lud06}</span>
+                                <Copy className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity shrink-0" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+
                         {/* NIP-58 Badges */}
                         <ProfileBadges pubkey={pubkey} />
 
