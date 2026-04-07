@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client';
 // Import polyfills first
 import './lib/polyfills.ts';
 
+// Apply saved theme hue immediately before first render to avoid flash of default color
+import { applyHue, getSavedHue } from './lib/applyHue';
+applyHue(getSavedHue());
+
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import App from './App.tsx';
 import './index.css';
