@@ -243,8 +243,8 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-rose-50/30 to-pink-50/40 dark:from-background dark:via-background dark:to-primary/5">
 
       {/* Hero Header - Sticky */}
-      <header className={`sticky top-0 z-40 relative border-b border-border/50 bg-background/95 backdrop-blur-lg shadow-sm transition-transform duration-300 md:translate-y-0 ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-rose-500/5 to-primary/10 -z-10" />
+      <header className={`sticky top-0 z-40 isolate relative border-b border-border/50 bg-background/95 backdrop-blur-lg shadow-sm transition-transform duration-300 md:translate-y-0 ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-rose-500/5 to-primary/10 -z-10 pointer-events-none" />
         <div className="px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             {/* Hamburger menu — opens sidebar drawer on all screen sizes */}
@@ -512,8 +512,8 @@ const Index = () => {
           {/* Posts */}
           <div className="space-y-4">
             {!user && !searchQuery && (
-              <Card className="border-dashed border-2 border-primary/30 bg-gradient-to-br from-rose-50/80 via-pink-50/50 to-red-50/30 dark:from-primary/5 dark:via-transparent dark:to-transparent relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 -z-10" />
+              <Card className="border-dashed border-2 border-primary/30 bg-gradient-to-br from-rose-50/80 via-pink-50/50 to-red-50/30 dark:from-primary/5 dark:via-transparent dark:to-transparent relative isolate overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/10 -z-10 pointer-events-none" />
                 <CardContent className="py-12 px-8 text-center relative">
                   <div className="max-w-md mx-auto space-y-4">
                     <div className="inline-flex p-4 rounded-full bg-gradient-to-br from-primary/20 to-orange-500/15 mb-2 shadow-lg">
