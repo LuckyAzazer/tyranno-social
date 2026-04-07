@@ -104,34 +104,6 @@ function getPlatformIcon(platform: string): React.ReactNode {
   }
 }
 
-/** Returns tailwind classes for platform chip colors */
-function getPlatformChipClass(platform: string): string {
-  switch (platform) {
-    case 'github':
-      return 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200 hover:border-gray-300 dark:bg-gray-800/40 dark:text-gray-300 dark:border-gray-700/50 dark:hover:bg-gray-800/70';
-    case 'twitter':
-      return 'bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100 hover:border-sky-300 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-800/40 dark:hover:bg-sky-900/40';
-    case 'mastodon':
-      return 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100 hover:border-purple-300 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800/40 dark:hover:bg-purple-900/40';
-    case 'telegram':
-      return 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 hover:border-blue-300 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800/40 dark:hover:bg-blue-900/40';
-    case 'linkedin':
-      return 'bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100 hover:border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800/40 dark:hover:bg-blue-900/40';
-    case 'instagram':
-      return 'bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100 hover:border-pink-300 dark:bg-pink-900/20 dark:text-pink-400 dark:border-pink-800/40 dark:hover:bg-pink-900/40';
-    case 'youtube':
-      return 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 hover:border-red-300 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/40 dark:hover:bg-red-900/40';
-    case 'twitch':
-      return 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100 hover:border-violet-300 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-800/40 dark:hover:bg-violet-900/40';
-    case 'discord':
-      return 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/40 dark:hover:bg-indigo-900/40';
-    case 'reddit':
-      return 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 hover:border-orange-300 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800/40 dark:hover:bg-orange-900/40';
-    default:
-      return 'bg-primary/8 text-primary border-primary/20 hover:bg-primary/15 hover:border-primary/40';
-  }
-}
-
 // ──────────────────────────────────────────────────────────────────────────────
 
 interface ProfilePageProps {
@@ -358,9 +330,9 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
                                   href={website.startsWith('http') ? website : `https://${website}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/8 text-primary border border-primary/20 hover:bg-primary/15 hover:border-primary/40 transition-all duration-150"
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/10 text-foreground border border-white/20 hover:bg-white/20 hover:border-white/30 transition-all duration-150"
                                 >
-                                  <Globe className="h-3.5 w-3.5 shrink-0" />
+                                  <Globe className="h-3.5 w-3.5 shrink-0 opacity-70" />
                                   <span className="truncate max-w-[160px]">{website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
                                 </a>
                               )}
@@ -372,9 +344,9 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
                                   href={link.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/8 text-primary border border-primary/20 hover:bg-primary/15 hover:border-primary/40 transition-all duration-150"
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/10 text-foreground border border-white/20 hover:bg-white/20 hover:border-white/30 transition-all duration-150"
                                 >
-                                  <LinkIcon className="h-3.5 w-3.5 shrink-0" />
+                                  <LinkIcon className="h-3.5 w-3.5 shrink-0 opacity-70" />
                                   <span className="truncate max-w-[140px]">{link.label}</span>
                                 </a>
                               ))}
@@ -384,7 +356,7 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
                                 const icon = getPlatformIcon(id.platform);
                                 const href = id.profileUrl;
                                 const label = id.identity;
-                                const chipClass = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-150 ' + getPlatformChipClass(id.platform);
+                                const chipClass = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-150 bg-white/10 text-foreground border-white/20 hover:bg-white/20 hover:border-white/30';
                                 return href ? (
                                   <a
                                     key={id.raw}
@@ -412,10 +384,10 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
                               {(lud16 || lud06) && (
                                 <button
                                   onClick={() => copyToClipboard(lud16 || lud06 || '', 'Lightning address')}
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20 hover:bg-yellow-500/20 hover:border-yellow-500/40 transition-all duration-150 group cursor-pointer"
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/10 text-foreground border border-white/20 hover:bg-white/20 hover:border-white/30 transition-all duration-150 group cursor-pointer"
                                   title="Click to copy Lightning address"
                                 >
-                                  <Zap className="h-3.5 w-3.5 shrink-0" />
+                                  <Zap className="h-3.5 w-3.5 shrink-0 text-yellow-400 opacity-80" />
                                   <span className="truncate max-w-[140px] font-mono">{lud16 || lud06}</span>
                                   <Copy className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity shrink-0" />
                                 </button>
