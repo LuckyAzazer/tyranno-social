@@ -379,8 +379,9 @@ const Index = () => {
                       <ChevronDown className="h-4 w-4 opacity-50" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-64">
-                     <DropdownMenuItem
+                  <DropdownMenuContent align="start" className="w-64 max-h-[70vh] overflow-y-auto">
+                    {/* ── My Feed ── */}
+                    <DropdownMenuItem
                       onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(false); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setSelectedCircleDTag(null); }}
                       className={`cursor-pointer ${!selectedRelay && !isMutualFeed && !isConversationsFeed && !selectedCircleLabel ? 'bg-accent' : ''}`}
                     >
@@ -413,12 +414,32 @@ const Index = () => {
                         </div>
                       </DropdownMenuItem>
                     )}
+
+                    {/* ── Relay Firehose ── */}
+                    <DropdownMenuSeparator />
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                      Relay Firehose
+                    </div>
+                    {config.relayMetadata.relays.filter((relay) => {
+                        try { const h = new URL(relay.url).hostname; return h !== 'localhost' && h !== '127.0.0.1' && h !== '::1'; } catch { return false; }
+                      }).map((relay) => (
+                      <DropdownMenuItem
+                        key={relay.url}
+                        onClick={() => { setSelectedRelay(relay.url); setIsMutualFeed(false); setIsConversationsFeed(false); }}
+                        className={`cursor-pointer ${selectedRelay === relay.url ? 'bg-accent' : ''}`}
+                      >
+                        <Wifi className="h-4 w-4 mr-2" />
+                        <span className="truncate">{relay.url.replace('wss://', '')}</span>
+                      </DropdownMenuItem>
+                    ))}
+
+                    {/* ── Circles ── */}
                     {user && followSets.length > 0 && (
                       <>
                         <DropdownMenuSeparator />
                         <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
                           <List className="h-3 w-3" />
-                          My Lists
+                          Circles
                         </div>
                         {followSets.map((circle) => (
                           <DropdownMenuItem
@@ -442,22 +463,6 @@ const Index = () => {
                         ))}
                       </>
                     )}
-                    <DropdownMenuSeparator />
-                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                      Relay Firehose
-                    </div>
-                    {config.relayMetadata.relays.filter((relay) => {
-                        try { const h = new URL(relay.url).hostname; return h !== 'localhost' && h !== '127.0.0.1' && h !== '::1'; } catch { return false; }
-                      }).map((relay) => (
-                      <DropdownMenuItem
-                        key={relay.url}
-                        onClick={() => { setSelectedRelay(relay.url); setIsMutualFeed(false); setIsConversationsFeed(false); }}
-                        className={`cursor-pointer ${selectedRelay === relay.url ? 'bg-accent' : ''}`}
-                      >
-                        <Wifi className="h-4 w-4 mr-2" />
-                        <span className="truncate">{relay.url.replace('wss://', '')}</span>
-                      </DropdownMenuItem>
-                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}

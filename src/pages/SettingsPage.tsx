@@ -11,6 +11,10 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useLoggedInAccounts } from '@/hooks/useLoggedInAccounts';
 
 import { useAuthor } from '@/hooks/useAuthor';
+import { useToast } from '@/hooks/useToast';
+import { useNSFWFilter } from '@/hooks/useNSFWFilter';
+import { useMutedUsers } from '@/hooks/useMutedUsers';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { genUserName } from '@/lib/genUserName';
 
 import { Button } from '@/components/ui/button';
@@ -46,6 +50,9 @@ import {
   User, Check, Link as LinkIcon, Zap, LogOut,
 
   Filter, Database, ChevronRight, ChevronDown,
+  KeyRound, Copy, Download, Eye, EyeOff, ShieldAlert,
+  ShieldCheck, VolumeX, Columns, Info, ExternalLink,
+  Columns2, Columns3, LayoutGrid, X,
 } from 'lucide-react';
 
 import { useSeoMeta } from '@unhead/react';
@@ -54,6 +61,36 @@ import { nip19 } from 'nostr-tools';
 
 import type { NostrMetadata } from '@nostrify/nostrify';
 
+// ── Muted user row ────────────────────────────────────────────────────────────
+
+function MutedUserRow({ pubkey, onUnmute }: { pubkey: string; onUnmute: () => void }) {
+  const author = useAuthor(pubkey);
+  const meta = author.data?.metadata;
+  const displayName = meta?.display_name ?? meta?.name ?? genUserName(pubkey);
+  return (
+    <div className="flex items-center gap-3 p-2.5 rounded-lg border border-border/50 bg-muted/20">
+      <Avatar className="h-8 w-8 shrink-0">
+        <AvatarImage src={meta?.picture} alt={displayName} />
+        <AvatarFallback className="text-xs bg-muted">{displayName[0]?.toUpperCase()}</AvatarFallback>
+      </Avatar>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{displayName}</p>
+        {meta?.name && meta.display_name && (
+          <p className="text-xs text-muted-foreground truncate">@{meta.name}</p>
+        )}
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={onUnmute}
+        className="h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground shrink-0"
+      >
+        <X className="h-3.5 w-3.5" />
+        Unmute
+      </Button>
+    </div>
+  );
+}
 
 // ── Reusable collapsible section ─────────────────────────────────────────────
 
@@ -161,11 +198,17 @@ export default function SettingsPage() {
   const { user } = useCurrentUser();
 
   const { currentUser, otherUsers, setLogin, removeLogin } = useLoggedInAccounts();
+  const { toast } = useToast();
+  const nsec = useNsec();
+  const { shouldFilter, filterEnabled, setFilterEnabled, canToggle } = useNSFWFilter();
+  const { mutedPubkeys, unmute } = useMutedUsers();
+  const [columns, setColumns] = useLocalStorage<number>('masonry-columns', 3);
   const [relaysExpanded, setRelaysExpanded] = useState(false);
 
   const [topicFilterExpanded, setTopicFilterExpanded] = useState(false);
 
   const [backupExpanded, setBackupExpanded] = useState(false);
+  const [mutedExpanded, setMutedExpanded] = useState(false);
   const [keyVisible, setKeyVisible] = useState(false);
 
   const handleCopyNsec = async () => {
@@ -567,27 +610,46 @@ export default function SettingsPage() {
 
         </Card>
 
-
-        {/* ── Content ── */}
-
-        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-orange-50/20 dark:from-card dark:to-card overflow-hidden">
-
+        {/* ── Feed & Display ── */}
+        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-sky-50/20 dark:from-card dark:to-card overflow-hidden">
           <CardHeader className="pb-3 px-4">
 
             <CardTitle className="flex items-center gap-2 text-base">
-
-              <AlertTriangle className="h-4 w-4 text-primary shrink-0" />
-
-              Content
-
+              <Columns className="h-4 w-4 text-primary shrink-0" />
+              Feed & Display
             </CardTitle>
-
-            <CardDescription className="text-xs">Manage content filtering and warnings</CardDescription>
-
+            <CardDescription className="text-xs">Control how posts are laid out and shown</CardDescription>
           </CardHeader>
+          <CardContent className="px-4 space-y-5">
+            {/* Default columns */}
+            <div className="space-y-2">
+              <Label className="font-medium text-sm">Default Feed Columns</Label>
+              <p className="text-xs text-muted-foreground">How many columns to show in the masonry grid</p>
+              <div className="flex gap-2">
+                {[
+                  { value: 1, icon: Columns2,   label: '1' },
+                  { value: 2, icon: Columns2,   label: '2' },
+                  { value: 3, icon: Columns3,   label: '3' },
+                  { value: 4, icon: LayoutGrid, label: '4' },
+                ].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setColumns(value)}
+                    className={`flex-1 py-2 rounded-lg border-2 text-sm font-semibold transition-all ${
+                      columns === value
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border hover:border-primary/40 text-muted-foreground'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-          <CardContent className="px-4">
+            <Separator />
 
+            {/* Content warnings */}
             <div className="flex items-center justify-between gap-4">
 
               <div className="space-y-0.5 min-w-0">
@@ -597,9 +659,7 @@ export default function SettingsPage() {
                   Content Warnings
 
                 </Label>
-
-                <p className="text-xs text-muted-foreground">Show warnings for sensitive content</p>
-
+                <p className="text-xs text-muted-foreground">Show blur/warnings for sensitive posts</p>
               </div>
 
               <Switch
@@ -616,10 +676,62 @@ export default function SettingsPage() {
 
             </div>
 
+            <Separator />
+
+            {/* NSFW filter */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-0.5 min-w-0">
+                <Label htmlFor="nsfw-filter-toggle" className="cursor-pointer font-medium text-sm flex items-center gap-1.5">
+                  <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                  NSFW Filter
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {canToggle
+                    ? 'Automatically hide explicit or adult content'
+                    : 'Log in to control this setting — always on for guests'}
+                </p>
+              </div>
+              <Switch
+                id="nsfw-filter-toggle"
+                checked={shouldFilter}
+                onCheckedChange={(v) => canToggle && setFilterEnabled(v)}
+                disabled={!canToggle}
+                className="data-[state=checked]:bg-primary shrink-0"
+              />
+            </div>
           </CardContent>
 
         </Card>
 
+        {/* ── Muted Users ── */}
+        <CollapsibleSection
+          icon={VolumeX}
+          title="Muted Users"
+          description="People whose posts are hidden from your feeds"
+          expanded={mutedExpanded}
+          onToggle={() => setMutedExpanded((v) => !v)}
+          cardClass="bg-gradient-to-br from-card to-red-50/10 dark:from-card dark:to-card"
+          summary={
+            <p className="text-xs text-muted-foreground">
+              {mutedPubkeys.length === 0
+                ? 'No muted users'
+                : `${mutedPubkeys.length} ${mutedPubkeys.length === 1 ? 'user' : 'users'} muted`}
+            </p>
+          }
+        >
+          {mutedPubkeys.length === 0 ? (
+            <div className="flex items-center gap-2.5 py-3 text-sm text-muted-foreground">
+              <VolumeX className="h-4 w-4 shrink-0 opacity-50" />
+              You haven't muted anyone yet.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {mutedPubkeys.map((pubkey) => (
+                <MutedUserRow key={pubkey} pubkey={pubkey} onUnmute={() => unmute(pubkey)} />
+              ))}
+            </div>
+          )}
+        </CollapsibleSection>
 
         {/* ── Topic Filter ── */}
 
@@ -749,6 +861,79 @@ export default function SettingsPage() {
 
         </CollapsibleSection>
 
+        {/* ── About ── */}
+        <Card className="border-border/50 dark:border-transparent bg-gradient-to-br from-card to-primary/5 overflow-hidden">
+          <CardHeader className="pb-3 px-4">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Info className="h-4 w-4 text-primary shrink-0" />
+              About Tyrannosocial
+            </CardTitle>
+            <CardDescription className="text-xs">
+              A beautiful Nostr social experience
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border/50">
+              <img src="/icon-512.png" alt="Tyrannosocial" className="h-12 w-12 rounded-xl shrink-0" />
+              <div className="min-w-0">
+                <p className="font-semibold text-sm">Tyrannosocial</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  A masonry-style Nostr client. Decentralized, open, and yours.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2">
+              <a
+                href="https://nostr.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-border/50 hover:border-primary/30 hover:bg-accent/50 transition-colors group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Wifi className="h-4 w-4 text-primary shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Nostr Protocol</p>
+                    <p className="text-xs text-muted-foreground">Learn about the decentralized protocol powering this app</p>
+                  </div>
+                </div>
+                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
+              </a>
+
+              <a
+                href="https://shakespeare.diy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-border/50 hover:border-primary/30 hover:bg-accent/50 transition-colors group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="text-base leading-none shrink-0">🎭</span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Built with Shakespeare</p>
+                    <p className="text-xs text-muted-foreground">The AI-powered website builder used to create this app</p>
+                  </div>
+                </div>
+                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
+              </a>
+
+              <a
+                href="https://github.com/luckyazazer/tyranno-social"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-border/50 hover:border-primary/30 hover:bg-accent/50 transition-colors group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <svg className="h-4 w-4 shrink-0 text-primary" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Source Code</p>
+                    <p className="text-xs text-muted-foreground">View and contribute on GitHub</p>
+                  </div>
+                </div>
+                <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
+              </a>
+            </div>
+          </CardContent>
+        </Card>
 
       </main>
 
