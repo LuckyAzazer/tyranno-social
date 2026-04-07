@@ -379,8 +379,9 @@ const Index = () => {
                       <ChevronDown className="h-4 w-4 opacity-50" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-64">
-                     <DropdownMenuItem
+                  <DropdownMenuContent align="start" className="w-64 max-h-[70vh] overflow-y-auto">
+                    {/* ── My Feed ── */}
+                    <DropdownMenuItem
                       onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(false); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setSelectedCircleDTag(null); }}
                       className={`cursor-pointer ${!selectedRelay && !isMutualFeed && !isConversationsFeed && !selectedCircleLabel ? 'bg-accent' : ''}`}
                     >
@@ -413,12 +414,14 @@ const Index = () => {
                         </div>
                       </DropdownMenuItem>
                     )}
+
+                    {/* ── Circles ── */}
                     {user && followSets.length > 0 && (
                       <>
                         <DropdownMenuSeparator />
                         <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
                           <List className="h-3 w-3" />
-                          My Lists
+                          Circles
                         </div>
                         {followSets.map((circle) => (
                           <DropdownMenuItem
@@ -442,6 +445,8 @@ const Index = () => {
                         ))}
                       </>
                     )}
+
+                    {/* ── Relay Firehose ── */}
                     <DropdownMenuSeparator />
                     <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
                       Relay Firehose
