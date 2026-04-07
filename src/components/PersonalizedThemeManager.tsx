@@ -187,8 +187,11 @@ export function PersonalizedThemeManager() {
     try {
       const reader = new FileReader();
       reader.onload = async (event) => {
-        const dataUrl = event.target?.result as string;
+        const rawDataUrl = event.target?.result as string;
         try {
+          // Resize + re-encode as JPEG to keep the data URL small enough
+          // for localStorage (PNGs can be many MB as base64).
+          const dataUrl = await compressImage(rawDataUrl);
           let colors;
           try {
             colors = await extractColorsFromImage(dataUrl);
@@ -343,6 +346,36 @@ export function PersonalizedThemeManager() {
   );
 }
 
+// ─── Image compression helper ────────────────────────────────────────────────
+
+/**
+ * Resizes and re-encodes an image as a JPEG data URL.
+ * Keeps the image under ~800px on the longest edge and uses 0.85 quality,
+ * which is more than good enough for a wallpaper and stays well within
+ * localStorage limits even for large PNGs.
+ */
+function compressImage(dataUrl: string, maxPx = 1920, quality = 0.85): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d')!;
+      // White background so transparent PNGs become solid for the wallpaper
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(dataUrl); // fall back to original on error
+    img.src = dataUrl;
+  });
+}
+
 // ─── Apply / remove helpers ───────────────────────────────────────────────────
 
 function applyPersonalizedTheme(
@@ -363,7 +396,7 @@ function applyPersonalizedTheme(
   root.style.setProperty('--background', `${bgHSL.h} ${bgHSL.s}% ${bgHSL.l}%`);
   root.style.setProperty('--foreground', `${fgHSL.h} ${fgHSL.s}% ${fgHSL.l}%`);
 
-  root.style.setProperty('--wallpaper-url',      `url(${wallpaperUrl})`);
+  root.style.setProperty('--wallpaper-url',      `url("${wallpaperUrl}")`);
   root.style.setProperty('--card-opacity',        (cardOpacity / 100).toString());
   root.style.setProperty('--card-blur',           `${cardBlur}px`);
   root.style.setProperty('--wallpaper-position',  wallpaperPosition);

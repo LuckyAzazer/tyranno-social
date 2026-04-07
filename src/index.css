@@ -166,11 +166,17 @@
     --wallpaper-position: 50% 50%;
   }
 
-  .personalized-theme body {
+  /* Wallpaper rendered in a fixed pseudo-element so it covers the full
+     viewport on all browsers including mobile Safari (background-attachment:
+     fixed + background-size: cover is broken on iOS). */
+  .personalized-theme body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
     background-image: var(--wallpaper-url);
     background-size: cover;
     background-position: var(--wallpaper-position);
-    background-attachment: fixed;
     background-repeat: no-repeat;
   }
 
@@ -183,8 +189,14 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.3);
+    z-index: -1;
     pointer-events: none;
     z-index: 0;
+  }
+
+  /* Body itself must be transparent so the ::after wallpaper shows through */
+  .personalized-theme body {
+    background: transparent;
   }
 
   /* Ensure content is above the overlay */

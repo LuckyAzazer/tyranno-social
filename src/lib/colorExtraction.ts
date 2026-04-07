@@ -10,7 +10,11 @@ export async function extractColorsFromImage(imageUrl: string): Promise<{
 }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    // Do NOT set crossOrigin for data URLs — it causes load failures
+    // on some browsers because data URLs don't support CORS headers.
+    if (!imageUrl.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
     
     img.onload = () => {
       try {
