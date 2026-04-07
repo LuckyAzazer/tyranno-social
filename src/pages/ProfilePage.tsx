@@ -43,7 +43,11 @@ import type { Event } from 'nostr-tools';
 function getPlatformIcon(platform: string): React.ReactNode {
   switch (platform) {
     case 'github':
-      return <Github className="h-3.5 w-3.5 shrink-0" />;
+      return (
+        <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+        </svg>
+      );
     case 'twitter':
       return (
         // X / Twitter bird-ish icon via SVG
@@ -203,345 +207,275 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
     };
   }, [profileData]);
 
+  // Collect extra links from non-standard but widely-used kind-0 fields
+  const extraLinks: Array<{ label: string; url: string }> = [];
+  const meta = metadata as Record<string, unknown> | undefined;
+  if (Array.isArray(meta?.links)) {
+    for (const l of meta.links as Array<{ label?: string; url?: string }>) {
+      if (l?.url) extraLinks.push({ label: l.label || l.url.replace(/^https?:\/\//, ''), url: l.url });
+    }
+  }
+  if (Array.isArray(meta?.fields)) {
+    for (const f of meta.fields as Array<[string?, string?]>) {
+      const [label, url] = f;
+      if (url && url.startsWith('http')) extraLinks.push({ label: label || url.replace(/^https?:\/\//, ''), url });
+    }
+  }
+  const hasLinks = website || identities.length > 0 || extraLinks.length > 0 || lud16 || lud06;
+
+  const chipClass = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-150 bg-white/10 text-foreground border-white/20 hover:bg-white/20 hover:border-white/30';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      {/* Banner */}
-      <div className="relative h-48 sm:h-64 bg-gradient-to-br from-primary/20 to-primary/5 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-24">
+
+      {/* Banner — shorter on mobile */}
+      <div className="relative h-32 sm:h-52 bg-gradient-to-br from-primary/20 to-primary/5 overflow-hidden">
         {banner && (
-          <img
-            src={banner}
-            alt="Profile banner"
-            className="w-full h-full object-cover"
-          />
+          <img src={banner} alt="Profile banner" className="w-full h-full object-cover" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+        {/* Back button floating over banner */}
+        <button
+          onClick={() => navigate(-1)}
+          className="absolute top-3 left-3 flex items-center justify-center h-8 w-8 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 transition-colors"
+          aria-label="Go back"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
       </div>
 
-      {/* Profile Info */}
-      <div className="px-4 -mt-20 relative z-10">
-        <div>
-          <div className="mb-6">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/')}
-              className="mb-4 hover:bg-background/80 backdrop-blur-sm"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
+      {/* Profile card — pulled up over banner */}
+      <div className="px-3 sm:px-4 -mt-14 sm:-mt-16 relative z-10 space-y-4">
 
-            <Card className="border-border/50 dark:border-transparent shadow-lg">
-              <CardContent className="pt-6">
-                {isLoadingProfile ? (
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-4">
-                      <Skeleton className="h-24 w-24 rounded-full" />
-                      <div className="space-y-2 flex-1">
-                        <Skeleton className="h-6 w-48" />
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-4 w-full" />
-                      </div>
-                    </div>
+        <Card className="border-border/50 dark:border-transparent shadow-lg overflow-hidden">
+          <CardContent className="p-4 sm:p-6">
+            {isLoadingProfile ? (
+              <div className="space-y-3">
+                <div className="flex items-end gap-3">
+                  <Skeleton className="h-20 w-20 sm:h-24 sm:w-24 rounded-full shrink-0" />
+                  <div className="space-y-2 flex-1 pb-1">
+                    <Skeleton className="h-5 w-36" />
+                    <Skeleton className="h-3.5 w-24" />
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      <div className="flex items-start gap-4 flex-1 min-w-0">
-                        <Avatar className="h-24 w-24 ring-4 ring-background shadow-lg">
-                          <AvatarImage src={profileImage} alt={displayName} />
-                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-3xl">
-                            {displayName[0]?.toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-3 mb-2 flex-wrap">
-                          <div>
-                            <h1 className="text-2xl font-bold">{displayName}</h1>
-                            {metadata?.display_name && metadata?.name && metadata.display_name !== metadata.name && (
-                              <p className="text-sm text-muted-foreground">@{metadata.name}</p>
-                            )}
-                          </div>
-                          {nip05 && (
-                            <Badge variant="secondary" className="gap-1 mt-1 bg-green-100 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800">
-                              <CheckCircle2 className="h-3 w-3" />
-                              <span className="text-xs">{nip05}</span>
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <p className="text-sm text-muted-foreground mb-3">@{username}</p>
+                </div>
+                <Skeleton className="h-3.5 w-full" />
+                <Skeleton className="h-3.5 w-3/4" />
+              </div>
+            ) : (
+              <div className="space-y-4">
 
-                        {/* Follower/Following Stats */}
-                        <div className="flex items-center gap-4 mb-4">
-                          <button
-                            onClick={handleOpenFollowers}
-                            className="text-sm hover:underline cursor-pointer group"
-                          >
-                            <span className="font-semibold group-hover:text-primary transition-colors">
-                              {isLoadingStats ? '...' : followersCount}
-                            </span>{' '}
-                            <span className="text-muted-foreground">
-                              {followersCount === 1 ? 'Follower' : 'Followers'}
-                            </span>
-                          </button>
-                          <button
-                            onClick={handleOpenFollowing}
-                            className="text-sm hover:underline cursor-pointer group"
-                          >
-                            <span className="font-semibold group-hover:text-primary transition-colors">
-                              {isLoadingStats ? '...' : followingCount}
-                            </span>{' '}
-                            <span className="text-muted-foreground">Following</span>
-                          </button>
-                        </div>
-                        
-                        {bio && (
-                          <p className="text-sm mb-4 whitespace-pre-wrap break-words leading-relaxed">{bio}</p>
-                        )}
-                        
-                        {/* Personal links: website + kind-0 links/fields + NIP-39 external identities + lightning */}
-                        {(() => {
-                          // Collect extra links from non-standard but widely-used kind-0 fields:
-                          // 1. metadata.links — array of { label, url } objects (used by some clients incl. this one)
-                          // 2. metadata.fields — array of [label, url] tuples (used by Amethyst etc.)
-                          const meta = metadata as Record<string, unknown> | undefined;
-                          const extraLinks: Array<{ label: string; url: string }> = [];
+                {/* ── Top row: avatar + action buttons ── */}
+                <div className="flex items-end justify-between gap-3">
+                  <Avatar className="h-20 w-20 sm:h-24 sm:w-24 ring-4 ring-background shadow-lg shrink-0">
+                    <AvatarImage src={profileImage} alt={displayName} />
+                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-3xl">
+                      {displayName[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
 
-                          if (Array.isArray(meta?.links)) {
-                            for (const l of meta.links as Array<{ label?: string; url?: string }>) {
-                              if (l?.url) extraLinks.push({ label: l.label || l.url.replace(/^https?:\/\//, ''), url: l.url });
-                            }
-                          }
-                          if (Array.isArray(meta?.fields)) {
-                            for (const f of meta.fields as Array<[string?, string?]>) {
-                              const [label, url] = f;
-                              if (url && url.startsWith('http')) extraLinks.push({ label: label || url.replace(/^https?:\/\//, ''), url });
-                            }
-                          }
-
-                          const hasContent = website || identities.length > 0 || extraLinks.length > 0 || lud16 || lud06;
-                          if (!hasContent) return null;
-
-                          return (
-                            <div className="flex flex-wrap gap-2 mt-1">
-                              {website && (
-                                <a
-                                  href={website.startsWith('http') ? website : `https://${website}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/10 text-foreground border border-white/20 hover:bg-white/20 hover:border-white/30 transition-all duration-150"
-                                >
-                                  <Globe className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                                  <span className="truncate max-w-[160px]">{website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
-                                </a>
-                              )}
-
-                              {/* Extra links from kind-0 metadata (links[] / fields[]) */}
-                              {extraLinks.map((link, i) => (
-                                <a
-                                  key={`extra-${i}`}
-                                  href={link.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/10 text-foreground border border-white/20 hover:bg-white/20 hover:border-white/30 transition-all duration-150"
-                                >
-                                  <LinkIcon className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                                  <span className="truncate max-w-[140px]">{link.label}</span>
-                                </a>
-                              ))}
-
-                              {/* NIP-39 external identities (kind 10011) */}
-                              {identities.map((id) => {
-                                const icon = getPlatformIcon(id.platform);
-                                const href = id.profileUrl;
-                                const label = id.identity;
-                                const chipClass = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-150 bg-white/10 text-foreground border-white/20 hover:bg-white/20 hover:border-white/30';
-                                return href ? (
-                                  <a
-                                    key={id.raw}
-                                    href={href}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title={`${id.platformLabel}: ${id.identity}`}
-                                    className={chipClass}
+                  {/* Action buttons — compact on mobile */}
+                  <div className="flex flex-wrap justify-end gap-1.5 sm:gap-2">
+                    {isOwnProfile ? (
+                      <Button onClick={() => setEditProfileOpen(true)} variant="outline" size="sm" className="gap-1.5 h-8 text-xs sm:text-sm sm:h-9">
+                        <Edit className="h-3.5 w-3.5" />
+                        <span>Edit Profile</span>
+                      </Button>
+                    ) : (
+                      <>
+                        <FollowButton pubkey={pubkey} className="h-8 text-xs sm:text-sm sm:h-9" />
+                        {user && followSets.length > 0 && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="gap-1 h-8 text-xs sm:h-9 px-2">
+                                <CircleDot className="h-3.5 w-3.5 text-violet-500" />
+                                <span className="hidden sm:inline">Circle</span>
+                                <ChevronDown className="h-3 w-3 opacity-50" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-52">
+                              {followSets.map((set) => {
+                                const inCircle = set.pubkeys.includes(pubkey);
+                                return (
+                                  <DropdownMenuItem
+                                    key={set.dTag}
+                                    className="gap-2 cursor-pointer"
+                                    onClick={() => inCircle
+                                      ? removeFromCircle({ dTag: set.dTag, pubkey })
+                                      : addToCircle({ dTag: set.dTag, pubkey })}
                                   >
-                                    {icon}
-                                    <span className="truncate max-w-[120px]">{label}</span>
-                                  </a>
-                                ) : (
-                                  <span
-                                    key={id.raw}
-                                    title={`${id.platformLabel}: ${id.identity}`}
-                                    className={chipClass}
-                                  >
-                                    {icon}
-                                    <span className="truncate max-w-[120px]">{label}</span>
-                                  </span>
+                                    <CircleDot className={`h-3.5 w-3.5 ${inCircle ? 'text-primary' : 'text-muted-foreground'}`} />
+                                    <span className="flex-1">{set.title}</span>
+                                    {inCircle && <span className="text-xs text-primary">✓</span>}
+                                  </DropdownMenuItem>
                                 );
                               })}
-
-                              {(lud16 || lud06) && (
-                                <button
-                                  onClick={() => copyToClipboard(lud16 || lud06 || '', 'Lightning address')}
-                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-white/10 text-foreground border border-white/20 hover:bg-white/20 hover:border-white/30 transition-all duration-150 group cursor-pointer"
-                                  title="Click to copy Lightning address"
-                                >
-                                  <Zap className="h-3.5 w-3.5 shrink-0 text-yellow-400 opacity-80" />
-                                  <span className="truncate max-w-[140px] font-mono">{lud16 || lud06}</span>
-                                  <Copy className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity shrink-0" />
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })()}
-
-                        {/* NIP-58 Badges */}
-                        <ProfileBadges pubkey={pubkey} />
-
-                        {/* Nostr Address */}
-                        <div className="mt-4 pt-4 border-t border-border/50">
-                          <button
-                            onClick={() => copyToClipboard(npub, 'Nostr public key')}
-                            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors group cursor-pointer w-full"
-                            title="Click to copy public key"
-                          >
-                            <Mail className="h-3.5 w-3.5 shrink-0" />
-                            <code className="bg-muted px-2 py-1 rounded font-mono truncate flex-1 text-left group-hover:bg-muted/80">
-                              {npub}
-                            </code>
-                            <Copy className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                          </button>
-                        </div>
-                        </div>
-                      </div>
-                      
-                      {/* Action Buttons */}
-                      <div className="flex flex-col gap-2 shrink-0 w-full sm:w-auto sm:min-w-[160px]">
-                        {isOwnProfile ? (
-                          <Button
-                            onClick={() => setEditProfileOpen(true)}
-                            variant="outline"
-                            className="gap-2 w-full"
-                          >
-                            <Edit className="h-4 w-4" />
-                            Edit Profile
-                          </Button>
-                        ) : (
-                          <>
-                            <FollowButton pubkey={pubkey} className="w-full justify-center" />
-                            {/* Add to Circle */}
-                            {user && followSets.length > 0 && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="outline" className="gap-2 w-full">
-                                    <CircleDot className="h-4 w-4 text-violet-500" />
-                                    Add to Circle
-                                    <ChevronDown className="h-3.5 w-3.5 opacity-50 ml-auto" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-52">
-                                  {followSets.map((set) => {
-                                    const inCircle = set.pubkeys.includes(pubkey);
-                                    return (
-                                      <DropdownMenuItem
-                                        key={set.dTag}
-                                        className="gap-2 cursor-pointer"
-                                        onClick={() => inCircle
-                                          ? removeFromCircle({ dTag: set.dTag, pubkey })
-                                          : addToCircle({ dTag: set.dTag, pubkey })}
-                                      >
-                                        <CircleDot className={`h-3.5 w-3.5 ${inCircle ? 'text-primary' : 'text-muted-foreground'}`} />
-                                        <span className="flex-1">{set.title}</span>
-                                        {inCircle && <span className="text-xs text-primary">✓</span>}
-                                      </DropdownMenuItem>
-                                    );
-                                  })}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                            <Button
-                              onClick={handleSendDM}
-                              variant="outline"
-                              className="gap-2 w-full"
-                            >
-                              <MessageCircle className="h-4 w-4" />
-                              Send Message
-                            </Button>
-                            {(lud16 || lud06) && profileEvent && user && (
-                              <ZapDialog target={profileEvent}>
-                                <Button
-                                  variant="outline"
-                                  className="gap-2 w-full bg-gradient-to-r from-yellow-500/10 to-orange-500/10 hover:from-yellow-500/20 hover:to-orange-500/20 border-yellow-500/20 hover:border-yellow-500/40"
-                                >
-                                  <Zap className="h-4 w-4 text-yellow-500" />
-                                  Zap Sats
-                                </Button>
-                              </ZapDialog>
-                            )}
-                          </>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
-                      </div>
-                    </div>
+                        <Button onClick={handleSendDM} variant="outline" size="sm" className="h-8 text-xs sm:h-9 px-2 sm:px-3">
+                          <MessageCircle className="h-3.5 w-3.5 sm:mr-1.5" />
+                          <span className="hidden sm:inline">Message</span>
+                        </Button>
+                        {(lud16 || lud06) && profileEvent && user && (
+                          <ZapDialog target={profileEvent}>
+                            <Button variant="outline" size="sm" className="h-8 text-xs sm:h-9 px-2 sm:px-3 bg-yellow-500/10 border-yellow-500/20 hover:bg-yellow-500/20">
+                              <Zap className="h-3.5 w-3.5 text-yellow-500 sm:mr-1.5" />
+                              <span className="hidden sm:inline">Zap</span>
+                            </Button>
+                          </ZapDialog>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* ── Name + verification ── */}
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-xl sm:text-2xl font-bold leading-tight">{displayName}</h1>
+                    {nip05 && (
+                      <Badge variant="secondary" className="gap-1 bg-green-100 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800 shrink-0">
+                        <CheckCircle2 className="h-3 w-3" />
+                        <span className="text-xs truncate max-w-[160px]">{nip05}</span>
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-0.5">@{username}</p>
+                </div>
+
+                {/* ── Stats ── */}
+                <div className="flex items-center gap-5">
+                  <button onClick={handleOpenFollowers} className="text-sm hover:underline cursor-pointer group">
+                    <span className="font-bold group-hover:text-primary transition-colors">
+                      {isLoadingStats ? '—' : followersCount}
+                    </span>{' '}
+                    <span className="text-muted-foreground text-xs">{followersCount === 1 ? 'Follower' : 'Followers'}</span>
+                  </button>
+                  <button onClick={handleOpenFollowing} className="text-sm hover:underline cursor-pointer group">
+                    <span className="font-bold group-hover:text-primary transition-colors">
+                      {isLoadingStats ? '—' : followingCount}
+                    </span>{' '}
+                    <span className="text-muted-foreground text-xs">Following</span>
+                  </button>
+                </div>
+
+                {/* ── Bio ── */}
+                {bio && (
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{bio}</p>
+                )}
+
+                {/* ── Links ── */}
+                {hasLinks && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {website && (
+                      <a href={website.startsWith('http') ? website : `https://${website}`} target="_blank" rel="noopener noreferrer" className={chipClass}>
+                        <Globe className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                        <span className="truncate max-w-[160px]">{website.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+                      </a>
+                    )}
+                    {extraLinks.map((link, i) => (
+                      <a key={`extra-${i}`} href={link.url} target="_blank" rel="noopener noreferrer" className={chipClass}>
+                        <LinkIcon className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                        <span className="truncate max-w-[140px]">{link.label}</span>
+                      </a>
+                    ))}
+                    {identities.map((id) => {
+                      const icon = getPlatformIcon(id.platform);
+                      return id.profileUrl ? (
+                        <a key={id.raw} href={id.profileUrl} target="_blank" rel="noopener noreferrer" title={`${id.platformLabel}: ${id.identity}`} className={chipClass}>
+                          {icon}
+                          <span className="truncate max-w-[120px]">{id.identity}</span>
+                        </a>
+                      ) : (
+                        <span key={id.raw} title={`${id.platformLabel}: ${id.identity}`} className={chipClass}>
+                          {icon}
+                          <span className="truncate max-w-[120px]">{id.identity}</span>
+                        </span>
+                      );
+                    })}
+                    {(lud16 || lud06) && (
+                      <button onClick={() => copyToClipboard(lud16 || lud06 || '', 'Lightning address')} className={`${chipClass} group cursor-pointer`} title="Click to copy Lightning address">
+                        <Zap className="h-3.5 w-3.5 shrink-0 text-yellow-400 opacity-80" />
+                        <span className="truncate max-w-[140px] font-mono">{lud16 || lud06}</span>
+                        <Copy className="h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity shrink-0" />
+                      </button>
+                    )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+
+                {/* ── Badges ── */}
+                <ProfileBadges pubkey={pubkey} />
+
+                {/* ── Nostr public key ── */}
+                <div className="pt-3 border-t border-border/50">
+                  <button
+                    onClick={() => copyToClipboard(npub, 'Nostr public key')}
+                    className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors group cursor-pointer w-full"
+                    title="Click to copy public key"
+                  >
+                    <Mail className="h-3.5 w-3.5 shrink-0" />
+                    <code className="bg-muted px-2 py-1 rounded font-mono truncate flex-1 text-left group-hover:bg-muted/80">
+                      {npub}
+                    </code>
+                    <Copy className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                  </button>
+                </div>
+
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Pinned Post */}
+        {pinnedEvent && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 px-1 text-sm font-semibold text-muted-foreground">
+              <Pin className="h-4 w-4 text-primary" />
+              Pinned Post
+            </div>
+            <PostCard event={pinnedEvent} onClick={setSelectedPost} />
+          </div>
+        )}
+
+        {/* Posts */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 px-1">
+            <h2 className="text-lg sm:text-xl font-semibold">Posts</h2>
+            <div className="flex items-center gap-2">
+              <ColorThemeSelector />
+              <ColumnSelector columns={columns} onColumnsChange={setColumns} />
+            </div>
           </div>
 
-          {/* Pinned Post */}
-          {pinnedEvent && (
-            <div className="space-y-2 mb-4">
-              <div className="flex items-center gap-2 px-2 text-sm font-semibold text-muted-foreground">
-                <Pin className="h-4 w-4 text-primary" />
-                Pinned Post
-              </div>
-              <PostCard
-                event={pinnedEvent}
-                onClick={setSelectedPost}
-              />
-            </div>
-          )}
-
-          {/* Posts */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-4 flex-wrap px-2">
-              <h2 className="text-xl font-semibold">Posts</h2>
-              <div className="flex items-center gap-2">
-                <ColorThemeSelector />
-                <ColumnSelector columns={columns} onColumnsChange={setColumns} />
-              </div>
-            </div>
-            {isLoadingPosts ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <Card key={i} className="overflow-hidden">
-                    <div className="p-4 space-y-3">
-                      <div className="flex items-start gap-3">
-                        <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                        <div className="space-y-2 flex-1">
-                          <Skeleton className="h-4 w-24" />
-                          <Skeleton className="h-3 w-16" />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-4/5" />
+          {isLoadingPosts ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <div className="p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                      <div className="space-y-2 flex-1">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-16" />
                       </div>
                     </div>
-                  </Card>
-                ))}
-              </div>
-            ) : posts && posts.length > 0 ? (
-              <MasonryGrid posts={posts} columns={columns} onPostClick={setSelectedPost} />
-            ) : (
-              <Card className="border-dashed">
-                <CardContent className="py-12 px-8 text-center">
-                  <p className="text-muted-foreground">No posts yet.</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-4/5" />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          ) : posts && posts.length > 0 ? (
+            <MasonryGrid posts={posts} columns={columns} onPostClick={setSelectedPost} />
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="py-12 px-8 text-center">
+                <p className="text-muted-foreground">No posts yet.</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
@@ -549,7 +483,6 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
         <PostModal event={selectedPost} onClose={() => setSelectedPost(null)} />
       )}
 
-      {/* Edit Profile Dialog */}
       <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -559,7 +492,6 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Follow List Dialog */}
       <FollowListDialog
         pubkey={pubkey}
         open={followListOpen}
