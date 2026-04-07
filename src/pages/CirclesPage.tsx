@@ -568,8 +568,8 @@ export function CirclesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-violet-50/20 to-background dark:from-background dark:via-background dark:to-primary/5">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/95 backdrop-blur-lg shadow-sm">
-        <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 via-primary/5 to-violet-500/10 -z-10" />
+      <header className="sticky top-0 z-40 isolate relative border-b border-border/50 bg-background/95 backdrop-blur-lg shadow-sm">
+        <div className="absolute inset-0 bg-gradient-to-r from-violet-500/10 via-primary/5 to-violet-500/10 -z-10 pointer-events-none" />
         <div className="px-4 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-9 w-9 shrink-0">
