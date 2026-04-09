@@ -14,6 +14,9 @@ import { PostModal } from '@/components/PostModal';
 import { ComposePost } from '@/components/ComposePost';
 import { SearchBar } from '@/components/SearchBar';
 import { LoginArea } from '@/components/auth/LoginArea';
+import { useSearchUsers } from '@/hooks/useSearchUsers';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { nip19 } from 'nostr-tools';
 import { NotificationItem } from '@/components/NotificationItem';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useEventById } from '@/hooks/useEventById';
@@ -35,7 +38,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Sparkles, FileText, Image, Music, Video, Users, UserCheck, MessagesSquare, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit, CircleDot, X as XIcon, List, Check } from 'lucide-react';
+import { Sparkles, FileText, Image, Music, Video, Users, UserCheck, MessagesSquare, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit, CircleDot, X as XIcon, List, Check, User } from 'lucide-react';
 import { useFollowSets } from '@/hooks/useFollowSets';
 import { EditProfileForm } from '@/components/EditProfileForm';
 import { WalletBalance } from '@/components/WalletBalance';
@@ -165,6 +168,7 @@ const Index = () => {
   } = useRelayFirehose(selectedRelay, selectedCategory);
   
   const { data: searchPosts, isLoading: isLoadingSearch } = useSearchPosts(searchQuery);
+  const { data: searchUsers = [], isFetching: isSearchingUsers } = useSearchUsers(searchQuery);
 
   // Flatten infinite query pages
   const feedPosts = infiniteData?.pages.flat() ?? [];
@@ -747,6 +751,50 @@ const Index = () => {
               </div>
             ) : posts && posts.length > 0 ? (
               <>
+                {/* ── User results (shown when searching) ── */}
+                {searchQuery && (searchUsers.length > 0 || isSearchingUsers) && (
+                  <div className="mb-6 animate-in fade-in duration-300">
+                    <div className="flex items-center gap-2 mb-3">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">People</span>
+                      {isSearchingUsers && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {searchUsers.slice(0, 6).map((u) => (
+                        <button
+                          key={u.pubkey}
+                          onClick={() => navigate(`/${u.npub}`)}
+                          className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-card hover:bg-accent hover:border-primary/30 transition-all text-left group"
+                        >
+                          <Avatar className="h-10 w-10 shrink-0 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
+                            <AvatarImage src={u.metadata.picture} alt={u.metadata.name} />
+                            <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                              {(u.metadata.display_name || u.metadata.name || '?')[0].toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-semibold truncate">
+                                {u.metadata.display_name || u.metadata.name || 'Unknown'}
+                              </p>
+                              {u.metadata.nip05 && (
+                                <span className="shrink-0 text-[9px] text-emerald-500 font-bold bg-emerald-500/10 px-1 py-0.5 rounded-full">✓</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {u.metadata.nip05 || `${u.npub.slice(0, 10)}...${u.npub.slice(-5)}`}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-3 border-b border-border/40" />
+                    <p className="text-xs text-muted-foreground mt-3 mb-1 flex items-center gap-1.5">
+                      <FileText className="h-3 w-3" /> Posts
+                    </p>
+                  </div>
+                )}
+
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                   {selectedCategory === 'photos' && !isConversationsFeed ? (
                     <PhotoGalleryGrid posts={posts} onPostClick={setSelectedPost} />
@@ -782,6 +830,45 @@ const Index = () => {
                 )}
               </>
             ) : (
+              <>
+                {/* User results even when no posts match */}
+                {searchQuery && searchUsers.length > 0 && (
+                  <div className="mb-6 animate-in fade-in duration-300">
+                    <div className="flex items-center gap-2 mb-3">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">People</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {searchUsers.slice(0, 6).map((u) => (
+                        <button
+                          key={u.pubkey}
+                          onClick={() => navigate(`/${u.npub}`)}
+                          className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-card hover:bg-accent hover:border-primary/30 transition-all text-left group"
+                        >
+                          <Avatar className="h-10 w-10 shrink-0 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
+                            <AvatarImage src={u.metadata.picture} alt={u.metadata.name} />
+                            <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                              {(u.metadata.display_name || u.metadata.name || '?')[0].toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-semibold truncate">
+                                {u.metadata.display_name || u.metadata.name || 'Unknown'}
+                              </p>
+                              {u.metadata.nip05 && (
+                                <span className="shrink-0 text-[9px] text-emerald-500 font-bold bg-emerald-500/10 px-1 py-0.5 rounded-full">✓</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {u.metadata.nip05 || `${u.npub.slice(0, 10)}...${u.npub.slice(-5)}`}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               <Card className="border-dashed">
                 <CardContent className="py-12 px-8 text-center">
                   <div className="max-w-sm mx-auto space-y-4">
@@ -813,6 +900,7 @@ const Index = () => {
                   </div>
                 </CardContent>
               </Card>
+              </>
             )}
           </div>
           </div>
