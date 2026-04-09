@@ -497,6 +497,7 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
         open={followListOpen}
         onOpenChange={setFollowListOpen}
         defaultTab={followListTab}
+        showMutuals={isOwnProfile}
       />
     </div>
   );
