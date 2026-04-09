@@ -72,6 +72,16 @@ const Index = () => {
   const lastScrollY = useRef(0);
   const isMobile = useIsMobile();
 
+  // Use lg breakpoint (1024px) for feed picker — matches bottom nav's lg:hidden
+  const [useMobileFeedPicker, setUseMobileFeedPicker] = useState(window.innerWidth < 1024);
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 1023px)');
+    const onChange = () => setUseMobileFeedPicker(mql.matches);
+    mql.addEventListener('change', onChange);
+    setUseMobileFeedPicker(mql.matches);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
+
   // Hide header on scroll down, show on scroll up (mobile only)
   useEffect(() => {
     const handleScroll = () => {
@@ -350,7 +360,7 @@ const Index = () => {
                 <Badge variant="secondary" className="text-sm py-1 px-3 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200 dark:from-secondary dark:to-secondary dark:text-secondary-foreground dark:border-border shrink-0">
                   Search Results
                 </Badge>
-              ) : isMobile ? (
+              ) : useMobileFeedPicker ? (
                 <>
                   <Button
                     variant="secondary"
