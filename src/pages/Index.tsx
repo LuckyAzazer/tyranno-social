@@ -209,28 +209,44 @@ const Index = () => {
     refetch();
   };
 
-  // Intersection observer for infinite scroll
+  // Intersection observer for infinite scroll — aggressively preloads pages
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Auto-queue multiple pages: once the observer fires, keep fetching until
+  // we're 3 pages ahead of where the user currently is.
+  const prefetchAhead = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage && !searchQuery.trim()) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, searchQuery]);
+
+  // Fire again shortly after each page lands to stay 3 pages ahead
+  useEffect(() => {
+    if (!isFetchingNextPage && hasNextPage && !searchQuery.trim()) {
+      const timer = window.setTimeout(prefetchAhead, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isFetchingNextPage, hasNextPage, prefetchAhead, searchQuery]);
 
   useEffect(() => {
     if (!loadMoreRef.current || searchQuery.trim()) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
+        if (entries[0].isIntersecting) {
+          prefetchAhead();
         }
       },
-      { 
-        threshold: 0.1,
-        rootMargin: '400px' // Load more posts 400px before reaching the trigger
+      {
+        threshold: 0,
+        rootMargin: '2000px', // Start fetching 2000px before the bottom
       }
     );
 
     observer.observe(loadMoreRef.current);
 
     return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, searchQuery]);
+  }, [prefetchAhead, searchQuery]);
 
   const categoryIcons: Record<FeedCategory, typeof FileText> = {
     following: Users,

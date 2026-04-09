@@ -39,7 +39,7 @@ export function useRelayFirehose(relayUrl: string | null, category: FeedCategory
       const events = await relay.query([
         {
           kinds,
-          limit: 50, // Smaller page for faster initial render
+          limit: 100, // Large pages fill all columns without gaps
           until: pageParam,
         },
       ]);

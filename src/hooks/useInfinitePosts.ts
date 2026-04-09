@@ -20,7 +20,7 @@ const categoryKinds: Record<FeedCategory, number[]> = {
   videos: [34235],
 };
 
-const PAGE_SIZE = 50; // First page loads faster; infinite scroll fetches more
+const PAGE_SIZE = 100; // Large pages fill all columns without gaps
 
 export function useInfinitePosts(category: FeedCategory = 'following') {
   const { nostr } = useNostr();
