@@ -16,10 +16,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ArrowLeft, Send, Loader2, AlertTriangle, Key, ShieldCheck, Phone, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NoteContent } from '@/components/NoteContent';
-import { useWebRTCCall } from '@/hooks/useWebRTCCall';
+import { useWebRTCCallContext } from '@/contexts/WebRTCCallContext';
 import { useMutualFollows } from '@/hooks/useMutualFollows';
-import { WebRTCCallUI } from '@/components/WebRTCCallUI';
-import { IncomingCallModal } from '@/components/IncomingCallModal';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 interface DMChatAreaProps {
@@ -312,26 +310,11 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
 
   const {
     callState,
-    callType,
-    remotePubkey: callRemotePubkey,
-    incomingCall,
-    localStream,
-    remoteStream,
-    isMuted,
-    isCameraOff,
     error: callError,
     startCall,
-    acceptCall,
-    rejectCall,
-    hangUp,
-    toggleMute,
-    toggleCamera,
     dismissCall,
-  } = useWebRTCCall();
-
-  const callActive = callState !== 'idle' && callState !== 'ended';
-  const showCallUI = callActive && callState !== 'receiving';
-  const showIncoming = callState === 'receiving' && !!incomingCall;
+    callActive,
+  } = useWebRTCCallContext();
   
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -537,30 +520,7 @@ export const DMChatArea = ({ pubkey, onBack, className }: DMChatAreaProps) => {
         </div>
       )}
 
-      {/* Active call overlay */}
-      {showCallUI && callRemotePubkey && (
-        <WebRTCCallUI
-          callState={callState}
-          callType={callType}
-          remotePubkey={callRemotePubkey}
-          localStream={localStream}
-          remoteStream={remoteStream}
-          isMuted={isMuted}
-          isCameraOff={isCameraOff}
-          onToggleMute={toggleMute}
-          onToggleCamera={toggleCamera}
-          onHangUp={hangUp}
-        />
-      )}
-
-      {/* Incoming call modal */}
-      {showIncoming && incomingCall && (
-        <IncomingCallModal
-          call={incomingCall}
-          onAccept={acceptCall}
-          onReject={rejectCall}
-        />
-      )}
+      {/* Call overlays are rendered globally by WebRTCCallProvider */}
     </Card>
   );
 };
