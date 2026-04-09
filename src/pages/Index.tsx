@@ -34,13 +34,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sparkles, FileText, Image, Music, Video, Users, UserCheck, MessagesSquare, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit, CircleDot, X as XIcon, List } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sparkles, FileText, Image, Music, Video, Users, UserCheck, MessagesSquare, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit, CircleDot, X as XIcon, List, Check } from 'lucide-react';
 import { useFollowSets } from '@/hooks/useFollowSets';
 import { EditProfileForm } from '@/components/EditProfileForm';
 import { WalletBalance } from '@/components/WalletBalance';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useNavigate } from 'react-router-dom';
 import { useMutedUsers } from '@/hooks/useMutedUsers';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 import {
   DropdownMenu,
@@ -66,7 +68,9 @@ const Index = () => {
   const [selectedCirclePubkeys, setSelectedCirclePubkeys] = useState<string[] | null>(null);
   const [selectedCircleLabel, setSelectedCircleLabel] = useState<string | null>(null);
   const [headerVisible, setHeaderVisible] = useState(true);
+  const [feedSheetOpen, setFeedSheetOpen] = useState(false);
   const lastScrollY = useRef(0);
+  const isMobile = useIsMobile();
 
   // Hide header on scroll down, show on scroll up (mobile only)
   useEffect(() => {
@@ -346,7 +350,158 @@ const Index = () => {
                 <Badge variant="secondary" className="text-sm py-1 px-3 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200 dark:from-secondary dark:to-secondary dark:text-secondary-foreground dark:border-border shrink-0">
                   Search Results
                 </Badge>
-              ) : (
+              ) : isMobile ? (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setFeedSheetOpen(true)}
+                      className="gap-2 bg-background/90 backdrop-blur-sm text-foreground border border-border shadow-sm hover:bg-accent hover:text-accent-foreground dark:bg-background/95 dark:text-foreground dark:border-border shrink-0"
+                    >
+                      {selectedRelay ? (
+                        <>
+                          <Wifi className="h-4 w-4" />
+                          {selectedRelay.replace('wss://', '').split('/')[0]}
+                        </>
+                      ) : isMutualFeed ? (
+                        <>
+                          <UserCheck className="h-4 w-4" />
+                          Mutual Follows
+                        </>
+                      ) : isConversationsFeed ? (
+                        <>
+                          <MessagesSquare className="h-4 w-4" />
+                          Conversations
+                        </>
+                      ) : selectedCircleLabel ? (
+                        <>
+                          <CircleDot className="h-4 w-4 text-violet-500" />
+                          {selectedCircleLabel}
+                        </>
+                      ) : (
+                        <>
+                          <CategoryIcon className="h-4 w-4" />
+                          {categoryLabels[selectedCategory]}
+                        </>
+                      )}
+                      <ChevronDown className="h-4 w-4 opacity-50" />
+                    </Button>
+
+                    {/* ── Mobile full-screen feed picker sheet ── */}
+                    <Sheet open={feedSheetOpen} onOpenChange={setFeedSheetOpen}>
+                      <SheetContent side="bottom" className="h-[92dvh] rounded-t-2xl p-0 flex flex-col">
+                        <SheetHeader className="px-5 pt-5 pb-3 border-b border-border/60 shrink-0">
+                          <div className="w-10 h-1 rounded-full bg-muted-foreground/30 mx-auto mb-3" />
+                          <SheetTitle className="text-center text-base font-semibold">Choose Feed</SheetTitle>
+                        </SheetHeader>
+                        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+
+                          {/* My Feed */}
+                          <button
+                            onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(false); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setSelectedCircleDTag(null); setFeedSheetOpen(false); }}
+                            className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-colors active:scale-[0.98] ${!selectedRelay && !isMutualFeed && !isConversationsFeed && !selectedCircleLabel ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/70'}`}
+                          >
+                            <div className="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-950/50 flex items-center justify-center shrink-0">
+                              <Users className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm">My Feed</p>
+                              <p className="text-xs text-muted-foreground">Posts from people you follow</p>
+                            </div>
+                            {!selectedRelay && !isMutualFeed && !isConversationsFeed && !selectedCircleLabel && (
+                              <Check className="h-4 w-4 text-primary shrink-0" />
+                            )}
+                          </button>
+
+                          {user && (
+                            <button
+                              onClick={() => { setSelectedRelay(null); setIsMutualFeed(true); setIsConversationsFeed(false); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setSelectedCircleDTag(null); setFeedSheetOpen(false); }}
+                              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-colors active:scale-[0.98] ${isMutualFeed ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/70'}`}
+                            >
+                              <div className="h-9 w-9 rounded-full bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center shrink-0">
+                                <UserCheck className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm">Mutual Follows</p>
+                                {mutualFollowsPubkeys.length > 0
+                                  ? <p className="text-xs text-muted-foreground">{mutualFollowsPubkeys.length} mutual{mutualFollowsPubkeys.length !== 1 ? 's' : ''}</p>
+                                  : <p className="text-xs text-muted-foreground">People who follow you back</p>
+                                }
+                              </div>
+                              {isMutualFeed && <Check className="h-4 w-4 text-primary shrink-0" />}
+                            </button>
+                          )}
+
+                          {user && (
+                            <button
+                              onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(true); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setSelectedCircleDTag(null); setFeedSheetOpen(false); }}
+                              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-colors active:scale-[0.98] ${isConversationsFeed ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/70'}`}
+                            >
+                              <div className="h-9 w-9 rounded-full bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center shrink-0">
+                                <MessagesSquare className="h-4.5 w-4.5 text-purple-600 dark:text-purple-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm">Conversations</p>
+                                <p className="text-xs text-muted-foreground">Replies your follows are writing</p>
+                              </div>
+                              {isConversationsFeed && <Check className="h-4 w-4 text-primary shrink-0" />}
+                            </button>
+                          )}
+
+                          {/* Relay Firehose */}
+                          <div className="px-1 pt-3 pb-1">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-3">Relay Firehose</p>
+                          </div>
+                          {config.relayMetadata.relays.filter((relay) => {
+                            try { const h = new URL(relay.url).hostname; return h !== 'localhost' && h !== '127.0.0.1' && h !== '::1'; } catch { return false; }
+                          }).map((relay) => (
+                            <button
+                              key={relay.url}
+                              onClick={() => { setSelectedRelay(relay.url); setIsMutualFeed(false); setIsConversationsFeed(false); setFeedSheetOpen(false); }}
+                              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-colors active:scale-[0.98] ${selectedRelay === relay.url ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/70'}`}
+                            >
+                              <div className="h-9 w-9 rounded-full bg-orange-100 dark:bg-orange-950/50 flex items-center justify-center shrink-0">
+                                <Wifi className="h-4.5 w-4.5 text-orange-600 dark:text-orange-400" />
+                              </div>
+                              <span className="font-medium text-sm truncate flex-1">{relay.url.replace('wss://', '')}</span>
+                              {selectedRelay === relay.url && <Check className="h-4 w-4 text-primary shrink-0" />}
+                            </button>
+                          ))}
+
+                          {/* Circles */}
+                          {user && followSets.length > 0 && (
+                            <>
+                              <div className="px-1 pt-3 pb-1">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-3 flex items-center gap-1.5">
+                                  <List className="h-3 w-3" /> Circles
+                                </p>
+                              </div>
+                              {followSets.map((circle) => (
+                                <button
+                                  key={circle.dTag}
+                                  onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(false); setSelectedCirclePubkeys(circle.pubkeys); setSelectedCircleLabel(circle.title); setSelectedCircleDTag(circle.dTag); setFeedSheetOpen(false); }}
+                                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-colors active:scale-[0.98] ${selectedCircleDTag === circle.dTag ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/70'}`}
+                                >
+                                  <div className="h-9 w-9 rounded-full bg-violet-100 dark:bg-violet-950/50 flex items-center justify-center shrink-0">
+                                    <CircleDot className="h-4.5 w-4.5 text-violet-600 dark:text-violet-400" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm truncate">{circle.title}</p>
+                                    <p className="text-xs text-muted-foreground">{circle.pubkeys.length} {circle.pubkeys.length === 1 ? 'member' : 'members'}</p>
+                                  </div>
+                                  {selectedCircleDTag === circle.dTag && <Check className="h-4 w-4 text-primary shrink-0" />}
+                                </button>
+                              ))}
+                            </>
+                          )}
+
+                          {/* bottom safe-area padding */}
+                          <div className="h-6" />
+                        </div>
+                      </SheetContent>
+                    </Sheet>
+                  </>
+                ) : (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="secondary" size="sm" className="gap-2 bg-background/90 backdrop-blur-sm text-foreground border border-border shadow-sm hover:bg-accent hover:text-accent-foreground dark:bg-background/95 dark:text-foreground dark:border-border shrink-0">
