@@ -32,6 +32,7 @@ interface ConversationItemProps {
   lastMessage: { decryptedContent?: string; error?: string } | null;
   lastActivity: number;
   hasNIP4Messages: boolean;
+  searchQuery?: string;
 }
 
 const ConversationItemComponent = ({ 
@@ -40,14 +41,25 @@ const ConversationItemComponent = ({
   onClick,
   lastMessage,
   lastActivity,
-  hasNIP4Messages
+  hasNIP4Messages,
+  searchQuery = '',
 }: ConversationItemProps) => {
   const author = useAuthor(pubkey);
   const metadata = author.data?.metadata;
 
-  const displayName = metadata?.name || genUserName(pubkey);
+  const displayName = metadata?.display_name || metadata?.name || genUserName(pubkey);
   const avatarUrl = metadata?.picture;
   const initials = displayName.slice(0, 2).toUpperCase();
+
+  // Filter after hooks — safe because hooks are always called unconditionally above
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase();
+    const matches =
+      displayName.toLowerCase().includes(q) ||
+      (metadata?.name ?? '').toLowerCase().includes(q) ||
+      (metadata?.nip05 ?? '').toLowerCase().includes(q);
+    if (!matches) return null;
+  }
 
   const lastMessagePreview = lastMessage?.error 
     ? '🔒 Encrypted message' 
@@ -131,26 +143,15 @@ interface FollowingUserListProps {
 }
 
 function FollowingUserList({ pubkeys, searchQuery, selectedPubkey, onSelectUser }: FollowingUserListProps) {
-  const filteredPubkeys = pubkeys.filter(pubkey => {
-    if (!searchQuery.trim()) return true;
-    const author = useAuthor(pubkey);
-    const metadata = author.data?.metadata;
-    const displayName = metadata?.display_name || metadata?.name || genUserName(pubkey);
-    const username = metadata?.name || genUserName(pubkey);
-    const query = searchQuery.toLowerCase();
-    return displayName.toLowerCase().includes(query) || username.toLowerCase().includes(query);
-  });
-
-  if (filteredPubkeys.length === 0) {
-    return null;
-  }
-
+  // Render all items — each FollowingUserItem handles its own search filtering
+  // internally using its hook data. This keeps hooks at component top-level.
   return (
     <>
-      {filteredPubkeys.map(pubkey => (
+      {pubkeys.map(pubkey => (
         <FollowingUserItem
           key={pubkey}
           pubkey={pubkey}
+          searchQuery={searchQuery}
           isSelected={selectedPubkey === pubkey}
           onClick={() => onSelectUser(pubkey)}
         />
@@ -163,9 +164,10 @@ interface FollowingUserItemProps {
   pubkey: string;
   isSelected: boolean;
   onClick: () => void;
+  searchQuery?: string;
 }
 
-function FollowingUserItem({ pubkey, isSelected, onClick }: FollowingUserItemProps) {
+function FollowingUserItem({ pubkey, isSelected, onClick, searchQuery = '' }: FollowingUserItemProps) {
   const author = useAuthor(pubkey);
   const metadata: NostrMetadata | undefined = author.data?.metadata;
 
@@ -173,6 +175,16 @@ function FollowingUserItem({ pubkey, isSelected, onClick }: FollowingUserItemPro
   const username = metadata?.name || genUserName(pubkey);
   const avatarUrl = metadata?.picture;
   const initials = displayName.slice(0, 2).toUpperCase();
+
+  // Filter here — hooks are at top-level of this component so this is safe
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase();
+    const matches =
+      displayName.toLowerCase().includes(q) ||
+      username.toLowerCase().includes(q) ||
+      metadata?.nip05?.toLowerCase().includes(q);
+    if (!matches) return null;
+  }
 
   return (
     <button
@@ -354,28 +366,18 @@ export const DMConversationList = ({
                     </p>
                   </div>
                   <div className="space-y-1">
-                    {currentConversations
-                      .filter(conversation => {
-                        if (!searchQuery.trim()) return true;
-                        // Filter by search
-                        const author = useAuthor(conversation.pubkey);
-                        const metadata = author.data?.metadata;
-                        const displayName = metadata?.display_name || metadata?.name || genUserName(conversation.pubkey);
-                        const username = metadata?.name || genUserName(conversation.pubkey);
-                        const query = searchQuery.toLowerCase();
-                        return displayName.toLowerCase().includes(query) || username.toLowerCase().includes(query);
-                      })
-                      .map((conversation) => (
-                        <ConversationItem
-                          key={conversation.pubkey}
-                          pubkey={conversation.pubkey}
-                          isSelected={selectedPubkey === conversation.pubkey}
-                          onClick={() => onSelectConversation(conversation.pubkey)}
-                          lastMessage={conversation.lastMessage}
-                          lastActivity={conversation.lastActivity}
-                          hasNIP4Messages={conversation.hasNIP4Messages}
-                        />
-                      ))}
+                    {currentConversations.map((conversation) => (
+                      <ConversationItem
+                        key={conversation.pubkey}
+                        pubkey={conversation.pubkey}
+                        searchQuery={searchQuery}
+                        isSelected={selectedPubkey === conversation.pubkey}
+                        onClick={() => onSelectConversation(conversation.pubkey)}
+                        lastMessage={conversation.lastMessage}
+                        lastActivity={conversation.lastActivity}
+                        hasNIP4Messages={conversation.hasNIP4Messages}
+                      />
+                    ))}
                   </div>
                 </div>
               )}
