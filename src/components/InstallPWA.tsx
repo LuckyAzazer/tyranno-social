@@ -94,7 +94,7 @@ export function InstallPWA() {
   // Firefox / Floorp manual install instructions
   if (browserType === 'firefox') {
     return (
-      <Card className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-50 shadow-2xl border-2 border-primary/20 bg-gradient-to-br from-background to-primary/5">
+      <Card className="fixed bottom-28 lg:bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-50 shadow-2xl border-2 border-primary/20 bg-gradient-to-br from-background to-primary/5">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 p-2 rounded-lg bg-gradient-to-br from-primary/20 to-orange-500/20">
@@ -143,7 +143,7 @@ export function InstallPWA() {
 
   // Chrome-like browsers: native prompt available
   return (
-    <Card className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-50 shadow-2xl border-2 border-primary/20 bg-gradient-to-br from-background to-primary/5">
+    <Card className="fixed bottom-28 lg:bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-sm z-50 shadow-2xl border-2 border-primary/20 bg-gradient-to-br from-background to-primary/5">
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 p-2 rounded-lg bg-gradient-to-br from-primary/20 to-orange-500/20">
