@@ -18,6 +18,8 @@ import { cn } from '@/lib/utils';
 import { NoteContent } from '@/components/NoteContent';
 import { useWebRTCCallContext } from '@/contexts/WebRTCCallContext';
 import { useMutualFollows } from '@/hooks/useMutualFollows';
+import { Link } from 'react-router-dom';
+import { nip19 } from 'nostr-tools';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 interface DMChatAreaProps {
@@ -197,13 +199,25 @@ const ChatHeader = ({
         </Button>
       )}
       
-      <Avatar className="h-10 w-10">
-        <AvatarImage src={avatarUrl} alt={displayName} />
-        <AvatarFallback>{initials}</AvatarFallback>
-      </Avatar>
-      
+      <Link
+        to={`/${nip19.npubEncode(pubkey)}`}
+        className="shrink-0 rounded-full ring-2 ring-transparent hover:ring-primary/40 transition-all"
+        title={`View ${displayName}'s profile`}
+      >
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={avatarUrl} alt={displayName} />
+          <AvatarFallback>{initials}</AvatarFallback>
+        </Avatar>
+      </Link>
+
       <div className="flex-1 min-w-0">
-        <h2 className="font-semibold truncate">{displayName}</h2>
+        <Link
+          to={`/${nip19.npubEncode(pubkey)}`}
+          className="font-semibold truncate hover:text-primary transition-colors block"
+          title={`View ${displayName}'s profile`}
+        >
+          {displayName}
+        </Link>
         {metadata?.nip05 && (
           <p className="text-xs text-muted-foreground truncate">{metadata.nip05}</p>
         )}
