@@ -60,10 +60,12 @@ export function MediaContent({ event }: MediaContentProps) {
       }
     }
 
-    // Extract media URLs from content
-    const imageMatches = event.content.matchAll(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?[^\s]*)?\b/gi);
-    const videoMatches = event.content.matchAll(/https?:\/\/[^\s]+\.(mp4|webm|ogv|mov)(\?[^\s]*)?\b/gi);
-    const audioMatches = event.content.matchAll(/https?:\/\/[^\s]+\.(mp3|wav|ogg|m4a|aac|flac|opus)(\?[^\s]*)?\b/gi);
+    // Extract media URLs from content.
+    // Use (?=[^a-zA-Z0-9]|$) instead of \b to correctly match URLs at
+    // end-of-string or followed by whitespace (e.g. long hex filenames ending in .webp)
+    const imageMatches = event.content.matchAll(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?[^\s]*)?(?=[^a-zA-Z0-9]|$)/gi);
+    const videoMatches = event.content.matchAll(/https?:\/\/[^\s]+\.(mp4|webm|ogv|mov)(\?[^\s]*)?(?=[^a-zA-Z0-9]|$)/gi);
+    const audioMatches = event.content.matchAll(/https?:\/\/[^\s]+\.(mp3|wav|ogg|m4a|aac|flac|opus)(\?[^\s]*)?(?=[^a-zA-Z0-9]|$)/gi);
     const linkMatches = event.content.matchAll(/https?:\/\/[^\s]+/gi);
 
     // Add images
