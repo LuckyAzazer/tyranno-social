@@ -15,108 +15,109 @@ interface PreviewData {
   siteName?: string;
 }
 
+/** Resolve a potentially relative or protocol-relative og:image URL. */
+function resolveImageUrl(imageUrl: string, pageUrl: string): string {
+  try {
+    // Protocol-relative  →  use the page's protocol
+    if (imageUrl.startsWith('//')) {
+      const proto = new URL(pageUrl).protocol;
+      return `${proto}${imageUrl}`;
+    }
+    // Absolute  →  use as-is
+    if (/^https?:\/\//i.test(imageUrl)) {
+      return imageUrl;
+    }
+    // Relative  →  resolve against page origin
+    const base = new URL(pageUrl);
+    return new URL(imageUrl, base.origin).href;
+  } catch {
+    return imageUrl;
+  }
+}
+
 export function LinkPreview({ url }: LinkPreviewProps) {
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   // Check if this is a Twitter/X link
   const isTwitterLink = useMemo(() => {
     try {
-      const urlObj = new URL(url);
-      return urlObj.hostname === 'twitter.com' || 
-             urlObj.hostname === 'www.twitter.com' || 
-             urlObj.hostname === 'x.com' || 
-             urlObj.hostname === 'www.x.com';
+      const h = new URL(url).hostname.replace(/^www\./, '');
+      return h === 'twitter.com' || h === 'x.com';
     } catch {
       return false;
     }
   }, [url]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchPreview = async () => {
       try {
         setIsLoading(true);
         setError(false);
+        setImgError(false);
 
-        // Try to extract basic info from URL
         const hostname = new URL(url).hostname;
         const pathname = new URL(url).pathname;
-        
-        // Use a CORS proxy to fetch Open Graph data with timeout
+
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-        
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+
         try {
           const proxyUrl = `https://proxy.shakespeare.diy/?url=${encodeURIComponent(url)}`;
-          const response = await fetch(proxyUrl, { 
+          const response = await fetch(proxyUrl, {
             signal: controller.signal,
-            headers: {
-              'Accept': 'text/html',
-            }
+            headers: { Accept: 'text/html' },
           });
-          
           clearTimeout(timeoutId);
-          
-          if (!response.ok) {
-            throw new Error('Failed to fetch');
-          }
+
+          if (!response.ok) throw new Error('fetch failed');
 
           const html = await response.text();
-          
-          // Parse Open Graph and meta tags
+          if (cancelled) return;
+
           const parser = new DOMParser();
           const doc = parser.parseFromString(html, 'text/html');
-          
-          const getMetaContent = (property: string): string | undefined => {
-            const element = doc.querySelector(`meta[property="${property}"]`) || 
-                           doc.querySelector(`meta[name="${property}"]`);
-            return element?.getAttribute('content') || undefined;
-          };
 
-          const title = getMetaContent('og:title') || 
-                       doc.querySelector('title')?.textContent || 
-                       undefined;
-          
-          const description = getMetaContent('og:description') || 
-                             getMetaContent('description') || 
-                             undefined;
-          
-          const image = getMetaContent('og:image') || 
-                       getMetaContent('twitter:image') || 
-                       undefined;
-          
-          const siteName = getMetaContent('og:site_name') || 
-                          hostname || 
-                          undefined;
+          const meta = (prop: string) =>
+            doc.querySelector(`meta[property="${prop}"]`)?.getAttribute('content') ||
+            doc.querySelector(`meta[name="${prop}"]`)?.getAttribute('content') ||
+            undefined;
 
-          const favicon = `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`;
+          const rawImage = meta('og:image') || meta('og:image:url') || meta('twitter:image') || undefined;
+          const image = rawImage ? resolveImageUrl(rawImage, url) : undefined;
 
-          setPreview({
-            title,
-            description,
-            image,
-            favicon,
-            siteName,
-          });
-        } catch (fetchErr) {
+          if (!cancelled) {
+            setPreview({
+              title: meta('og:title') || doc.querySelector('title')?.textContent || undefined,
+              description: meta('og:description') || meta('description') || undefined,
+              image,
+              siteName: meta('og:site_name') || hostname,
+              favicon: `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`,
+            });
+          }
+        } catch {
           clearTimeout(timeoutId);
-          // Fallback: create a basic preview from URL
-          setPreview({
-            title: pathname !== '/' ? pathname.split('/').pop() : hostname,
-            siteName: hostname,
-            favicon: `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`,
-          });
+          if (!cancelled) {
+            setPreview({
+              title: pathname !== '/' ? pathname.split('/').filter(Boolean).pop() : hostname,
+              siteName: hostname,
+              favicon: `https://www.google.com/s2/favicons?domain=${hostname}&sz=32`,
+            });
+          }
         }
-      } catch (err) {
-        // URL parsing error - just show error state
-        setError(true);
+      } catch {
+        if (!cancelled) setError(true);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     fetchPreview();
+    return () => { cancelled = true; };
   }, [url]);
 
   const handleClick = (e: React.MouseEvent) => {
@@ -124,22 +125,15 @@ export function LinkPreview({ url }: LinkPreviewProps) {
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  // If it's a Twitter/X link, use the special Twitter embed component
-  if (isTwitterLink) {
-    return <TwitterEmbed url={url} />;
-  }
+  if (isTwitterLink) return <TwitterEmbed url={url} />;
 
   if (isLoading) {
     return (
-      <Card className="border-2 border-muted bg-muted/30 hover:bg-muted/40 transition-colors cursor-pointer">
-        <CardContent className="p-3">
-          <div className="flex items-center gap-3">
-            <div className="w-16 h-16 bg-muted rounded animate-pulse shrink-0" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-muted rounded w-3/4 animate-pulse" />
-              <div className="h-3 bg-muted rounded w-1/2 animate-pulse" />
-            </div>
-          </div>
+      <Card className="border border-border/60 overflow-hidden cursor-pointer">
+        <div className="h-36 bg-muted animate-pulse" />
+        <CardContent className="p-3 space-y-2">
+          <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
+          <div className="h-3 bg-muted rounded animate-pulse w-1/2" />
         </CardContent>
       </Card>
     );
@@ -147,79 +141,65 @@ export function LinkPreview({ url }: LinkPreviewProps) {
 
   if (error || !preview) {
     return (
-      <Card 
-        className="border-2 border-muted bg-muted/30 hover:bg-muted/40 transition-colors cursor-pointer"
-        onClick={handleClick}
-      >
-        <CardContent className="p-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center shrink-0">
-              <Globe className="w-5 h-5 text-muted-foreground" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-blue-500 hover:underline truncate">
-                  {url}
-                </p>
-                <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />
-              </div>
-            </div>
-          </div>
+      <Card className="border border-border/60 cursor-pointer hover:bg-muted/30 transition-colors" onClick={handleClick}>
+        <CardContent className="p-3 flex items-center gap-3">
+          <Globe className="w-5 h-5 text-muted-foreground shrink-0" />
+          <p className="text-sm text-primary truncate">{url}</p>
+          <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0" />
         </CardContent>
       </Card>
     );
   }
 
+  const showImage = !!preview.image && !imgError;
+  const hostname = (() => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } })();
+
   return (
-    <Card 
-      className="border-2 border-muted bg-muted/30 hover:bg-muted/40 transition-colors cursor-pointer group"
+    <Card
+      className="border border-border/60 overflow-hidden cursor-pointer hover:border-primary/30 transition-colors group"
       onClick={handleClick}
     >
-      <CardContent className="p-0">
-        <div className="flex gap-3 p-3">
-          {preview.image && (
-            <div className="w-20 h-20 bg-muted rounded overflow-hidden shrink-0">
-              <img 
-                src={preview.image} 
-                alt={preview.title || 'Link preview'}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                {preview.title && (
-                  <h4 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors mb-1">
-                    {preview.title}
-                  </h4>
-                )}
-                {preview.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                    {preview.description}
-                  </p>
-                )}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  {preview.favicon && (
-                    <img 
-                      src={preview.favicon} 
-                      alt=""
-                      className="w-4 h-4"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  )}
-                  <span className="truncate">
-                    {preview.siteName || new URL(url).hostname}
-                  </span>
-                  <ExternalLink className="w-3 h-3 shrink-0" />
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* Hero thumbnail — shown above text when an image is available */}
+      {showImage && (
+        <div className="w-full aspect-[2/1] bg-muted overflow-hidden">
+          <img
+            src={preview.image}
+            alt={preview.title || 'Link preview'}
+            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
         </div>
+      )}
+
+      <CardContent className="p-3">
+        {/* Site name + external icon */}
+        <div className="flex items-center gap-1.5 mb-1">
+          {preview.favicon && (
+            <img
+              src={preview.favicon}
+              alt=""
+              className="w-3.5 h-3.5 rounded-sm shrink-0"
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          )}
+          <span className="text-[11px] text-muted-foreground uppercase tracking-wide truncate">
+            {preview.siteName || hostname}
+          </span>
+          <ExternalLink className="w-3 h-3 text-muted-foreground shrink-0 ml-auto" />
+        </div>
+
+        {preview.title && (
+          <h4 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors leading-snug">
+            {preview.title}
+          </h4>
+        )}
+
+        {preview.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed">
+            {preview.description}
+          </p>
+        )}
       </CardContent>
     </Card>
   );
