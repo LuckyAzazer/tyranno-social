@@ -26,16 +26,17 @@ export function useInfinitePosts(category: FeedCategory = 'following') {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { config } = useAppContext();
-  const { data: followPubkeys = [], isFetched: followsFetched } = useFollows(user?.pubkey);
+  const { data: followPubkeys = [], isFetched: followsFetched, isLoading: followsLoading } = useFollows(user?.pubkey);
   const { shouldFilter } = useNSFWFilter();
   const { isActive: wotActive } = useWebOfTrust();
   const { data: wotNetwork = [] } = useWebOfTrustNetwork();
 
-  // Don't fire the feed query until we know the user's follow list.
-  // Without this guard, followPubkeys starts as [] and the query fires
-  // immediately with no authors filter — showing the global public firehose
-  // instead of the user's personal feed.
-  const followsReady = !user || followsFetched;
+  // Don't fire the feed query until we actually have the follow list.
+  // - Not logged in → fire immediately (public feed)
+  // - Logged in, follows still loading → wait
+  // - Logged in, follows fetched with results → ready
+  // - Logged in, follows fetched with 0 results → still ready (user has no follows)
+  const followsReady = !user || (followsFetched && !followsLoading);
 
   const query = useInfiniteQuery({
     queryKey: ['posts-infinite', category, user?.pubkey, config.relayMetadata.updatedAt, followPubkeys.length, shouldFilter, config.topicFilter, wotActive, wotNetwork.length],

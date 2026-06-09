@@ -1175,26 +1175,29 @@ const Index = () => {
 
 // ─── Feed loading progress indicator ────────────────────────────────────────
 function FeedLoadingProgress({ isLoadingFollows, followCount }: { isLoadingFollows: boolean; followCount: number }) {
-  // Step 1: fetching follows (0–50%)   Step 2: fetching posts (50–90%)
+  // Step 1 (25%): fetching contact list from relays
+  // Step 2 (70%): contact list known, fetching posts
   const progress = isLoadingFollows ? 25 : 70;
+
   const label = isLoadingFollows
-    ? 'Loading your follow list…'
-    : `Loading posts from ${followCount} account${followCount !== 1 ? 's' : ''}…`;
+    ? 'Finding who you follow…'
+    : followCount > 0
+      ? `Loading posts from ${followCount} account${followCount !== 1 ? 's' : ''}…`
+      : 'Loading your feed…';
+
+  const sublabel = isLoadingFollows
+    ? 'Searching relays for your contact list'
+    : 'Almost there — fetching your personalised feed';
 
   return (
     <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
       <div className="flex items-center gap-3">
-        {/* Animated dino icon */}
         <span className="text-2xl animate-bounce select-none">🦖</span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-foreground">{label}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {isLoadingFollows ? 'Fetching your contact list from the relay' : 'Almost there — fetching your personalised feed'}
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">{sublabel}</p>
         </div>
       </div>
-
-      {/* Progress bar */}
       <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
         <div
           className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
