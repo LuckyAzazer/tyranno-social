@@ -43,7 +43,7 @@ export function MobileNotificationsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6rem)' }}>
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border/50 bg-background/95 backdrop-blur-lg">
         <div className="flex items-center gap-3 px-4 py-4">

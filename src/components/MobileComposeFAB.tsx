@@ -37,11 +37,14 @@ export function MobileComposeFAB({ onPostPublished }: MobileComposeFABProps) {
   return (
     <>
       {/* Floating button — above the bottom nav, hidden on large screens */}
-      <div className="lg:hidden fixed bottom-20 right-4 z-40">
+      <div
+        className="lg:hidden fixed right-4 z-40"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 72px)' }}
+      >
         <Button
           onClick={() => setOpen(true)}
           size="lg"
-          className="h-14 w-14 rounded-full shadow-2xl shadow-primary/40 bg-primary hover:bg-primary/90 text-primary-foreground p-0 border-2 border-background/30 transition-all duration-200 active:scale-95 hover:scale-105"
+          className="h-14 w-14 rounded-full shadow-2xl shadow-primary/40 bg-primary hover:bg-primary/90 text-primary-foreground p-0 border-2 border-background/30 transition-transform duration-100 active:scale-90"
           aria-label="Compose new post"
         >
           <PenSquare className="h-6 w-6" />

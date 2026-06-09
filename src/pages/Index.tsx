@@ -28,6 +28,7 @@ import { ScrollToTop } from '@/components/ScrollToTop';
 import { InstallPWA } from '@/components/InstallPWA';
 
 import { MobileComposeFAB } from '@/components/MobileComposeFAB';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useUnreadDMCount } from '@/hooks/useUnreadDMCount';
@@ -212,6 +213,12 @@ const Index = () => {
   const handleRefresh = () => {
     refetch();
   };
+
+  // Pull-to-refresh for mobile — only on the main feed, not search
+  const { isPulling, pullDistance, isRefreshing: isPTRRefreshing } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    enabled: !searchQuery.trim() && isMobile,
+  });
 
   // Intersection observer for infinite scroll — aggressively preloads pages
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -690,8 +697,19 @@ const Index = () => {
         </div>
       </header>
 
+      {/* Pull-to-refresh indicator (mobile only) */}
+      {(isPulling || isPTRRefreshing) && (
+        <div
+          className="lg:hidden flex items-center justify-center gap-2 text-sm text-muted-foreground overflow-hidden transition-all duration-150"
+          style={{ height: isPTRRefreshing ? 44 : Math.min(pullDistance, 44) }}
+        >
+          <RefreshCw className={`h-4 w-4 ${isPTRRefreshing ? 'animate-spin text-primary' : ''}`} style={{ transform: `rotate(${Math.min(pullDistance * 3, 360)}deg)` }} />
+          <span className="text-xs">{isPTRRefreshing ? 'Refreshing…' : pullDistance > 55 ? 'Release to refresh' : 'Pull to refresh'}</span>
+        </div>
+      )}
+
       {/* Main Content */}
-      <main className="px-4 py-6 pb-24 lg:pb-8">
+      <main className="px-4 py-6 lg:pb-8" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6rem)' }}>
         <div className="flex gap-6">
           {/* Feed Section */}
           <div className="flex-1 min-w-0 space-y-6">
