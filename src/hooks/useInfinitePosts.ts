@@ -26,13 +26,20 @@ export function useInfinitePosts(category: FeedCategory = 'following') {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { config } = useAppContext();
-  const { data: followPubkeys = [] } = useFollows(user?.pubkey);
+  const { data: followPubkeys = [], isFetched: followsFetched } = useFollows(user?.pubkey);
   const { shouldFilter } = useNSFWFilter();
   const { isActive: wotActive } = useWebOfTrust();
   const { data: wotNetwork = [] } = useWebOfTrustNetwork();
 
+  // Don't fire the feed query until we know the user's follow list.
+  // Without this guard, followPubkeys starts as [] and the query fires
+  // immediately with no authors filter — showing the global public firehose
+  // instead of the user's personal feed.
+  const followsReady = !user || followsFetched;
+
   return useInfiniteQuery({
     queryKey: ['posts-infinite', category, user?.pubkey, config.relayMetadata.updatedAt, followPubkeys.length, shouldFilter, config.topicFilter, wotActive, wotNetwork.length],
+    enabled: followsReady,
     queryFn: async ({ pageParam }) => {
       const kinds = categoryKinds[category];
       
@@ -46,7 +53,9 @@ export function useInfinitePosts(category: FeedCategory = 'following') {
         ? nostr.group(relayUrls)
         : nostr;
 
-      // Build the query with pagination
+      // Build the query — always filter by authors when the user has follows.
+      // Never fall back to a global query when logged in; show an empty feed
+      // instead so the user isn't shown random content.
       const query = followPubkeys.length > 0
         ? {
             kinds,
@@ -56,7 +65,8 @@ export function useInfinitePosts(category: FeedCategory = 'following') {
           }
         : {
             kinds,
-            limit: 20, // Reduced limit when no follows
+            // Logged-out or user has no follows — small public sample only
+            limit: 20,
             ...(pageParam ? { until: pageParam } : {}),
           };
 
