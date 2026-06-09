@@ -29,7 +29,7 @@ export function MobileBottomNav() {
 
   return (
     <div
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-background/98 shadow-[0_-1px_0_0_hsl(var(--border)/0.3)]"
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-background shadow-[0_-1px_0_0_hsl(var(--border)/0.3)]"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       <div className="flex items-stretch justify-around">
