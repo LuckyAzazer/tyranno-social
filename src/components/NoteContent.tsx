@@ -101,7 +101,9 @@ export function NoteContent({
   // Process the content to render mentions, links, etc.
   // (must be before any early returns to satisfy rules of hooks)
   const processedContent = useMemo(() => {
-    const text = event.content;
+    // Trim leading/trailing whitespace and collapse runs of 3+ newlines to 2
+    // so posts that are just "\n\n\n\n#hashtag" don't create a wall of empty space.
+    const text = event.content.trim().replace(/\n{3,}/g, '\n\n');
     
     // Regex to find Nostr references (with or without nostr: prefix), URLs, hashtags, and indexed mentions (#[0], #[1], etc.)
     // Put Nostr references BEFORE URLs to prevent nostr:nevent1 from being treated as a URL

@@ -177,10 +177,12 @@ export function PostCard({ event, onClick }: PostCardProps) {
       </CardHeader>
 
       <CardContent className="pb-4">
-        {/* Post text — clicking here opens the dialog */}
-        <div className="mb-4 break-words whitespace-pre-wrap">
-          <NoteContent event={displayEvent} className="text-sm leading-relaxed" />
-        </div>
+        {/* Post text — only render wrapper when there's actual content */}
+        {displayEvent.content.trim() && (
+          <div className="mb-3 break-words whitespace-pre-wrap">
+            <NoteContent event={displayEvent} className="text-sm leading-relaxed" />
+          </div>
+        )}
 
         {/* Media */}
         <div className="mb-4" onClick={(e) => e.stopPropagation()}>
