@@ -96,8 +96,6 @@
     @apply bg-background text-foreground;
     /* Smooth momentum scrolling on iOS */
     -webkit-overflow-scrolling: touch;
-    /* Prevent accidental text selection while tapping */
-    -webkit-touch-callout: none;
   }
 
   /* Ensure scroll containers feel native on iOS */
@@ -106,7 +104,7 @@
   }
 
   /* Prevent pull-to-refresh browser default so we can implement our own */
-  html, body {
+  body {
     overscroll-behavior-y: contain;
   }
 
