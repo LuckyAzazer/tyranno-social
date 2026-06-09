@@ -31,7 +31,9 @@ self.addEventListener('activate', (event) => {
       )
     )
   );
-  self.clients.claim();
+  // Note: intentionally NOT calling self.clients.claim() here.
+  // claim() forces all open tabs to reload under the new SW, which causes
+  // an infinite reload loop inside the Shakespeare preview iframe.
 });
 
 // ── Fetch ─────────────────────────────────────────────────────────────────────

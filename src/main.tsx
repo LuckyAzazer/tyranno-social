@@ -26,29 +26,29 @@ createRoot(document.getElementById("root")!).render(
   </ErrorBoundary>
 );
 
-// Register Service Worker for PWA functionality
-if ('serviceWorker' in navigator) {
+// Register Service Worker for PWA functionality.
+// Skip entirely when running inside the Shakespeare preview iframe
+// (*.iframe.diy) — the SW's activate/claim cycle causes the preview to
+// reload in an infinite loop there.
+const isPreviewIframe = window.location.hostname.endsWith('.iframe.diy');
+
+if ('serviceWorker' in navigator && !isPreviewIframe) {
   window.addEventListener('load', () => {
-    // Unregister old service workers first
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach((registration) => {
-        registration.unregister();
-      });
-    });
-    
-    // Register new service worker
     navigator.serviceWorker
       .register('/sw.js')
       .then((registration) => {
         console.log('[PWA] Service Worker registered successfully:', registration.scope);
-        
-        // Check for updates periodically
-        setInterval(() => {
-          registration.update();
-        }, 60000); // Check every minute
+        // Check for updates every hour
+        setInterval(() => registration.update(), 3_600_000);
       })
       .catch((error) => {
         console.log('[PWA] Service Worker registration failed:', error);
       });
+  });
+} else if (isPreviewIframe && 'serviceWorker' in navigator) {
+  // In the preview, unregister any previously installed SW so it can't
+  // interfere with hot-reloaded builds.
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((r) => r.unregister());
   });
 }
