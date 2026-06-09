@@ -1,121 +1,97 @@
 // Service Worker for Tyrannosocial PWA
-const CACHE_NAME = 'tyrannosocial-v8';
-const OFFLINE_URL = '/';
+const CACHE_NAME = 'tyrannosocial-v9';
 
-// Assets to cache on install (minimal set to avoid stale JS)
+// Only cache truly static, versioned assets — NOT the JS/CSS bundles.
+// Vite already content-hashes those filenames, so the browser cache handles
+// freshness automatically. Caching them here causes stale-app bugs in previews.
 const PRECACHE_ASSETS = [
   '/manifest.webmanifest',
   '/icon-192.png',
   '/icon-512.png',
+  '/apple-touch-icon.png',
 ];
 
-// Install event - precache essential assets
+// ── Install ───────────────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Installing...');
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Precaching essential assets');
-      return cache.addAll(PRECACHE_ASSETS);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_ASSETS))
   );
+  // Activate immediately — don't wait for old tabs to close
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// ── Activate ──────────────────────────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Activating...');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[Service Worker] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys().then((names) =>
+      Promise.all(
+        names
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
+      )
+    )
   );
   self.clients.claim();
 });
 
-// Fetch event - network first, fallback to cache
+// ── Fetch ─────────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') return;
-  
-  // Skip chrome extensions and other non-http(s) requests
-  if (!event.request.url.startsWith('http')) return;
+  const { request } = event;
 
-  // Network-first strategy for API calls and dynamic content
-  if (event.request.url.includes('/api/') || event.request.url.includes('wss://')) {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match(event.request);
-      })
-    );
-    return;
+  // Only handle GET requests over http(s)
+  if (request.method !== 'GET') return;
+  if (!request.url.startsWith('http')) return;
+
+  const url = new URL(request.url);
+
+  // ── Never intercept in preview/iframe environments ──────────────────────────
+  // The Shakespeare preview runs on a *.iframe.diy subdomain. Let all requests
+  // pass straight through so the latest build is always served.
+  if (url.hostname.endsWith('.iframe.diy')) return;
+
+  // ── Never cache JS/CSS bundles ───────────────────────────────────────────────
+  // Vite adds content hashes to filenames — the browser HTTP cache is enough.
+  // SW caching these causes stale-app issues after rebuilds.
+  if (
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.js.map') ||
+    url.pathname.endsWith('.css.map') ||
+    url.pathname.includes('/main-') ||
+    url.pathname.endsWith('.tsx') ||
+    url.pathname.endsWith('.ts')
+  ) {
+    return; // Let browser handle it natively
   }
 
-  // Network-first strategy for HTML and JS to always get fresh code
-  if (event.request.url.endsWith('.html') || event.request.url.endsWith('.js') || event.request.url.includes('/main-')) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          // Cache the fresh response
-          if (response && response.status === 200) {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          }
-          return response;
-        })
-        .catch(() => {
-          // Fallback to cache if offline
-          return caches.match(event.request);
-        })
-    );
-    return;
-  }
+  // ── Never intercept WebSocket / Nostr relay traffic ──────────────────────────
+  if (request.url.startsWith('wss://') || request.url.startsWith('ws://')) return;
 
-  // Cache-first strategy for images and other static assets
+  // ── Never intercept API calls ─────────────────────────────────────────────────
+  if (url.pathname.includes('/api/')) return;
+
+  // ── Cache-first for icons, images, manifest ──────────────────────────────────
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
 
-      // Not in cache, fetch from network
-      return fetch(event.request).then((response) => {
-        // Don't cache non-successful responses
-        if (!response || response.status !== 200 || response.type === 'error') {
+      return fetch(request).then((response) => {
+        // Only cache successful, basic/cors responses
+        if (
+          !response ||
+          response.status !== 200 ||
+          (response.type !== 'basic' && response.type !== 'cors')
+        ) {
           return response;
         }
 
-        // Cache the new response
-        const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-
+        const toCache = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, toCache));
         return response;
       }).catch(() => {
-        // Offline fallback
-        return caches.match(OFFLINE_URL);
+        // Offline fallback: return cached root HTML if available
+        return caches.match('/') ?? new Response('Offline', { status: 503 });
       });
     })
   );
-});
-
-// Background sync for offline actions (future enhancement)
-self.addEventListener('sync', (event) => {
-  console.log('[Service Worker] Background sync:', event.tag);
-  // Future: Handle offline Nostr posts
-});
-
-// Push notifications (future enhancement)
-self.addEventListener('push', (event) => {
-  console.log('[Service Worker] Push notification received');
-  // Future: Handle Nostr notifications
 });
