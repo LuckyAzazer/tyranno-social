@@ -8,6 +8,7 @@ import { YouTubeEmbed, isYouTubeUrl } from './YouTubeEmbed';
 import { SpotifyEmbed, isSpotifyUrl } from './SpotifyEmbed';
 import { SoundCloudEmbed, isSoundCloudUrl } from './SoundCloudEmbed';
 import { ZapstrEmbed, isZapstrUrl } from './ZapstrEmbed';
+import { imageUrlRe, videoUrlRe, audioUrlRe } from '@/lib/mediaRegex';
 
 interface MediaContentProps {
   event: NostrEvent;
@@ -22,6 +23,11 @@ interface MediaItem {
 export function MediaContent({ event }: MediaContentProps) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+
+  const handleImageError = (url: string) => {
+    setFailedImages(prev => new Set(prev).add(url));
+  };
 
   const media = useMemo(() => {
     const items: MediaItem[] = [];
@@ -60,12 +66,10 @@ export function MediaContent({ event }: MediaContentProps) {
       }
     }
 
-    // Extract media URLs from content.
-    // Use (?=[^a-zA-Z0-9]|$) instead of \b to correctly match URLs at
-    // end-of-string or followed by whitespace (e.g. long hex filenames ending in .webp)
-    const imageMatches = event.content.matchAll(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?[^\s]*)?(?=[^a-zA-Z0-9]|$)/gi);
-    const videoMatches = event.content.matchAll(/https?:\/\/[^\s]+\.(mp4|webm|ogv|mov)(\?[^\s]*)?(?=[^a-zA-Z0-9]|$)/gi);
-    const audioMatches = event.content.matchAll(/https?:\/\/[^\s]+\.(mp3|wav|ogg|m4a|aac|flac|opus)(\?[^\s]*)?(?=[^a-zA-Z0-9]|$)/gi);
+    // Use shared regexes — fresh instances each time (global flag is stateful)
+    const imageMatches = event.content.matchAll(imageUrlRe());
+    const videoMatches = event.content.matchAll(videoUrlRe());
+    const audioMatches = event.content.matchAll(audioUrlRe());
     const linkMatches = event.content.matchAll(/https?:\/\/[^\s]+/gi);
 
     // Add images
@@ -141,45 +145,50 @@ export function MediaContent({ event }: MediaContentProps) {
     <>
       <div className="space-y-3">
         {/* Images */}
-        {images.length > 0 && (
-          <div className={`grid gap-2 ${
-            images.length === 1 ? 'grid-cols-1' : 
-            images.length === 2 ? 'grid-cols-2' : 
-            images.length === 3 ? 'grid-cols-3' : 
-            'grid-cols-2'
-          }`}>
-            {images.slice(0, 4).map((item, index) => (
-              <a
-                key={`img-${index}`}
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`relative overflow-hidden rounded-lg bg-muted cursor-pointer block ${
-                  images.length === 3 && index === 0 ? 'col-span-3' : ''
-                }`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleImageClick(index);
-                }}
-                data-image-gallery-trigger
-              >
-                <img
-                  src={item.url}
-                  alt=""
-                  className="w-full h-auto object-cover transition-transform duration-300 hover:scale-105"
-                  loading="lazy"
-                  draggable
-                />
-              </a>
-            ))}
-            {images.length > 4 && (
-              <div className="col-span-2 text-center text-sm text-muted-foreground">
-                +{images.length - 4} more images
-              </div>
-            )}
-          </div>
-        )}
+        {images.length > 0 && (() => {
+          const visibleImages = images.slice(0, 4).filter(item => !failedImages.has(item.url));
+          if (visibleImages.length === 0) return null;
+          return (
+            <div className={`grid gap-2 ${
+              visibleImages.length === 1 ? 'grid-cols-1' :
+              visibleImages.length === 2 ? 'grid-cols-2' :
+              visibleImages.length === 3 ? 'grid-cols-3' :
+              'grid-cols-2'
+            }`}>
+              {visibleImages.map((item, index) => (
+                <a
+                  key={`img-${index}`}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`relative overflow-hidden rounded-lg bg-muted cursor-pointer block aspect-video ${
+                    visibleImages.length === 3 && index === 0 ? 'col-span-3' : ''
+                  }`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleImageClick(index);
+                  }}
+                  data-image-gallery-trigger
+                >
+                  <img
+                    src={item.url}
+                    alt=""
+                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                    loading="lazy"
+                    draggable
+                    onError={() => handleImageError(item.url)}
+                  />
+                </a>
+              ))}
+              {images.length > 4 && (
+                <div className="col-span-2 text-center text-sm text-muted-foreground">
+                  +{images.length - 4} more images
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
       {/* Videos */}
       {videos.length > 0 && (

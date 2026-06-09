@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { imageUrlRe, videoUrlRe } from '@/lib/mediaRegex';
 import { type NostrEvent } from '@nostrify/nostrify';
 import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -82,13 +83,9 @@ export function NoteContent({
         }
       });
 
-    // Get image/video URLs from content.
-    // Use (?=[^a-zA-Z0-9]|$) instead of \b — \b fails when the extension
-    // letter (e.g. 'p' in .webp) is followed by end-of-string or whitespace
-    // because \b requires a word↔non-word transition, which doesn't fire
-    // at end-of-string after a word character.
-    const imageMatches = event.content.matchAll(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?[^\s]*)?(?=[^a-zA-Z0-9]|$)/gi);
-    const videoMatches = event.content.matchAll(/https?:\/\/[^\s]+\.(mp4|webm|ogv|mov)(\?[^\s]*)?(?=[^a-zA-Z0-9]|$)/gi);
+    // Use shared regexes — fresh instances each time (global flag is stateful)
+    const imageMatches = event.content.matchAll(imageUrlRe());
+    const videoMatches = event.content.matchAll(videoUrlRe());
 
     for (const match of imageMatches) {
       urls.add(match[0]);
