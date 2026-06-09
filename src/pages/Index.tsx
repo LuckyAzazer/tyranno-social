@@ -143,7 +143,9 @@ const Index = () => {
   
   const { 
     data: infiniteData, 
-    isLoading: isLoadingFeed, 
+    isLoading: isLoadingFeed,
+    isLoadingFollows,
+    followCount,
     fetchNextPage: fetchNextFeedPage, 
     hasNextPage: hasNextFeedPage,
     isFetchingNextPage: isFetchingNextFeedPage,
@@ -746,6 +748,11 @@ const Index = () => {
               </Card>
             )}
 
+            {/* Feed loading progress — shown while fetching follows then posts */}
+            {user && (isLoadingFollows || isLoadingFeed) && !searchQuery && (
+              <FeedLoadingProgress isLoadingFollows={isLoadingFollows} followCount={followCount} />
+            )}
+
             {isLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
                 {Array.from({ length: 12 }).map((_, i) => (
@@ -1165,5 +1172,37 @@ const Index = () => {
     </div>
   );
 };
+
+// ─── Feed loading progress indicator ────────────────────────────────────────
+function FeedLoadingProgress({ isLoadingFollows, followCount }: { isLoadingFollows: boolean; followCount: number }) {
+  // Step 1: fetching follows (0–50%)   Step 2: fetching posts (50–90%)
+  const progress = isLoadingFollows ? 25 : 70;
+  const label = isLoadingFollows
+    ? 'Loading your follow list…'
+    : `Loading posts from ${followCount} account${followCount !== 1 ? 's' : ''}…`;
+
+  return (
+    <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
+      <div className="flex items-center gap-3">
+        {/* Animated dino icon */}
+        <span className="text-2xl animate-bounce select-none">🦖</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-foreground">{label}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {isLoadingFollows ? 'Fetching your contact list from the relay' : 'Almost there — fetching your personalised feed'}
+          </p>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+        <div
+          className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default Index;

@@ -37,7 +37,7 @@ export function useInfinitePosts(category: FeedCategory = 'following') {
   // instead of the user's personal feed.
   const followsReady = !user || followsFetched;
 
-  return useInfiniteQuery({
+  const query = useInfiniteQuery({
     queryKey: ['posts-infinite', category, user?.pubkey, config.relayMetadata.updatedAt, followPubkeys.length, shouldFilter, config.topicFilter, wotActive, wotNetwork.length],
     enabled: followsReady,
     queryFn: async ({ pageParam }) => {
@@ -176,4 +176,13 @@ export function useInfinitePosts(category: FeedCategory = 'following') {
     staleTime: 1000 * 60 * 5,         // Show cached feed instantly; refresh after 5 min
     gcTime: 1000 * 60 * 60 * 24,      // Keep pages in cache for 24 h
   });
+
+  return {
+    ...query,
+    // Extra flags so the UI can show a meaningful progress state:
+    // - isLoadingFollows: still fetching the contact list
+    // - isLoadingFeed: contact list ready, now fetching posts
+    isLoadingFollows: !!user && !followsFetched,
+    followCount: followPubkeys.length,
+  };
 }
