@@ -161,7 +161,7 @@ export function MediaContent({ event }: MediaContentProps) {
                   href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`relative overflow-hidden rounded-lg bg-muted cursor-pointer block aspect-video ${
+                  className={`relative overflow-hidden rounded-lg bg-muted cursor-pointer block ${
                     visibleImages.length === 3 && index === 0 ? 'col-span-3' : ''
                   }`}
                   onClick={(e) => {
@@ -174,7 +174,7 @@ export function MediaContent({ event }: MediaContentProps) {
                   <img
                     src={item.url}
                     alt=""
-                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                    className="w-full h-auto object-cover transition-transform duration-300 hover:scale-105 block"
                     loading="lazy"
                     draggable
                     onError={() => handleImageError(item.url)}

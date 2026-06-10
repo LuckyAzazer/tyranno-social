@@ -249,8 +249,27 @@ export function NoteContent({
     if (parts.length === 0) {
       parts.push(text);
     }
-    
-    return { content: parts, hiddenLinkCount: hiddenCount };
+
+    // Strip leading/trailing whitespace-only string nodes so that posts
+    // whose content is "\n\nhttps://img.jpg\n\n#tag" don't render blank
+    // lines above/below the hashtag after the URLs are hidden.
+    // Also collapse consecutive newlines within string nodes to max 2.
+    const cleanParts = parts
+      .map(p =>
+        typeof p === 'string'
+          ? p.replace(/\n{3,}/g, '\n\n')  // collapse 3+ newlines → 2
+          : p
+      );
+    // Trim leading whitespace-only strings
+    while (cleanParts.length > 0 && typeof cleanParts[0] === 'string' && (cleanParts[0] as string).trim() === '') {
+      cleanParts.shift();
+    }
+    // Trim trailing whitespace-only strings
+    while (cleanParts.length > 0 && typeof cleanParts[cleanParts.length - 1] === 'string' && (cleanParts[cleanParts.length - 1] as string).trim() === '') {
+      cleanParts.pop();
+    }
+
+    return { content: cleanParts, hiddenLinkCount: hiddenCount };
   }, [event.content, mentionedPubkeys, mediaUrls, showHiddenLinks]);
 
   const { content, hiddenLinkCount } = processedContent;
