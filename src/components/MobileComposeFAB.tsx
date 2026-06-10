@@ -36,10 +36,12 @@ export function MobileComposeFAB({ onPostPublished }: MobileComposeFABProps) {
 
   return (
     <>
-      {/* Floating button — above the bottom nav, hidden on large screens */}
+      {/* Floating button — above the bottom nav, hidden on large screens.
+          z-[60] keeps it above the nav (z-50). Bottom clears the nav's
+          52px min-height + 1px border + 16px breathing room + safe area. */}
       <div
-        className="lg:hidden fixed right-4 z-40"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 72px)' }}
+        className="lg:hidden fixed right-4 z-[60]"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)' }}
       >
         <Button
           onClick={() => setOpen(true)}
