@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { imageUrlRe, videoUrlRe } from '@/lib/mediaRegex';
 import { type NostrEvent } from '@nostrify/nostrify';
 import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -68,35 +67,32 @@ export function NoteContent({
       .map(([_, pubkey]) => pubkey);
   }, [event.tags]);
 
-  // Extract media URLs to hide them from content
-  const mediaUrls = useMemo(() => {
-    const urls = new Set<string>();
-    
-    // Get URLs from imeta tags
+  // Build a set of media URLs from imeta tags (exact URLs to always hide)
+  // and a quick test function that also catches image/video URLs by extension.
+  const { isMediaUrl } = useMemo(() => {
+    const imeta = new Set<string>();
+
+    // Get URLs from imeta tags — these are authoritative
     event.tags
       .filter(([name]) => name === 'imeta')
       .forEach(tag => {
         const urlTag = tag.find(item => item.startsWith('url '));
         if (urlTag) {
-          const url = urlTag.replace('url ', '');
-          urls.add(url);
+          imeta.add(urlTag.replace('url ', ''));
         }
       });
 
-    // Use shared regexes — fresh instances each time (global flag is stateful)
-    const imageMatches = event.content.matchAll(imageUrlRe());
-    const videoMatches = event.content.matchAll(videoUrlRe());
+    // Extension-based test for any URL found in content — avoids mismatches
+    // between the content parser regex and the media regex captures.
+    const mediaExtRe = /\.(jpg|jpeg|png|gif|webp|bmp|svg|mp4|webm|ogv|mov)(\?[^\s]*)?$/i;
 
-    for (const match of imageMatches) {
-      urls.add(match[0]);
-    }
-    
-    for (const match of videoMatches) {
-      urls.add(match[0]);
-    }
+    const testFn = (url: string): boolean => {
+      if (imeta.has(url)) return true;
+      return mediaExtRe.test(url);
+    };
 
-    return urls;
-  }, [event.content, event.tags]);
+    return { isMediaUrl: testFn };
+  }, [event.tags]);
 
   // Process the content to render mentions, links, etc.
   // (must be before any early returns to satisfy rules of hooks)
@@ -187,9 +183,9 @@ export function NoteContent({
         }
       } else if (url) {
         // Check if this URL is a media URL that's already displayed
-        const isMediaUrl = mediaUrls.has(url);
+        const urlIsMedia = isMediaUrl(url);
         
-        if (isMediaUrl && !showHiddenLinks) {
+        if (urlIsMedia && !showHiddenLinks) {
           // Hide media URLs since they're shown as thumbnails
           hiddenCount++;
           // Don't add the URL to parts
@@ -203,7 +199,7 @@ export function NoteContent({
               rel="noopener noreferrer"
               className={cn(
                 "hover:underline break-all transition-colors",
-                isMediaUrl ? "text-muted-foreground text-xs" : "text-primary hover:text-primary/80"
+                urlIsMedia ? "text-muted-foreground text-xs" : "text-primary hover:text-primary/80"
               )}
               onClick={(e) => e.stopPropagation()}
             >
@@ -270,7 +266,7 @@ export function NoteContent({
     }
 
     return { content: cleanParts, hiddenLinkCount: hiddenCount };
-  }, [event.content, mentionedPubkeys, mediaUrls, showHiddenLinks]);
+  }, [event.content, mentionedPubkeys, isMediaUrl, showHiddenLinks]);
 
   const { content, hiddenLinkCount } = processedContent;
 
