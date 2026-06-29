@@ -220,18 +220,19 @@ export function MediaContent({ event }: MediaContentProps) {
                         onError={() => handleImageError(item.url)}
                       />
                     </a>
-                    {/* Download button */}
+                    {/* Download button — matches native video download menu style */}
                     <button
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         downloadImage(item.url);
                       }}
-                      className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 z-10 sm:opacity-0 max-sm:opacity-70"
+                      className="absolute bottom-2.5 right-2.5 flex items-center gap-2 px-3 py-1.5 rounded-md bg-background/90 dark:bg-popover/95 text-foreground shadow-lg backdrop-blur-sm border border-border/50 opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 z-10 sm:opacity-0 max-sm:opacity-90 hover:bg-accent"
                       aria-label="Download image"
                       title="Download image"
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-4 w-4 shrink-0" />
+                      <span className="text-sm font-medium">Download</span>
                     </button>
                   </div>
                 ))}
