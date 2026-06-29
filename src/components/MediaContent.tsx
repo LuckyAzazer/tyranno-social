@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import type { NostrEvent } from '@nostrify/nostrify';
-import { Download } from 'lucide-react';
+import { Download, ChevronDown, ChevronUp } from 'lucide-react';
 import { LinkPreview } from './LinkPreview';
 import { ImageGalleryNew } from './ImageGalleryNew';
 import { VideoPlayer } from './VideoPlayer';
@@ -51,6 +51,7 @@ export function MediaContent({ event }: MediaContentProps) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
+  const [expanded, setExpanded] = useState(false);
 
   const handleImageError = (url: string) => {
     setFailedImages(prev => new Set(prev).add(url));
@@ -159,10 +160,13 @@ export function MediaContent({ event }: MediaContentProps) {
 
   const imageUrls = images.map(img => img.url);
 
-  const handleImageClick = (index: number) => {
+  const handleImageClick = useCallback((index: number) => {
     setGalleryIndex(index);
     setGalleryOpen(true);
-  };
+  }, []);
+
+  const hasOverflow = images.length > 4;
+  const overflowCount = images.length - 4;
 
   if (media.length === 0) {
     return null;
@@ -173,62 +177,87 @@ export function MediaContent({ event }: MediaContentProps) {
       <div className="space-y-3">
         {/* Images */}
         {images.length > 0 && (() => {
-          const visibleImages = images.slice(0, 4).filter(item => !failedImages.has(item.url));
+          const displayImages = expanded ? images : images.slice(0, 4);
+          const visibleImages = displayImages.filter(item => !failedImages.has(item.url));
           if (visibleImages.length === 0) return null;
+
+          // Grid class for the first 4 (or fewer) images
+          const gridCols = expanded
+            ? 'grid-cols-2'
+            : visibleImages.length === 1 ? 'grid-cols-1'
+            : visibleImages.length === 2 ? 'grid-cols-2'
+            : visibleImages.length === 3 ? 'grid-cols-3'
+            : 'grid-cols-2';
+
           return (
-            <div className={`grid gap-2 ${
-              visibleImages.length === 1 ? 'grid-cols-1' :
-              visibleImages.length === 2 ? 'grid-cols-2' :
-              visibleImages.length === 3 ? 'grid-cols-3' :
-              'grid-cols-2'
-            }`}>
-              {visibleImages.map((item, index) => (
-                <div
-                  key={`img-${index}`}
-                  className={`group/img relative overflow-hidden rounded-lg bg-muted cursor-pointer ${
-                    visibleImages.length === 3 && index === 0 ? 'col-span-3' : ''
-                  }`}
+            <div>
+              <div className={`grid gap-2 ${gridCols}`}>
+                {visibleImages.map((item, index) => (
+                  <div
+                    key={`img-${index}`}
+                    className={`group/img relative overflow-hidden rounded-lg bg-muted cursor-pointer ${
+                      !expanded && visibleImages.length === 3 && index === 0 ? 'col-span-3' : ''
+                    }`}
+                  >
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleImageClick(index);
+                      }}
+                      data-image-gallery-trigger
+                    >
+                      <img
+                        src={item.url}
+                        alt=""
+                        className="w-full h-auto object-cover transition-transform duration-300 hover:scale-105 block"
+                        loading="lazy"
+                        draggable
+                        onError={() => handleImageError(item.url)}
+                      />
+                    </a>
+                    {/* Download button */}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        downloadImage(item.url);
+                      }}
+                      className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 z-10 sm:opacity-0 max-sm:opacity-70"
+                      aria-label="Download image"
+                      title="Download image"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {/* Expand / Collapse toggle */}
+              {hasOverflow && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setExpanded(prev => !prev);
+                  }}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors py-1.5"
                 >
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleImageClick(index);
-                    }}
-                    data-image-gallery-trigger
-                  >
-                    <img
-                      src={item.url}
-                      alt=""
-                      className="w-full h-auto object-cover transition-transform duration-300 hover:scale-105 block"
-                      loading="lazy"
-                      draggable
-                      onError={() => handleImageError(item.url)}
-                    />
-                  </a>
-                  {/* Download button */}
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      downloadImage(item.url);
-                    }}
-                    className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 z-10 sm:opacity-0 max-sm:opacity-70"
-                    aria-label="Download image"
-                    title="Download image"
-                  >
-                    <Download className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              {images.length > 4 && (
-                <div className="col-span-2 text-center text-sm text-muted-foreground">
-                  +{images.length - 4} more images
-                </div>
+                  {expanded ? (
+                    <>
+                      <ChevronUp className="h-4 w-4" />
+                      Show less
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4" />
+                      +{overflowCount} more image{overflowCount === 1 ? '' : 's'}
+                    </>
+                  )}
+                </button>
               )}
             </div>
           );
