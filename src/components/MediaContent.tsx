@@ -11,54 +11,8 @@ import { SoundCloudEmbed, isSoundCloudUrl } from './SoundCloudEmbed';
 import { ZapstrEmbed, isZapstrUrl } from './ZapstrEmbed';
 import { imageUrlRe, videoUrlRe, audioUrlRe } from '@/lib/mediaRegex';
 
-const CORS_PROXY = 'https://proxy.shakespeare.diy/?url=';
-
-/** Trigger a blob-based file download in the browser. */
-function triggerBlobDownload(blob: Blob, filename: string) {
-  const blobUrl = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = blobUrl;
-  a.download = filename;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  // Small delay before cleanup so mobile browsers finish the download intent
-  setTimeout(() => {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(blobUrl);
-  }, 200);
-}
-
-/** Download an image by fetching it as a blob and triggering a save dialog, just like right-click > Save Image. */
-async function downloadImage(url: string) {
-  const filename = url.split('/').pop()?.split('?')[0] || 'image';
-
-  // Try direct fetch first (works if the server allows CORS)
-  try {
-    const res = await fetch(url);
-    if (res.ok) {
-      const blob = await res.blob();
-      triggerBlobDownload(blob, filename);
-      return;
-    }
-  } catch {
-    // CORS or network error — fall through to proxy
-  }
-
-  // Use CORS proxy to bypass cross-origin restrictions
-  try {
-    const proxiedUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
-    const res = await fetch(proxiedUrl);
-    if (res.ok) {
-      const blob = await res.blob();
-      triggerBlobDownload(blob, filename);
-      return;
-    }
-  } catch {
-    // Proxy also failed — fall through to final fallback
-  }
-
-  // Last resort: open in a new tab so the user can long-press / right-click save
+/** Open the image in a new tab so the user can save it via the browser. */
+function downloadImage(url: string) {
   window.open(url, '_blank');
 }
 
