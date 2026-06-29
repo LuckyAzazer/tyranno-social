@@ -11,30 +11,55 @@ import { SoundCloudEmbed, isSoundCloudUrl } from './SoundCloudEmbed';
 import { ZapstrEmbed, isZapstrUrl } from './ZapstrEmbed';
 import { imageUrlRe, videoUrlRe, audioUrlRe } from '@/lib/mediaRegex';
 
+const CORS_PROXY = 'https://proxy.shakespeare.diy/?url=';
+
+/** Trigger a blob-based file download in the browser. */
+function triggerBlobDownload(blob: Blob, filename: string) {
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  // Small delay before cleanup so mobile browsers finish the download intent
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  }, 200);
+}
+
 /** Download an image by fetching it as a blob and triggering a save dialog, just like right-click > Save Image. */
-function downloadImage(url: string) {
+async function downloadImage(url: string) {
   const filename = url.split('/').pop()?.split('?')[0] || 'image';
 
-  // Use an anchor with the download attribute — works when the server sends
-  // appropriate CORS headers or for same-origin resources.
-  // We fetch as blob first so the browser treats it as a file save rather
-  // than navigating to the URL.
-  fetch(url)
-    .then((res) => res.blob())
-    .then((blob) => {
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
-    })
-    .catch(() => {
-      // Fallback: open in new tab so the user can long-press / right-click save
-      window.open(url, '_blank');
-    });
+  // Try direct fetch first (works if the server allows CORS)
+  try {
+    const res = await fetch(url);
+    if (res.ok) {
+      const blob = await res.blob();
+      triggerBlobDownload(blob, filename);
+      return;
+    }
+  } catch {
+    // CORS or network error — fall through to proxy
+  }
+
+  // Use CORS proxy to bypass cross-origin restrictions
+  try {
+    const proxiedUrl = `${CORS_PROXY}${encodeURIComponent(url)}`;
+    const res = await fetch(proxiedUrl);
+    if (res.ok) {
+      const blob = await res.blob();
+      triggerBlobDownload(blob, filename);
+      return;
+    }
+  } catch {
+    // Proxy also failed — fall through to final fallback
+  }
+
+  // Last resort: open in a new tab so the user can long-press / right-click save
+  window.open(url, '_blank');
 }
 
 interface MediaContentProps {
