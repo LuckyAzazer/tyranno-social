@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { NostrEvent } from '@nostrify/nostrify';
+import { Download } from 'lucide-react';
 import { LinkPreview } from './LinkPreview';
 import { ImageGalleryNew } from './ImageGalleryNew';
 import { VideoPlayer } from './VideoPlayer';
@@ -9,6 +10,32 @@ import { SpotifyEmbed, isSpotifyUrl } from './SpotifyEmbed';
 import { SoundCloudEmbed, isSoundCloudUrl } from './SoundCloudEmbed';
 import { ZapstrEmbed, isZapstrUrl } from './ZapstrEmbed';
 import { imageUrlRe, videoUrlRe, audioUrlRe } from '@/lib/mediaRegex';
+
+/** Download an image by fetching it as a blob and triggering a save dialog, just like right-click > Save Image. */
+function downloadImage(url: string) {
+  const filename = url.split('/').pop()?.split('?')[0] || 'image';
+
+  // Use an anchor with the download attribute — works when the server sends
+  // appropriate CORS headers or for same-origin resources.
+  // We fetch as blob first so the browser treats it as a file save rather
+  // than navigating to the URL.
+  fetch(url)
+    .then((res) => res.blob())
+    .then((blob) => {
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    })
+    .catch(() => {
+      // Fallback: open in new tab so the user can long-press / right-click save
+      window.open(url, '_blank');
+    });
+}
 
 interface MediaContentProps {
   event: NostrEvent;
@@ -156,30 +183,47 @@ export function MediaContent({ event }: MediaContentProps) {
               'grid-cols-2'
             }`}>
               {visibleImages.map((item, index) => (
-                <a
+                <div
                   key={`img-${index}`}
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`relative overflow-hidden rounded-lg bg-muted cursor-pointer block ${
+                  className={`group/img relative overflow-hidden rounded-lg bg-muted cursor-pointer ${
                     visibleImages.length === 3 && index === 0 ? 'col-span-3' : ''
                   }`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleImageClick(index);
-                  }}
-                  data-image-gallery-trigger
                 >
-                  <img
-                    src={item.url}
-                    alt=""
-                    className="w-full h-auto object-cover transition-transform duration-300 hover:scale-105 block"
-                    loading="lazy"
-                    draggable
-                    onError={() => handleImageError(item.url)}
-                  />
-                </a>
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleImageClick(index);
+                    }}
+                    data-image-gallery-trigger
+                  >
+                    <img
+                      src={item.url}
+                      alt=""
+                      className="w-full h-auto object-cover transition-transform duration-300 hover:scale-105 block"
+                      loading="lazy"
+                      draggable
+                      onError={() => handleImageError(item.url)}
+                    />
+                  </a>
+                  {/* Download button */}
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      downloadImage(item.url);
+                    }}
+                    className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity duration-200 z-10 sm:opacity-0 max-sm:opacity-70"
+                    aria-label="Download image"
+                    title="Download image"
+                  >
+                    <Download className="h-4 w-4" />
+                  </button>
+                </div>
               ))}
               {images.length > 4 && (
                 <div className="col-span-2 text-center text-sm text-muted-foreground">
