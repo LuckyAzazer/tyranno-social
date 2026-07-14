@@ -14,6 +14,9 @@ import { PostModal } from '@/components/PostModal';
 import { ComposePost } from '@/components/ComposePost';
 import { SearchBar } from '@/components/SearchBar';
 import { LoginArea } from '@/components/auth/LoginArea';
+import { useSearchUsers } from '@/hooks/useSearchUsers';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { nip19 } from 'nostr-tools';
 import { NotificationItem } from '@/components/NotificationItem';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useEventById } from '@/hooks/useEventById';
@@ -25,6 +28,7 @@ import { ScrollToTop } from '@/components/ScrollToTop';
 import { InstallPWA } from '@/components/InstallPWA';
 
 import { MobileComposeFAB } from '@/components/MobileComposeFAB';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useUnreadDMCount } from '@/hooks/useUnreadDMCount';
@@ -34,13 +38,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sparkles, FileText, Image, Music, Video, Users, UserCheck, MessagesSquare, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit, CircleDot, X as XIcon, List } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sparkles, FileText, Image, Music, Video, Users, UserCheck, MessagesSquare, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit, CircleDot, X as XIcon, List, Check, User } from 'lucide-react';
 import { useFollowSets } from '@/hooks/useFollowSets';
 import { EditProfileForm } from '@/components/EditProfileForm';
 import { WalletBalance } from '@/components/WalletBalance';
 import { useAppContext } from '@/hooks/useAppContext';
 import { useNavigate } from 'react-router-dom';
 import { useMutedUsers } from '@/hooks/useMutedUsers';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
 import {
   DropdownMenu,
@@ -66,7 +72,19 @@ const Index = () => {
   const [selectedCirclePubkeys, setSelectedCirclePubkeys] = useState<string[] | null>(null);
   const [selectedCircleLabel, setSelectedCircleLabel] = useState<string | null>(null);
   const [headerVisible, setHeaderVisible] = useState(true);
+  const [feedSheetOpen, setFeedSheetOpen] = useState(false);
   const lastScrollY = useRef(0);
+  const isMobile = useIsMobile();
+
+  // Use lg breakpoint (1024px) for feed picker — matches bottom nav's lg:hidden
+  const [useMobileFeedPicker, setUseMobileFeedPicker] = useState(window.innerWidth < 1024);
+  useEffect(() => {
+    const mql = window.matchMedia('(max-width: 1023px)');
+    const onChange = () => setUseMobileFeedPicker(mql.matches);
+    mql.addEventListener('change', onChange);
+    setUseMobileFeedPicker(mql.matches);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
 
   // Hide header on scroll down, show on scroll up (mobile only)
   useEffect(() => {
@@ -125,7 +143,9 @@ const Index = () => {
   
   const { 
     data: infiniteData, 
-    isLoading: isLoadingFeed, 
+    isLoading: isLoadingFeed,
+    isLoadingFollows,
+    followCount,
     fetchNextPage: fetchNextFeedPage, 
     hasNextPage: hasNextFeedPage,
     isFetchingNextPage: isFetchingNextFeedPage,
@@ -151,6 +171,7 @@ const Index = () => {
   } = useRelayFirehose(selectedRelay, selectedCategory);
   
   const { data: searchPosts, isLoading: isLoadingSearch } = useSearchPosts(searchQuery);
+  const { data: searchUsers = [], isFetching: isSearchingUsers } = useSearchUsers(searchQuery);
 
   // Flatten infinite query pages
   const feedPosts = infiniteData?.pages.flat() ?? [];
@@ -195,28 +216,50 @@ const Index = () => {
     refetch();
   };
 
-  // Intersection observer for infinite scroll
+  // Pull-to-refresh for mobile — only on the main feed, not search
+  const { isPulling, pullDistance, isRefreshing: isPTRRefreshing } = usePullToRefresh({
+    onRefresh: handleRefresh,
+    enabled: !searchQuery.trim() && isMobile,
+  });
+
+  // Intersection observer for infinite scroll — aggressively preloads pages
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Auto-queue multiple pages: once the observer fires, keep fetching until
+  // we're 3 pages ahead of where the user currently is.
+  const prefetchAhead = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage && !searchQuery.trim()) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, searchQuery]);
+
+  // Fire again shortly after each page lands to stay 3 pages ahead
+  useEffect(() => {
+    if (!isFetchingNextPage && hasNextPage && !searchQuery.trim()) {
+      const timer = window.setTimeout(prefetchAhead, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isFetchingNextPage, hasNextPage, prefetchAhead, searchQuery]);
 
   useEffect(() => {
     if (!loadMoreRef.current || searchQuery.trim()) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
+        if (entries[0].isIntersecting) {
+          prefetchAhead();
         }
       },
-      { 
-        threshold: 0.1,
-        rootMargin: '400px' // Load more posts 400px before reaching the trigger
+      {
+        threshold: 0,
+        rootMargin: '2000px', // Start fetching 2000px before the bottom
       }
     );
 
     observer.observe(loadMoreRef.current);
 
     return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, searchQuery]);
+  }, [prefetchAhead, searchQuery]);
 
   const categoryIcons: Record<FeedCategory, typeof FileText> = {
     following: Users,
@@ -346,7 +389,158 @@ const Index = () => {
                 <Badge variant="secondary" className="text-sm py-1 px-3 bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700 border-blue-200 dark:from-secondary dark:to-secondary dark:text-secondary-foreground dark:border-border shrink-0">
                   Search Results
                 </Badge>
-              ) : (
+              ) : useMobileFeedPicker ? (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setFeedSheetOpen(true)}
+                      className="gap-2 bg-background/90 backdrop-blur-sm text-foreground border border-border shadow-sm hover:bg-accent hover:text-accent-foreground dark:bg-background/95 dark:text-foreground dark:border-border shrink-0"
+                    >
+                      {selectedRelay ? (
+                        <>
+                          <Wifi className="h-4 w-4" />
+                          {selectedRelay.replace('wss://', '').split('/')[0]}
+                        </>
+                      ) : isMutualFeed ? (
+                        <>
+                          <UserCheck className="h-4 w-4" />
+                          Mutual Follows
+                        </>
+                      ) : isConversationsFeed ? (
+                        <>
+                          <MessagesSquare className="h-4 w-4" />
+                          Conversations
+                        </>
+                      ) : selectedCircleLabel ? (
+                        <>
+                          <CircleDot className="h-4 w-4 text-violet-500" />
+                          {selectedCircleLabel}
+                        </>
+                      ) : (
+                        <>
+                          <CategoryIcon className="h-4 w-4" />
+                          {categoryLabels[selectedCategory]}
+                        </>
+                      )}
+                      <ChevronDown className="h-4 w-4 opacity-50" />
+                    </Button>
+
+                    {/* ── Mobile full-screen feed picker sheet ── */}
+                    <Sheet open={feedSheetOpen} onOpenChange={setFeedSheetOpen}>
+                      <SheetContent side="bottom" className="h-[92dvh] rounded-t-2xl p-0 flex flex-col">
+                        <SheetHeader className="px-5 pt-5 pb-3 border-b border-border/60 shrink-0">
+                          <div className="w-10 h-1 rounded-full bg-muted-foreground/30 mx-auto mb-3" />
+                          <SheetTitle className="text-center text-base font-semibold">Choose Feed</SheetTitle>
+                        </SheetHeader>
+                        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+
+                          {/* My Feed */}
+                          <button
+                            onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(false); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setSelectedCircleDTag(null); setFeedSheetOpen(false); }}
+                            className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-colors active:scale-[0.98] ${!selectedRelay && !isMutualFeed && !isConversationsFeed && !selectedCircleLabel ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/70'}`}
+                          >
+                            <div className="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-950/50 flex items-center justify-center shrink-0">
+                              <Users className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm">My Feed</p>
+                              <p className="text-xs text-muted-foreground">Posts from people you follow</p>
+                            </div>
+                            {!selectedRelay && !isMutualFeed && !isConversationsFeed && !selectedCircleLabel && (
+                              <Check className="h-4 w-4 text-primary shrink-0" />
+                            )}
+                          </button>
+
+                          {user && (
+                            <button
+                              onClick={() => { setSelectedRelay(null); setIsMutualFeed(true); setIsConversationsFeed(false); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setSelectedCircleDTag(null); setFeedSheetOpen(false); }}
+                              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-colors active:scale-[0.98] ${isMutualFeed ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/70'}`}
+                            >
+                              <div className="h-9 w-9 rounded-full bg-emerald-100 dark:bg-emerald-950/50 flex items-center justify-center shrink-0">
+                                <UserCheck className="h-4.5 w-4.5 text-emerald-600 dark:text-emerald-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm">Mutual Follows</p>
+                                {mutualFollowsPubkeys.length > 0
+                                  ? <p className="text-xs text-muted-foreground">{mutualFollowsPubkeys.length} mutual{mutualFollowsPubkeys.length !== 1 ? 's' : ''}</p>
+                                  : <p className="text-xs text-muted-foreground">People who follow you back</p>
+                                }
+                              </div>
+                              {isMutualFeed && <Check className="h-4 w-4 text-primary shrink-0" />}
+                            </button>
+                          )}
+
+                          {user && (
+                            <button
+                              onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(true); setSelectedCirclePubkeys(null); setSelectedCircleLabel(null); setSelectedCircleDTag(null); setFeedSheetOpen(false); }}
+                              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-colors active:scale-[0.98] ${isConversationsFeed ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/70'}`}
+                            >
+                              <div className="h-9 w-9 rounded-full bg-purple-100 dark:bg-purple-950/50 flex items-center justify-center shrink-0">
+                                <MessagesSquare className="h-4.5 w-4.5 text-purple-600 dark:text-purple-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm">Conversations</p>
+                                <p className="text-xs text-muted-foreground">Replies your follows are writing</p>
+                              </div>
+                              {isConversationsFeed && <Check className="h-4 w-4 text-primary shrink-0" />}
+                            </button>
+                          )}
+
+                          {/* Relay Firehose */}
+                          <div className="px-1 pt-3 pb-1">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-3">Relay Firehose</p>
+                          </div>
+                          {config.relayMetadata.relays.filter((relay) => {
+                            try { const h = new URL(relay.url).hostname; return h !== 'localhost' && h !== '127.0.0.1' && h !== '::1'; } catch { return false; }
+                          }).map((relay) => (
+                            <button
+                              key={relay.url}
+                              onClick={() => { setSelectedRelay(relay.url); setIsMutualFeed(false); setIsConversationsFeed(false); setFeedSheetOpen(false); }}
+                              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-colors active:scale-[0.98] ${selectedRelay === relay.url ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/70'}`}
+                            >
+                              <div className="h-9 w-9 rounded-full bg-orange-100 dark:bg-orange-950/50 flex items-center justify-center shrink-0">
+                                <Wifi className="h-4.5 w-4.5 text-orange-600 dark:text-orange-400" />
+                              </div>
+                              <span className="font-medium text-sm truncate flex-1">{relay.url.replace('wss://', '')}</span>
+                              {selectedRelay === relay.url && <Check className="h-4 w-4 text-primary shrink-0" />}
+                            </button>
+                          ))}
+
+                          {/* Circles */}
+                          {user && followSets.length > 0 && (
+                            <>
+                              <div className="px-1 pt-3 pb-1">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-3 flex items-center gap-1.5">
+                                  <List className="h-3 w-3" /> Circles
+                                </p>
+                              </div>
+                              {followSets.map((circle) => (
+                                <button
+                                  key={circle.dTag}
+                                  onClick={() => { setSelectedRelay(null); setIsMutualFeed(false); setIsConversationsFeed(false); setSelectedCirclePubkeys(circle.pubkeys); setSelectedCircleLabel(circle.title); setSelectedCircleDTag(circle.dTag); setFeedSheetOpen(false); }}
+                                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-colors active:scale-[0.98] ${selectedCircleDTag === circle.dTag ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/70'}`}
+                                >
+                                  <div className="h-9 w-9 rounded-full bg-violet-100 dark:bg-violet-950/50 flex items-center justify-center shrink-0">
+                                    <CircleDot className="h-4.5 w-4.5 text-violet-600 dark:text-violet-400" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm truncate">{circle.title}</p>
+                                    <p className="text-xs text-muted-foreground">{circle.pubkeys.length} {circle.pubkeys.length === 1 ? 'member' : 'members'}</p>
+                                  </div>
+                                  {selectedCircleDTag === circle.dTag && <Check className="h-4 w-4 text-primary shrink-0" />}
+                                </button>
+                              ))}
+                            </>
+                          )}
+
+                          {/* bottom safe-area padding */}
+                          <div className="h-6" />
+                        </div>
+                      </SheetContent>
+                    </Sheet>
+                  </>
+                ) : (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="secondary" size="sm" className="gap-2 bg-background/90 backdrop-blur-sm text-foreground border border-border shadow-sm hover:bg-accent hover:text-accent-foreground dark:bg-background/95 dark:text-foreground dark:border-border shrink-0">
@@ -505,8 +699,19 @@ const Index = () => {
         </div>
       </header>
 
+      {/* Pull-to-refresh indicator (mobile only) */}
+      {(isPulling || isPTRRefreshing) && (
+        <div
+          className="lg:hidden flex items-center justify-center gap-2 text-sm text-muted-foreground overflow-hidden transition-all duration-150"
+          style={{ height: isPTRRefreshing ? 44 : Math.min(pullDistance, 44) }}
+        >
+          <RefreshCw className={`h-4 w-4 ${isPTRRefreshing ? 'animate-spin text-primary' : ''}`} style={{ transform: `rotate(${Math.min(pullDistance * 3, 360)}deg)` }} />
+          <span className="text-xs">{isPTRRefreshing ? 'Refreshing…' : pullDistance > 55 ? 'Release to refresh' : 'Pull to refresh'}</span>
+        </div>
+      )}
+
       {/* Main Content */}
-      <main className="px-4 py-6 pb-24 lg:pb-8">
+      <main className="px-4 py-6 lg:pb-8" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6rem)' }}>
         <div className="flex gap-6">
           {/* Feed Section */}
           <div className="flex-1 min-w-0 space-y-6">
@@ -543,6 +748,11 @@ const Index = () => {
               </Card>
             )}
 
+            {/* Feed loading progress — shown while fetching follows then posts */}
+            {user && (isLoadingFollows || isLoadingFeed) && !searchQuery && (
+              <FeedLoadingProgress isLoadingFollows={isLoadingFollows} followCount={followCount} />
+            )}
+
             {isLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
                 {Array.from({ length: 12 }).map((_, i) => (
@@ -566,6 +776,50 @@ const Index = () => {
               </div>
             ) : posts && posts.length > 0 ? (
               <>
+                {/* ── User results (shown when searching) ── */}
+                {searchQuery && (searchUsers.length > 0 || isSearchingUsers) && (
+                  <div className="mb-6 animate-in fade-in duration-300">
+                    <div className="flex items-center gap-2 mb-3">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">People</span>
+                      {isSearchingUsers && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {searchUsers.slice(0, 6).map((u) => (
+                        <button
+                          key={u.pubkey}
+                          onClick={() => navigate(`/${u.npub}`)}
+                          className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-card hover:bg-accent hover:border-primary/30 transition-all text-left group"
+                        >
+                          <Avatar className="h-10 w-10 shrink-0 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
+                            <AvatarImage src={u.metadata.picture} alt={u.metadata.name} />
+                            <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                              {(u.metadata.display_name || u.metadata.name || '?')[0].toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-semibold truncate">
+                                {u.metadata.display_name || u.metadata.name || 'Unknown'}
+                              </p>
+                              {u.metadata.nip05 && (
+                                <span className="shrink-0 text-[9px] text-emerald-500 font-bold bg-emerald-500/10 px-1 py-0.5 rounded-full">✓</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {u.metadata.nip05 || `${u.npub.slice(0, 10)}...${u.npub.slice(-5)}`}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-3 border-b border-border/40" />
+                    <p className="text-xs text-muted-foreground mt-3 mb-1 flex items-center gap-1.5">
+                      <FileText className="h-3 w-3" /> Posts
+                    </p>
+                  </div>
+                )}
+
                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                   {selectedCategory === 'photos' && !isConversationsFeed ? (
                     <PhotoGalleryGrid posts={posts} onPostClick={setSelectedPost} />
@@ -601,6 +855,45 @@ const Index = () => {
                 )}
               </>
             ) : (
+              <>
+                {/* User results even when no posts match */}
+                {searchQuery && searchUsers.length > 0 && (
+                  <div className="mb-6 animate-in fade-in duration-300">
+                    <div className="flex items-center gap-2 mb-3">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">People</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {searchUsers.slice(0, 6).map((u) => (
+                        <button
+                          key={u.pubkey}
+                          onClick={() => navigate(`/${u.npub}`)}
+                          className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-card hover:bg-accent hover:border-primary/30 transition-all text-left group"
+                        >
+                          <Avatar className="h-10 w-10 shrink-0 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
+                            <AvatarImage src={u.metadata.picture} alt={u.metadata.name} />
+                            <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                              {(u.metadata.display_name || u.metadata.name || '?')[0].toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-semibold truncate">
+                                {u.metadata.display_name || u.metadata.name || 'Unknown'}
+                              </p>
+                              {u.metadata.nip05 && (
+                                <span className="shrink-0 text-[9px] text-emerald-500 font-bold bg-emerald-500/10 px-1 py-0.5 rounded-full">✓</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {u.metadata.nip05 || `${u.npub.slice(0, 10)}...${u.npub.slice(-5)}`}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               <Card className="border-dashed">
                 <CardContent className="py-12 px-8 text-center">
                   <div className="max-w-sm mx-auto space-y-4">
@@ -632,12 +925,13 @@ const Index = () => {
                   </div>
                 </CardContent>
               </Card>
+              </>
             )}
           </div>
           </div>
 
-          {/* Right Sidebar — always visible on non-mobile (md+) */}
-          <aside className="w-96 shrink-0 hidden md:block">
+          {/* Right Sidebar — visible on desktop only (lg+), hidden on tablet/mobile */}
+          <aside className="w-96 shrink-0 hidden lg:block">
             <div className="sticky top-4 space-y-4">
               {user ? (
                 <ComposePost onPostPublished={handleRefresh} />
@@ -878,5 +1172,40 @@ const Index = () => {
     </div>
   );
 };
+
+// ─── Feed loading progress indicator ────────────────────────────────────────
+function FeedLoadingProgress({ isLoadingFollows, followCount }: { isLoadingFollows: boolean; followCount: number }) {
+  // Step 1 (25%): fetching contact list from relays
+  // Step 2 (70%): contact list known, fetching posts
+  const progress = isLoadingFollows ? 25 : 70;
+
+  const label = isLoadingFollows
+    ? 'Finding who you follow…'
+    : followCount > 0
+      ? `Loading posts from ${followCount} account${followCount !== 1 ? 's' : ''}…`
+      : 'Loading your feed…';
+
+  const sublabel = isLoadingFollows
+    ? 'Searching relays for your contact list'
+    : 'Almost there — fetching your personalised feed';
+
+  return (
+    <div className="rounded-xl border border-border/50 bg-card p-4 space-y-3">
+      <div className="flex items-center gap-3">
+        <span className="text-2xl animate-bounce select-none">🦖</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-foreground">{label}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{sublabel}</p>
+        </div>
+      </div>
+      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+        <div
+          className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 export default Index;

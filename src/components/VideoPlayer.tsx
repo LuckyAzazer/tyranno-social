@@ -1,145 +1,68 @@
-import { useState, useRef, useEffect } from 'react';
-import { Play } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState, useRef } from 'react';
+import { Play, Film } from 'lucide-react';
 
 interface VideoPlayerProps {
   src: string;
+  poster?: string;
   className?: string;
 }
 
-export function VideoPlayer({ src, className = '' }: VideoPlayerProps) {
+export function VideoPlayer({ src, poster, className = '' }: VideoPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [thumbnail, setThumbnail] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
+  const [metadataLoaded, setMetadataLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Generate thumbnail from video
-  useEffect(() => {
-    if (!videoRef.current || thumbnail) return;
+  // #t=0.001 asks browsers to seek to the first frame so it renders as the
+  // native poster — works without canvas/CORS issues on most mobile browsers.
+  const srcWithSeek = src.includes('#') ? src : `${src}#t=0.001`;
 
-    const video = videoRef.current;
-    
-    const generateThumbnail = () => {
-      if (!canvasRef.current) return;
-      
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
-      
-      if (!context) return;
-
-      try {
-        // Set canvas dimensions to match video
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-
-        // Draw the current frame
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        // Convert to data URL
-        const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.7);
-        setThumbnail(thumbnailUrl);
-      } catch (error) {
-        // CORS error or other security error - use placeholder
-        console.warn('Unable to generate video thumbnail (CORS):', error);
-        setThumbnail('placeholder');
-      }
-
-      // Remove event listener after generating thumbnail
-      video.removeEventListener('loadeddata', generateThumbnail);
-    };
-
-    video.addEventListener('loadeddata', generateThumbnail);
-
-    return () => {
-      video.removeEventListener('loadeddata', generateThumbnail);
-    };
-  }, [thumbnail]);
-
-  const handlePlay = () => {
+  const handlePlay = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setIsPlaying(true);
-    if (videoRef.current) {
-      videoRef.current.play();
-    }
+    videoRef.current?.play();
   };
 
-  const handlePause = () => {
-    setIsPlaying(false);
-  };
+  const handlePause = () => setIsPlaying(false);
+
+  if (hasError) return null;
 
   return (
-    <div className={`relative overflow-hidden rounded-lg bg-black ${className}`}>
-      {/* Hidden canvas for thumbnail generation */}
-      <canvas ref={canvasRef} className="hidden" />
+    // aspect-video ensures the container always has height (16:9) even
+    // before video metadata has loaded — prevents the empty-space bug.
+    <div className={`relative overflow-hidden rounded-lg bg-black aspect-video ${className}`}>
 
-      {/* Video element */}
       <video
         ref={videoRef}
-        src={src}
+        src={srcWithSeek}
         controls={isPlaying}
-        className="w-full h-auto max-h-96 object-contain"
+        className="w-full h-full object-contain"
         preload="metadata"
         playsInline
-        crossOrigin="anonymous"
+        poster={poster}
+        onLoadedMetadata={() => setMetadataLoaded(true)}
         onPause={handlePause}
         onEnded={handlePause}
         onClick={(e) => e.stopPropagation()}
-        onError={(e) => {
-          console.warn('Video load error:', src);
-          e.currentTarget.style.display = 'none';
-        }}
-      >
-        Your browser does not support the video tag.
-      </video>
+        onError={() => setHasError(true)}
+      />
 
-      {/* Thumbnail overlay with play button */}
-      {!isPlaying && thumbnail && (
-        <div 
-          className="absolute inset-0 cursor-pointer group"
-          onClick={(e) => {
-            e.stopPropagation();
-            handlePlay();
-          }}
-        >
-          {/* Thumbnail or placeholder */}
-          {thumbnail !== 'placeholder' ? (
-            <img 
-              src={thumbnail} 
-              alt="Video thumbnail"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-              <div className="text-white/30 text-center p-8">
-                <Play className="h-24 w-24 mx-auto mb-4 opacity-30" />
-              </div>
-            </div>
-          )}
-          
-          {/* Dark overlay */}
-          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
-          
-          {/* Play button */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Button
-              variant="default"
-              size="icon"
-              className="h-16 w-16 rounded-full bg-white/90 hover:bg-white text-black shadow-lg transition-transform group-hover:scale-110"
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePlay();
-              }}
-            >
-              <Play className="h-8 w-8 fill-current ml-1" />
-            </Button>
-          </div>
+      {/* Placeholder shown before metadata loads (no poster available yet) */}
+      {!metadataLoaded && !poster && !isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/20">
+          <Film className="h-10 w-10 text-muted-foreground/40" />
         </div>
       )}
 
-      {/* Loading state before thumbnail is generated */}
-      {!isPlaying && !thumbnail && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-          <div className="animate-pulse">
-            <Play className="h-16 w-16 text-white/50" />
+      {/* Play overlay — shown until the user taps play */}
+      {!isPlaying && (
+        <div
+          className="absolute inset-0 flex items-center justify-center cursor-pointer group"
+          onClick={handlePlay}
+        >
+          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/35 transition-colors" />
+          <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full bg-primary/90 shadow-lg transition-transform duration-100 group-hover:scale-110 active:scale-90">
+            <Play className="h-6 w-6 fill-white text-white ml-0.5" />
           </div>
         </div>
       )}

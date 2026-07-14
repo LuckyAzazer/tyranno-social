@@ -3,8 +3,6 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useUnreadDMCount } from '@/hooks/useUnreadDMCount';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Home, Bell, Settings, MessageCircle, Flame } from 'lucide-react';
 
 export function MobileBottomNav() {
@@ -17,7 +15,6 @@ export function MobileBottomNav() {
 
   const handleHome = () => {
     if (location.pathname === '/') {
-      // Already on home — scroll to top and refetch feed
       window.scrollTo({ top: 0, behavior: 'smooth' });
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       queryClient.invalidateQueries({ queryKey: ['infinite-posts'] });
@@ -28,81 +25,117 @@ export function MobileBottomNav() {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const btnClass = (path: string) =>
-    `flex-col h-auto py-2 px-3 gap-1 transition-colors ${
-      isActive(path) ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-    }`;
-
-  const homeClass = `flex-col h-auto py-2 px-3 gap-1 transition-colors ${
-    isActive('/') ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-  }`;
+  const unreadNotifCount = notifications?.length ?? 0;
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-background/95 backdrop-blur-lg shadow-lg">
-      <div className="flex items-center justify-around px-2 py-2">
+    <div
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-background shadow-[0_-1px_0_0_hsl(var(--border)/0.3)]"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
+      <div className="flex items-stretch justify-around">
 
-        {/* Home — scrolls to top + refreshes */}
-        <Button variant="ghost" size="sm" onClick={handleHome} className={homeClass}>
-          <Home className="h-5 w-5" />
-          <span className="text-[10px] font-medium">Home</span>
-        </Button>
+        {/* Home */}
+        <NavButton
+          label="Home"
+          active={isActive('/')}
+          onClick={handleHome}
+        >
+          <Home className="h-[22px] w-[22px]" />
+        </NavButton>
 
         {/* Messages */}
-        <Button
-          variant="ghost"
-          size="sm"
+        <NavButton
+          label="Messages"
+          active={isActive('/messages')}
           onClick={() => navigate('/messages')}
-          className={`relative ${btnClass('/messages')}`}
+          badge={unreadDMCount > 0 ? (unreadDMCount > 9 ? '9+' : String(unreadDMCount)) : undefined}
         >
-          <MessageCircle className="h-5 w-5" />
-          {unreadDMCount > 0 && (
-            <Badge className="absolute top-1 right-1 h-4 min-w-4 px-1 bg-red-500 hover:bg-red-500 text-white text-[9px] border border-background">
-              {unreadDMCount > 9 ? '9+' : unreadDMCount}
-            </Badge>
-          )}
-          <span className="text-[10px] font-medium">Messages</span>
-        </Button>
+          <MessageCircle className="h-[22px] w-[22px]" />
+        </NavButton>
 
         {/* Explore */}
-        <Button
-          variant="ghost"
-          size="sm"
+        <NavButton
+          label="Explore"
+          active={isActive('/explore')}
           onClick={() => navigate('/explore')}
-          className={btnClass('/explore')}
         >
-          <Flame className="h-5 w-5 text-orange-500" />
-          <span className="text-[10px] font-medium">Explore</span>
-        </Button>
+          <Flame className={`h-[22px] w-[22px] ${isActive('/explore') ? '' : 'text-orange-500'}`} />
+        </NavButton>
 
         {/* Notifications */}
-        <Button
-          variant="ghost"
-          size="sm"
+        <NavButton
+          label="Alerts"
+          active={isActive('/notifications')}
           onClick={() => navigate('/notifications')}
-          className={`relative ${btnClass('/notifications')}`}
+          badge={unreadNotifCount > 0 ? (unreadNotifCount > 9 ? '9+' : String(unreadNotifCount)) : undefined}
         >
-          <Bell className="h-5 w-5" />
-          {notifications && notifications.length > 0 && (
-            <Badge className="absolute top-1 right-1 h-4 min-w-4 px-1 bg-red-500 hover:bg-red-500 text-white text-[9px] border border-background">
-              {notifications.length > 9 ? '9+' : notifications.length}
-            </Badge>
-          )}
-          <span className="text-[10px] font-medium">Alerts</span>
-        </Button>
+          <Bell className="h-[22px] w-[22px]" />
+        </NavButton>
 
         {/* Settings */}
-        <Button
-          variant="ghost"
-          size="sm"
+        <NavButton
+          label="Settings"
+          active={isActive('/settings')}
           onClick={() => navigate('/settings')}
-          className={btnClass('/settings')}
-          aria-label="Settings"
         >
-          <Settings className="h-5 w-5" />
-          <span className="text-[10px] font-medium">Settings</span>
-        </Button>
+          <Settings className="h-[22px] w-[22px]" />
+        </NavButton>
 
       </div>
     </div>
+  );
+}
+
+// ─── Sub-component ────────────────────────────────────────────────────────────
+
+interface NavButtonProps {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  badge?: string;
+  children: React.ReactNode;
+}
+
+function NavButton({ label, active, onClick, badge, children }: NavButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={[
+        // Full-height flex column for easy centering
+        'relative flex flex-col items-center justify-center gap-[3px]',
+        // Generous tap target — min 48px tall, flex-1 wide
+        'flex-1 min-h-[52px] py-2',
+        // Snappy press effect (no hover jank on mobile)
+        'transition-all duration-100 active:scale-90 active:opacity-70',
+        // Colour
+        active
+          ? 'text-primary'
+          : 'text-muted-foreground',
+        // Remove browser tap highlight — we have our own feedback
+        'outline-none select-none',
+      ].join(' ')}
+    >
+      {/* Icon wrapper — relative for badge positioning */}
+      <span className="relative">
+        {children}
+        {badge && (
+          <span className="absolute -top-1.5 -right-2 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-red-500 px-[3px] text-[9px] font-bold leading-none text-white border border-background">
+            {badge}
+          </span>
+        )}
+      </span>
+
+      {/* Label */}
+      <span className={`text-[10px] font-medium leading-none ${active ? 'text-primary' : 'text-muted-foreground'}`}>
+        {label}
+      </span>
+
+      {/* Active dot indicator */}
+      {active && (
+        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 h-[3px] w-[3px] rounded-full bg-primary" />
+      )}
+    </button>
   );
 }

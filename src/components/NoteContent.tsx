@@ -67,40 +67,39 @@ export function NoteContent({
       .map(([_, pubkey]) => pubkey);
   }, [event.tags]);
 
-  // Extract media URLs to hide them from content
-  const mediaUrls = useMemo(() => {
-    const urls = new Set<string>();
-    
-    // Get URLs from imeta tags
+  // Build a set of media URLs from imeta tags (exact URLs to always hide)
+  // and a quick test function that also catches image/video URLs by extension.
+  const { isMediaUrl } = useMemo(() => {
+    const imeta = new Set<string>();
+
+    // Get URLs from imeta tags — these are authoritative
     event.tags
       .filter(([name]) => name === 'imeta')
       .forEach(tag => {
         const urlTag = tag.find(item => item.startsWith('url '));
         if (urlTag) {
-          const url = urlTag.replace('url ', '');
-          urls.add(url);
+          imeta.add(urlTag.replace('url ', ''));
         }
       });
 
-    // Get image/video URLs from content
-    const imageMatches = event.content.matchAll(/https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?[^\s]*)?\b/gi);
-    const videoMatches = event.content.matchAll(/https?:\/\/[^\s]+\.(mp4|webm|ogv|mov)(\?[^\s]*)?\b/gi);
+    // Extension-based test for any URL found in content — avoids mismatches
+    // between the content parser regex and the media regex captures.
+    const mediaExtRe = /\.(jpg|jpeg|png|gif|webp|bmp|svg|mp4|webm|ogv|mov)(\?[^\s]*)?$/i;
 
-    for (const match of imageMatches) {
-      urls.add(match[0]);
-    }
-    
-    for (const match of videoMatches) {
-      urls.add(match[0]);
-    }
+    const testFn = (url: string): boolean => {
+      if (imeta.has(url)) return true;
+      return mediaExtRe.test(url);
+    };
 
-    return urls;
-  }, [event.content, event.tags]);
+    return { isMediaUrl: testFn };
+  }, [event.tags]);
 
   // Process the content to render mentions, links, etc.
   // (must be before any early returns to satisfy rules of hooks)
   const processedContent = useMemo(() => {
-    const text = event.content;
+    // Trim leading/trailing whitespace and collapse runs of 3+ newlines to 2
+    // so posts that are just "\n\n\n\n#hashtag" don't create a wall of empty space.
+    const text = event.content.trim().replace(/\n{3,}/g, '\n\n');
     
     // Regex to find Nostr references (with or without nostr: prefix), URLs, hashtags, and indexed mentions (#[0], #[1], etc.)
     // Put Nostr references BEFORE URLs to prevent nostr:nevent1 from being treated as a URL
@@ -184,9 +183,9 @@ export function NoteContent({
         }
       } else if (url) {
         // Check if this URL is a media URL that's already displayed
-        const isMediaUrl = mediaUrls.has(url);
+        const urlIsMedia = isMediaUrl(url);
         
-        if (isMediaUrl && !showHiddenLinks) {
+        if (urlIsMedia && !showHiddenLinks) {
           // Hide media URLs since they're shown as thumbnails
           hiddenCount++;
           // Don't add the URL to parts
@@ -200,7 +199,7 @@ export function NoteContent({
               rel="noopener noreferrer"
               className={cn(
                 "hover:underline break-all transition-colors",
-                isMediaUrl ? "text-muted-foreground text-xs" : "text-primary hover:text-primary/80"
+                urlIsMedia ? "text-muted-foreground text-xs" : "text-primary hover:text-primary/80"
               )}
               onClick={(e) => e.stopPropagation()}
             >
@@ -246,9 +245,28 @@ export function NoteContent({
     if (parts.length === 0) {
       parts.push(text);
     }
-    
-    return { content: parts, hiddenLinkCount: hiddenCount };
-  }, [event.content, mentionedPubkeys, mediaUrls, showHiddenLinks]);
+
+    // Strip leading/trailing whitespace-only string nodes so that posts
+    // whose content is "\n\nhttps://img.jpg\n\n#tag" don't render blank
+    // lines above/below the hashtag after the URLs are hidden.
+    // Also collapse consecutive newlines within string nodes to max 2.
+    const cleanParts = parts
+      .map(p =>
+        typeof p === 'string'
+          ? p.replace(/\n{3,}/g, '\n\n')  // collapse 3+ newlines → 2
+          : p
+      );
+    // Trim leading whitespace-only strings
+    while (cleanParts.length > 0 && typeof cleanParts[0] === 'string' && (cleanParts[0] as string).trim() === '') {
+      cleanParts.shift();
+    }
+    // Trim trailing whitespace-only strings
+    while (cleanParts.length > 0 && typeof cleanParts[cleanParts.length - 1] === 'string' && (cleanParts[cleanParts.length - 1] as string).trim() === '') {
+      cleanParts.pop();
+    }
+
+    return { content: cleanParts, hiddenLinkCount: hiddenCount };
+  }, [event.content, mentionedPubkeys, isMediaUrl, showHiddenLinks]);
 
   const { content, hiddenLinkCount } = processedContent;
 

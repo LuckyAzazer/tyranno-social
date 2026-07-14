@@ -121,7 +121,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
 
   return (
     <Card
-      className="group overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border/50 hover:border-primary/20 dark:border-transparent cursor-pointer bg-gradient-to-br from-card via-card to-rose-50/20 dark:from-card dark:via-card dark:to-card"
+      className="group overflow-hidden transition-all duration-150 hover:shadow-md active:scale-[0.99] active:brightness-95 border-border/50 hover:border-primary/20 dark:border-transparent cursor-pointer bg-gradient-to-br from-card via-card to-rose-50/20 dark:from-card dark:via-card dark:to-card"
       onClick={() => onClick?.(displayEvent)}
     >
       {isRepost && repostedEvent && (
@@ -177,10 +177,12 @@ export function PostCard({ event, onClick }: PostCardProps) {
       </CardHeader>
 
       <CardContent className="pb-4">
-        {/* Post text — clicking here opens the dialog */}
-        <div className="mb-4 break-words whitespace-pre-wrap">
-          <NoteContent event={displayEvent} className="text-sm leading-relaxed" />
-        </div>
+        {/* Post text — only render wrapper when there's actual content */}
+        {displayEvent.content.trim() && (
+          <div className="mb-3 break-words whitespace-pre-wrap">
+            <NoteContent event={displayEvent} className="text-sm leading-relaxed" />
+          </div>
+        )}
 
         {/* Media */}
         <div className="mb-4" onClick={(e) => e.stopPropagation()}>

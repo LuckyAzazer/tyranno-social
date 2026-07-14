@@ -16,6 +16,8 @@ import { usePublicFollowLists } from '@/hooks/usePublicFollowLists';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useToast } from '@/hooks/useToast';
+import { useWoTSuggestions } from '@/hooks/useWoTSuggestions';
+import { useFollowUser } from '@/hooks/useFollowUser';
 import { genUserName } from '@/lib/genUserName';
 
 import { LoginArea } from '@/components/auth/LoginArea';
@@ -53,6 +55,8 @@ import {
   Plus,
   Search,
   Users,
+  UserPlus,
+  UserCheck,
   Pencil,
   Trash2,
   Share2,
@@ -497,6 +501,102 @@ function DiscoveryPanel({
   );
 }
 
+// ── Suggested person card ─────────────────────────────────────────────────────
+
+function SuggestedPersonCard({ pubkey, score }: { pubkey: string; score: number }) {
+  const author = useAuthor(pubkey);
+  const meta: NostrMetadata | undefined = author.data?.metadata;
+  const displayName = meta?.display_name || meta?.name || genUserName(pubkey);
+  const username = meta?.name || genUserName(pubkey);
+  const npub = nip19.npubEncode(pubkey);
+  const { isFollowing, follow, isPending } = useFollowUser(pubkey);
+
+  return (
+    <Card className="group border-border/50 dark:border-transparent hover:border-primary/20 hover:shadow-md transition-all duration-200 w-48 shrink-0">
+      <CardContent className="p-3 flex flex-col items-center text-center gap-2">
+        <Link to={`/${npub}`} className="shrink-0">
+          <Avatar className="h-14 w-14 ring-2 ring-primary/10">
+            <AvatarImage src={meta?.picture} alt={displayName} />
+            <AvatarFallback className="text-lg bg-primary/10 text-primary">
+              {displayName[0]?.toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        </Link>
+        <div className="min-w-0 w-full">
+          <Link to={`/${npub}`} className="hover:text-primary transition-colors">
+            <p className="text-sm font-semibold truncate">{displayName}</p>
+          </Link>
+          <p className="text-[11px] text-muted-foreground truncate">@{username}</p>
+        </div>
+        <Badge variant="secondary" className="text-[10px] gap-1 font-normal">
+          <Users className="h-3 w-3" />
+          {score} mutual{score !== 1 ? 's' : ''} follow
+        </Badge>
+        <Button
+          size="sm"
+          variant={isFollowing ? 'secondary' : 'default'}
+          className={`w-full h-7 text-xs gap-1.5 ${
+            isFollowing
+              ? ''
+              : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white border-0'
+          }`}
+          onClick={() => { if (!isFollowing) follow(); }}
+          disabled={isPending || isFollowing}
+        >
+          {isPending ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : isFollowing ? (
+            <><UserCheck className="h-3 w-3" /> Following</>
+          ) : (
+            <><UserPlus className="h-3 w-3" /> Follow</>
+          )}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Suggested people section ─────────────────────────────────────────────────
+
+function SuggestedPeopleSection() {
+  const { user } = useCurrentUser();
+  const { data: suggestions = [], isLoading } = useWoTSuggestions(20);
+
+  if (!user) return null;
+
+  return (
+    <div className="space-y-3">
+      <h2 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground uppercase tracking-wide">
+        <UserPlus className="h-3.5 w-3.5" />
+        Suggested People
+      </h2>
+      <p className="text-xs text-muted-foreground -mt-1">
+        People followed by those you follow — ranked by how many of your connections endorse them.
+      </p>
+
+      {isLoading ? (
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="w-48 h-44 rounded-xl shrink-0" />
+          ))}
+        </div>
+      ) : suggestions.length === 0 ? (
+        <div className="py-6 text-center text-muted-foreground">
+          <Users className="h-8 w-8 mx-auto mb-2 opacity-20" />
+          <p className="text-sm">No suggestions yet.</p>
+          <p className="text-xs mt-1">Follow more people to get personalised recommendations.</p>
+        </div>
+      ) : (
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+          {suggestions.map((s) => (
+            <SuggestedPersonCard key={s.pubkey} pubkey={s.pubkey} score={s.score} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export function CirclesPage() {
@@ -619,6 +719,22 @@ export function CirclesPage() {
         </section>
 
         <Separator />
+
+        {/* ── Suggested People ── */}
+        {user && (
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="h-px flex-1 bg-border/50" />
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest px-2">
+                People You May Know
+              </span>
+              <div className="h-px flex-1 bg-border/50" />
+            </div>
+            <SuggestedPeopleSection />
+          </section>
+        )}
+
+        {user && <Separator />}
 
         {/* ── User's Circles ── */}
         <section className="space-y-4">

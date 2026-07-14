@@ -19,7 +19,7 @@ import { filterEventsByTopic } from '@/lib/topicFilter';
 import type { NostrEvent } from '@nostrify/nostrify';
 import type { FeedCategory } from './usePosts';
 
-const PAGE_SIZE = 50; // Smaller first page for faster initial render
+const PAGE_SIZE = 100; // Large pages fill all columns without gaps
 
 const categoryKinds: Record<FeedCategory, number[]> = {
   following: [1, 6, 16, 30023, 31337, 34235],

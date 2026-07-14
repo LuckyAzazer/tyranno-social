@@ -25,7 +25,7 @@ import { filterNSFWContent } from '@/lib/nsfwDetection';
 import { filterEventsByTopic } from '@/lib/topicFilter';
 import type { NostrEvent } from '@nostrify/nostrify';
 
-const PAGE_SIZE = 50; // Smaller first page for faster initial render
+const PAGE_SIZE = 100; // Large pages fill all columns without gaps
 
 export function useInfiniteConversationsFeed() {
   const { nostr } = useNostr();

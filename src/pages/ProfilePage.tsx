@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useSeoMeta } from '@unhead/react';
 import { useProfile, useUserPosts } from '@/hooks/useProfile';
 import { useFollowStats } from '@/hooks/useFollowers';
@@ -21,12 +21,13 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { genUserName } from '@/lib/genUserName';
-import { ArrowLeft, Link as LinkIcon, Mail, Zap, CheckCircle2, Edit, Copy, MessageCircle, CircleDot, ChevronDown, Pin, Globe } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon, Mail, Zap, CheckCircle2, Edit, Copy, MessageCircle, CircleDot, ChevronDown, Pin, Globe, RefreshCw } from 'lucide-react';
 import { PostCard } from '@/components/PostCard';
 import { FollowButton } from '@/components/FollowButton';
 import { useFollowSets } from '@/hooks/useFollowSets';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { nip19 } from 'nostr-tools';
 import { EditProfileForm } from '@/components/EditProfileForm';
 import { ProfileBadges } from '@/components/ProfileBadges';
@@ -116,6 +117,7 @@ interface ProfilePageProps {
 
 export function ProfilePage({ pubkey }: ProfilePageProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useCurrentUser();
   const { openConversation } = useFloatingDM();
   const { toast } = useToast();
@@ -124,6 +126,7 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [followListOpen, setFollowListOpen] = useState(false);
   const [followListTab, setFollowListTab] = useState<'followers' | 'following'>('followers');
+  const [isRefreshingFollows, setIsRefreshingFollows] = useState(false);
   const { data: profileData, isLoading: isLoadingProfile } = useProfile(pubkey);
   const { data: posts, isLoading: isLoadingPosts } = useUserPosts(pubkey);
   const { followersCount, followingCount, isLoading: isLoadingStats } = useFollowStats(pubkey);
@@ -191,6 +194,30 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
     // Open the floating DM window for this user
     openConversation(pubkey);
   };
+
+  const handleRefreshFollows = useCallback(async () => {
+    setIsRefreshingFollows(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['following', pubkey] }),
+        queryClient.invalidateQueries({ queryKey: ['followers', pubkey] }),
+        queryClient.refetchQueries({ queryKey: ['following', pubkey] }),
+        queryClient.refetchQueries({ queryKey: ['followers', pubkey] }),
+      ]);
+      toast({
+        title: 'Follow list refreshed',
+        description: 'Your following and follower counts have been updated.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Refresh failed',
+        description: 'Could not refresh follow data. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRefreshingFollows(false);
+    }
+  }, [queryClient, pubkey, toast]);
 
   // Create a profile event for zapping
   const profileEvent = useMemo((): Event | null => {
@@ -351,12 +378,23 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
                     </span>{' '}
                     <span className="text-muted-foreground text-xs">{followersCount === 1 ? 'Follower' : 'Followers'}</span>
                   </button>
-                  <button onClick={handleOpenFollowing} className="text-sm hover:underline cursor-pointer group">
-                    <span className="font-bold group-hover:text-primary transition-colors">
-                      {isLoadingStats ? '—' : followingCount}
-                    </span>{' '}
-                    <span className="text-muted-foreground text-xs">Following</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={handleOpenFollowing} className="text-sm hover:underline cursor-pointer group">
+                      <span className="font-bold group-hover:text-primary transition-colors">
+                        {isLoadingStats ? '—' : followingCount}
+                      </span>{' '}
+                      <span className="text-muted-foreground text-xs">Following</span>
+                    </button>
+                    <button
+                      onClick={handleRefreshFollows}
+                      disabled={isRefreshingFollows || isLoadingStats}
+                      title="Refresh follow list — fixes incorrect follower/following counts"
+                      className="flex items-center justify-center h-5 w-5 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      aria-label="Refresh follow data"
+                    >
+                      <RefreshCw className={`h-3 w-3 ${isRefreshingFollows ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* ── Bio ── */}
@@ -497,6 +535,7 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
         open={followListOpen}
         onOpenChange={setFollowListOpen}
         defaultTab={followListTab}
+        showMutuals={isOwnProfile}
       />
     </div>
   );

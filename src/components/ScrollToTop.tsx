@@ -31,11 +31,12 @@ export function ScrollToTop() {
     <Button
       onClick={scrollToTop}
       size="icon"
-      className={`fixed bottom-6 right-6 z-50 h-12 w-12 rounded-full shadow-lg transition-all duration-300 ${
+      className={`fixed z-[60] h-12 w-12 rounded-full shadow-lg transition-all duration-300 right-4 ${
         isVisible 
           ? 'opacity-100 translate-y-0' 
           : 'opacity-0 translate-y-16 pointer-events-none'
       }`}
+      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 148px)' }}
       aria-label="Scroll to top"
     >
       <ArrowUp className="h-5 w-5" />

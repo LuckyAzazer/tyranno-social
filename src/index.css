@@ -88,10 +88,24 @@
 @layer base {
   * {
     @apply border-border;
+    /* Remove the blue tap highlight on mobile — cards/buttons use their own feedback */
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     @apply bg-background text-foreground;
+    /* Smooth momentum scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ensure scroll containers feel native on iOS */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Prevent pull-to-refresh browser default so we can implement our own */
+  body {
+    overscroll-behavior-y: contain;
   }
 
   /* Light mode enhancements */
@@ -222,6 +236,64 @@
   .personalized-theme .text-foreground,
   .personalized-theme .text-muted-foreground {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+
+  /* ─── Mobile performance helpers ─────────────────────────── */
+
+  /* GPU-composited layer for elements that animate frequently */
+  .will-change-transform {
+    will-change: transform;
+  }
+
+  /* Safe-area inset utilities for notched phones (iPhone X+, Android) */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Active press feedback — use instead of :hover on mobile */
+  .tap-highlight {
+    @apply transition-opacity duration-100;
+  }
+  .tap-highlight:active {
+    @apply opacity-70;
+  }
+
+  /* Touch-optimised target size — ensures 44×44 pt minimum */
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Pull-to-refresh indicator */
+  .pull-indicator {
+    @apply flex items-center justify-center py-3 text-muted-foreground text-sm gap-2;
+    transition: opacity 0.2s ease;
+  }
+
+  /* ─── Mobile GPU: reduce expensive backdrop-blur on small screens ── */
+  /* backdrop-filter is GPU-intensive; on mobile we cap it to a lighter blur */
+  @media (max-width: 1023px) {
+    .backdrop-blur-lg {
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+    }
+    .backdrop-blur-xl {
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+    }
+    .backdrop-blur-2xl {
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
   }
 
   /* Hide scrollbars */

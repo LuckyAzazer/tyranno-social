@@ -20,19 +20,27 @@ const categoryKinds: Record<FeedCategory, number[]> = {
   videos: [34235],
 };
 
-const PAGE_SIZE = 50; // First page loads faster; infinite scroll fetches more
+const PAGE_SIZE = 100; // Large pages fill all columns without gaps
 
 export function useInfinitePosts(category: FeedCategory = 'following') {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { config } = useAppContext();
-  const { data: followPubkeys = [] } = useFollows(user?.pubkey);
+  const { data: followPubkeys = [], isFetched: followsFetched, isLoading: followsLoading } = useFollows(user?.pubkey);
   const { shouldFilter } = useNSFWFilter();
   const { isActive: wotActive } = useWebOfTrust();
   const { data: wotNetwork = [] } = useWebOfTrustNetwork();
 
-  return useInfiniteQuery({
+  // Don't fire the feed query until we actually have the follow list.
+  // - Not logged in → fire immediately (public feed)
+  // - Logged in, follows still loading → wait
+  // - Logged in, follows fetched with results → ready
+  // - Logged in, follows fetched with 0 results → still ready (user has no follows)
+  const followsReady = !user || (followsFetched && !followsLoading);
+
+  const query = useInfiniteQuery({
     queryKey: ['posts-infinite', category, user?.pubkey, config.relayMetadata.updatedAt, followPubkeys.length, shouldFilter, config.topicFilter, wotActive, wotNetwork.length],
+    enabled: followsReady,
     queryFn: async ({ pageParam }) => {
       const kinds = categoryKinds[category];
       
@@ -46,7 +54,9 @@ export function useInfinitePosts(category: FeedCategory = 'following') {
         ? nostr.group(relayUrls)
         : nostr;
 
-      // Build the query with pagination
+      // Build the query — always filter by authors when the user has follows.
+      // Never fall back to a global query when logged in; show an empty feed
+      // instead so the user isn't shown random content.
       const query = followPubkeys.length > 0
         ? {
             kinds,
@@ -56,7 +66,8 @@ export function useInfinitePosts(category: FeedCategory = 'following') {
           }
         : {
             kinds,
-            limit: 20, // Reduced limit when no follows
+            // Logged-out or user has no follows — small public sample only
+            limit: 20,
             ...(pageParam ? { until: pageParam } : {}),
           };
 
@@ -166,4 +177,13 @@ export function useInfinitePosts(category: FeedCategory = 'following') {
     staleTime: 1000 * 60 * 5,         // Show cached feed instantly; refresh after 5 min
     gcTime: 1000 * 60 * 60 * 24,      // Keep pages in cache for 24 h
   });
+
+  return {
+    ...query,
+    // Extra flags so the UI can show a meaningful progress state:
+    // - isLoadingFollows: still fetching the contact list
+    // - isLoadingFeed: contact list ready, now fetching posts
+    isLoadingFollows: !!user && !followsFetched,
+    followCount: followPubkeys.length,
+  };
 }

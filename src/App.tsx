@@ -13,6 +13,7 @@ import { NostrLoginProvider } from '@nostrify/react/login';
 import { AppProvider } from '@/components/AppProvider';
 import { NWCProvider } from '@/contexts/NWCContext';
 import { DMProvider } from '@/components/DMProvider';
+import { WebRTCCallProvider } from '@/contexts/WebRTCCallContext';
 import { AppConfig } from '@/contexts/AppContext';
 import { PROTOCOL_MODE } from '@/lib/dmConstants';
 import AppRouter from './AppRouter';
@@ -179,12 +180,14 @@ export function App() {
               <NostrSync />
               <NWCProvider>
                 <DMProvider config={{ enabled: true, protocolMode: PROTOCOL_MODE.NIP04_OR_NIP17 }}>
-                  <TooltipProvider>
-                    <Toaster />
-                    <Suspense>
-                      <AppRouter />
-                    </Suspense>
-                  </TooltipProvider>
+                  <WebRTCCallProvider>
+                    <TooltipProvider>
+                      <Toaster />
+                      <Suspense>
+                        <AppRouter />
+                      </Suspense>
+                    </TooltipProvider>
+                  </WebRTCCallProvider>
                 </DMProvider>
               </NWCProvider>
             </NostrProvider>
