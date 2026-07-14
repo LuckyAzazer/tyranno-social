@@ -57,12 +57,12 @@ export function ProfileCard({ data }: ProfileCardProps) {
                 src={picture}
                 alt={displayName}
                 className="w-16 h-16 object-cover ring-2 ring-background shadow-lg"
-                style={{ borderRadius: '30% 70% 70% 30% / 30% 30% 70% 70%' }}
+                style={{ borderRadius: '50% 50% 5% 50%' }}
                 loading="lazy"
               />
             </div>
           ) : (
-            <div className="shrink-0 w-16 h-16 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center ring-2 ring-background shadow-lg" style={{ borderRadius: '30% 70% 70% 30% / 30% 30% 70% 70%' }}>
+            <div className="shrink-0 w-16 h-16 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center ring-2 ring-background shadow-lg" style={{ borderRadius: '50% 50% 5% 50%' }}>
               <User className="h-8 w-8 text-primary" />
             </div>
           )}

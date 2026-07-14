@@ -4,13 +4,13 @@ import * as AvatarPrimitive from "@radix-ui/react-avatar"
 import { cn } from "@/lib/utils"
 
 /**
- * Teardrop avatar shape — rounded on three corners with the top-left
- * corner coming to a tighter point, similar to Android adaptive icons.
+ * Teardrop avatar shape — three corners are fully rounded and the
+ * bottom-right corner tapers to a point, like a speech bubble / water drop.
  *
- * The shape is achieved via border-radius shorthand:
+ * border-radius shorthand order:
  *   top-left / top-right / bottom-right / bottom-left
  */
-const TEARDROP_RADIUS = "30% 70% 70% 30% / 30% 30% 70% 70%";
+const TEARDROP_RADIUS = "50% 50% 5% 50%";
 
 const Avatar = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Root>,
