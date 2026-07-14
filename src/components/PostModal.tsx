@@ -32,6 +32,7 @@ import { ContentWarningWrapper } from '@/components/ContentWarningWrapper';
 import { ZapButton } from '@/components/ZapButton';
 import { EmojiReactionPicker } from '@/components/EmojiReactionPicker';
 import { BookmarkListsDialog } from '@/components/BookmarkListsDialog';
+import { MutualFollowBadge } from '@/components/MutualFollowBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -287,12 +288,14 @@ export function PostModal({ event, onClose }: PostModalProps) {
           {/* Author */}
           <div className="flex items-start gap-3">
             <Link to={`/${npub}`} onClick={onClose} className="shrink-0">
-              <Avatar className="h-12 w-12 ring-2 ring-background shadow">
-                <AvatarImage src={meta?.picture} alt={name} />
-                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                  {name[0]?.toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <MutualFollowBadge pubkey={event.pubkey}>
+                <Avatar className="h-12 w-12 ring-2 ring-background shadow">
+                  <AvatarImage src={meta?.picture} alt={name} />
+                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                    {name[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </MutualFollowBadge>
             </Link>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">

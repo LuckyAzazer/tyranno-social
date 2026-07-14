@@ -25,6 +25,7 @@ import { usePinnedPost } from '@/hooks/usePinnedPost';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { FollowButton } from '@/components/FollowButton';
 import { FollowRepliesPreview } from '@/components/FollowRepliesPreview';
+import { MutualFollowBadge } from '@/components/MutualFollowBadge';
 import { RepostDialog } from '@/components/RepostDialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -140,12 +141,14 @@ export function PostCard({ event, onClick }: PostCardProps) {
             className="shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
-            <Avatar className="h-10 w-10 ring-2 ring-background transition-all group-hover:ring-primary/20">
-              <AvatarImage src={profileImage} alt={displayName} />
-              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
-                {displayName[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <MutualFollowBadge pubkey={displayEvent.pubkey}>
+              <Avatar className="h-10 w-10 ring-2 ring-background transition-all group-hover:ring-primary/20">
+                <AvatarImage src={profileImage} alt={displayName} />
+                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                  {displayName[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </MutualFollowBadge>
           </Link>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">

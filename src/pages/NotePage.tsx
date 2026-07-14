@@ -19,6 +19,7 @@ import { ZapButton } from '@/components/ZapButton';
 import { BookmarkListsDialog } from '@/components/BookmarkListsDialog';
 import { CommentsSection } from '@/components/comments/CommentsSection';
 import { ContentWarningWrapper } from '@/components/ContentWarningWrapper';
+import { MutualFollowBadge } from '@/components/MutualFollowBadge';
 import { genUserName } from '@/lib/genUserName';
 import { ArrowLeft, MessageCircle, Repeat2, Bookmark, MoreHorizontal, Copy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -183,12 +184,14 @@ export function NotePage({ eventId }: NotePageProps) {
             <CardHeader className="pb-4">
               <div className="flex items-start gap-4">
                 <a href={`/${npub}`} className="shrink-0">
-                  <Avatar className="h-12 w-12 ring-2 ring-background transition-all hover:ring-primary/20">
-                    <AvatarImage src={profileImage} alt={displayName} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
-                      {displayName[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <MutualFollowBadge pubkey={event.pubkey}>
+                    <Avatar className="h-12 w-12 ring-2 ring-background transition-all hover:ring-primary/20">
+                      <AvatarImage src={profileImage} alt={displayName} />
+                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                        {displayName[0]?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </MutualFollowBadge>
                 </a>
                 <div className="flex-1 min-w-0">
                   <a

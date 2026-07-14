@@ -31,6 +31,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { nip19 } from 'nostr-tools';
 import { EditProfileForm } from '@/components/EditProfileForm';
 import { ProfileBadges } from '@/components/ProfileBadges';
+import { MutualFollowBadge } from '@/components/MutualFollowBadge';
 import type { NostrMetadata, NostrEvent } from '@nostrify/nostrify';
 import { Badge } from '@/components/ui/badge';
 import type { Event } from 'nostr-tools';
@@ -294,12 +295,14 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
 
                 {/* ── Top row: avatar + action buttons ── */}
                 <div className="flex items-end justify-between gap-3">
-                  <Avatar className="h-20 w-20 sm:h-24 sm:w-24 ring-4 ring-background shadow-lg shrink-0">
-                    <AvatarImage src={profileImage} alt={displayName} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-3xl">
-                      {displayName[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <MutualFollowBadge pubkey={pubkey}>
+                    <Avatar className="h-20 w-20 sm:h-24 sm:w-24 ring-4 ring-background shadow-lg shrink-0">
+                      <AvatarImage src={profileImage} alt={displayName} />
+                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-3xl">
+                        {displayName[0]?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </MutualFollowBadge>
 
                   {/* Action buttons — compact on mobile */}
                   <div className="flex flex-wrap justify-end gap-1.5 sm:gap-2">

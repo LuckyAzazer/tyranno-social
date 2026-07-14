@@ -21,6 +21,7 @@ import { ContentWarningWrapper } from '@/components/ContentWarningWrapper';
 import { LoginArea } from '@/components/auth/LoginArea';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { MutualFollowBadge } from '@/components/MutualFollowBadge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -82,12 +83,14 @@ function HotPostCard({
           </div>
 
           <Link to={`/${npub}`} onClick={(e) => e.stopPropagation()} className="shrink-0">
-            <Avatar className="h-9 w-9 ring-2 ring-background">
-              <AvatarImage src={meta?.picture} alt={displayName} />
-              <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                {displayName[0]?.toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+            <MutualFollowBadge pubkey={event.pubkey}>
+              <Avatar className="h-9 w-9 ring-2 ring-background">
+                <AvatarImage src={meta?.picture} alt={displayName} />
+                <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                  {displayName[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </MutualFollowBadge>
           </Link>
 
           <div className="flex-1 min-w-0">
