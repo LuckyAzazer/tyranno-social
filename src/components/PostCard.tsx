@@ -72,12 +72,12 @@ export function PostCard({ event, onClick }: PostCardProps) {
   const username = metadata?.name || genUserName(displayEvent.pubkey);
   const profileImage = metadata?.picture;
 
-  const npub = nip19.npubEncode(displayEvent.pubkey);
-  const noteId = nip19.noteEncode(displayEvent.id);
+  const npub = displayEvent.pubkey ? nip19.npubEncode(displayEvent.pubkey) : '';
+  const noteId = displayEvent.id ? nip19.noteEncode(displayEvent.id) : '';
   const timeAgo = formatEventTime(displayEvent.created_at);
 
   const reposterMetadata: NostrMetadata | undefined = reposter.data?.metadata;
-  const reposterName = reposterMetadata?.display_name || reposterMetadata?.name || genUserName(event.pubkey);
+  const reposterName = reposterMetadata?.display_name || reposterMetadata?.name || genUserName(event.pubkey ?? '');
 
   const replyCount = replies?.length || 0;
   
