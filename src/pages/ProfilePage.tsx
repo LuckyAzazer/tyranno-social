@@ -31,6 +31,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { nip19 } from 'nostr-tools';
 import { EditProfileForm } from '@/components/EditProfileForm';
 import { ProfileBadges } from '@/components/ProfileBadges';
+import { MutualFollowBadge } from '@/components/MutualFollowBadge';
 import type { NostrMetadata, NostrEvent } from '@nostrify/nostrify';
 import { Badge } from '@/components/ui/badge';
 import type { Event } from 'nostr-tools';
@@ -255,16 +256,17 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-24">
 
-      {/* Banner — shorter on mobile */}
-      <div className="relative h-32 sm:h-52 bg-gradient-to-br from-primary/20 to-primary/5 overflow-hidden">
+      {/* Banner — immersive hero */}
+      <div className="relative h-52 sm:h-72 md:h-80 bg-gradient-to-br from-primary/20 to-primary/5 overflow-hidden">
         {banner && (
           <img src={banner} alt="Profile banner" className="w-full h-full object-cover" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+        {/* Gradient fade at bottom for smooth transition into content */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
         {/* Back button floating over banner */}
         <button
           onClick={() => navigate(-1)}
-          className="absolute top-3 left-3 flex items-center justify-center h-8 w-8 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 transition-colors"
+          className="absolute top-3 left-3 flex items-center justify-center h-8 w-8 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60 transition-colors z-20"
           aria-label="Go back"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -272,7 +274,7 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
       </div>
 
       {/* Profile card — pulled up over banner */}
-      <div className="px-3 sm:px-4 -mt-14 sm:-mt-16 relative z-10 space-y-4">
+      <div className="px-3 sm:px-4 -mt-16 sm:-mt-20 relative z-10 space-y-4">
 
         <Card className="border-border/50 dark:border-transparent shadow-lg overflow-hidden">
           <CardContent className="p-4 sm:p-6">
@@ -293,12 +295,14 @@ export function ProfilePage({ pubkey }: ProfilePageProps) {
 
                 {/* ── Top row: avatar + action buttons ── */}
                 <div className="flex items-end justify-between gap-3">
-                  <Avatar className="h-20 w-20 sm:h-24 sm:w-24 ring-4 ring-background shadow-lg shrink-0">
-                    <AvatarImage src={profileImage} alt={displayName} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-3xl">
-                      {displayName[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <MutualFollowBadge pubkey={pubkey}>
+                    <Avatar className="h-20 w-20 sm:h-24 sm:w-24 ring-4 ring-background shadow-lg shrink-0">
+                      <AvatarImage src={profileImage} alt={displayName} />
+                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-3xl">
+                        {displayName[0]?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </MutualFollowBadge>
 
                   {/* Action buttons — compact on mobile */}
                   <div className="flex flex-wrap justify-end gap-1.5 sm:gap-2">

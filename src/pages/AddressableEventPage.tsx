@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { EmojiReactionPicker } from '@/components/EmojiReactionPicker';
 import { ZapButton } from '@/components/ZapButton';
 import { BookmarkListsDialog } from '@/components/BookmarkListsDialog';
+import { MutualFollowBadge } from '@/components/MutualFollowBadge';
 import { MessageCircle, Repeat2, Send, Bookmark, ArrowLeft } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
@@ -205,12 +206,14 @@ export function AddressableEventPage({ kind, pubkey, identifier }: AddressableEv
               {/* Author Info */}
               <div className="flex items-start gap-4">
                 <Link to={`/${npub}`}>
-                  <Avatar className="h-12 w-12 ring-2 ring-background">
-                    <AvatarImage src={profileImage} alt={displayName} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
-                      {displayName[0]?.toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <MutualFollowBadge pubkey={event.pubkey}>
+                    <Avatar className="h-12 w-12 ring-2 ring-background">
+                      <AvatarImage src={profileImage} alt={displayName} />
+                      <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+                        {displayName[0]?.toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </MutualFollowBadge>
                 </Link>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap mb-1">

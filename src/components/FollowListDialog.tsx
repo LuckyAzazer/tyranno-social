@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { MutualFollowBadge } from '@/components/MutualFollowBadge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -245,12 +246,14 @@ function UserListItem({
       onClick={onClick}
       className="flex items-start gap-3 p-3 rounded-lg border hover:bg-accent cursor-pointer transition-colors group"
     >
-      <Avatar className="h-12 w-12 shrink-0 ring-2 ring-background">
-        <AvatarImage src={profileImage} alt={displayName} />
-        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
-          {displayName[0]?.toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
+      <MutualFollowBadge pubkey={pubkey}>
+        <Avatar className="h-12 w-12 shrink-0 ring-2 ring-background">
+          <AvatarImage src={profileImage} alt={displayName} />
+          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+            {displayName[0]?.toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+      </MutualFollowBadge>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <p className="font-semibold text-sm group-hover:text-primary transition-colors truncate">
