@@ -1,5 +1,5 @@
 import { useNostr } from '@nostrify/react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useAppContext } from '@/hooks/useAppContext';
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -69,5 +69,6 @@ export function useNotifications(limit: number = 50) {
     },
     enabled: !!user?.pubkey,
     staleTime: 30000, // Cache for 30 seconds to reduce queries
+    placeholderData: keepPreviousData, // Keep showing old data while re-fetching, prevents flash to empty
   });
 }

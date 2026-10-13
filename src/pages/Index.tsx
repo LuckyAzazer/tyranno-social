@@ -1031,7 +1031,7 @@ const Index = () => {
                   </div>
 
                   <div className="h-96 overflow-y-auto">
-                    {isLoadingNotifications ? (
+                    {isLoadingNotifications || notifications === undefined ? (
                       <div className="p-3 space-y-3">
                         {Array.from({ length: 4 }).map((_, i) => (
                           <div key={i} className="flex gap-3 items-start">
@@ -1044,7 +1044,7 @@ const Index = () => {
                           </div>
                         ))}
                       </div>
-                    ) : notifications && notifications.length > 0 ? (
+                    ) : notifications.length > 0 ? (
                       <div className="p-2 space-y-1.5">
                         {notifications.map((notification) => (
                           <NotificationItem
