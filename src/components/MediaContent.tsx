@@ -58,7 +58,7 @@ export function MediaContent({ event }: MediaContentProps) {
         items.push({ type: 'image', url });
       } else if (mime?.startsWith('video/')) {
         // Try to find a thumb or image tag in the same imeta entry for poster
-        const imetaTag = event.tags.find(tag => tag.some(item => item === `url ${url}`));
+        const imetaTag = event.tags?.find(tag => tag.some(item => item === `url ${url}`));
         const thumbEntry = imetaTag?.find(item => item.startsWith('thumb ') || item.startsWith('image '));
         const poster = thumbEntry ? thumbEntry.replace(/^(thumb|image) /, '') : undefined;
         items.push({ type: 'video', url, poster });

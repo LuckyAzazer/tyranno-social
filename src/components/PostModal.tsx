@@ -192,10 +192,10 @@ export function PostModal({ event, onClose }: PostModalProps) {
 
   // Thread view — look for parent event via 'e' tag with 'reply' or 'root' marker
   const parentEventId = (() => {
-    const replyTag = event.tags.find(([t, , , marker]) => t === 'e' && (marker === 'reply' || marker === 'root'));
+    const replyTag = event.tags?.find(([t, , , marker]) => t === 'e' && (marker === 'reply' || marker === 'root'));
     if (replyTag) return replyTag[1];
     // Fallback: first 'e' tag without a marker (older NIP-10 style)
-    const firstETag = event.tags.find(([t]) => t === 'e');
+    const firstETag = event.tags?.find(([t]) => t === 'e');
     return firstETag?.[1] ?? null;
   })();
   const { data: parentEvent } = useEventById(parentEventId);
