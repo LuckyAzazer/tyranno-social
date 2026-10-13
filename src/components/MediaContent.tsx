@@ -40,7 +40,7 @@ export function MediaContent({ event }: MediaContentProps) {
     const items: MediaItem[] = [];
     
     // Extract URLs from imeta tags (NIP-94)
-    const imetaUrls = event.tags
+    const imetaUrls = (event.tags ?? [])
       .filter(([name]) => name === 'imeta')
       .map(tag => {
         const urlTag = tag.find(item => item.startsWith('url '));
