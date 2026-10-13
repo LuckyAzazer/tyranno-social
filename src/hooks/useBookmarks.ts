@@ -80,31 +80,24 @@ export function useBookmarks() {
   const query = useQuery({
     queryKey: ['bookmarks', user?.pubkey, config.relayMetadata.updatedAt],
     queryFn: async () => {
-      if (!user) {
-        console.log('No user logged in, skipping bookmark fetch');
-        return { items: [], events: [] };
-      }
-
-      console.log('Fetching bookmarks for user:', user.pubkey);
+      if (!user) return { items: [], events: [] };
 
       // Get relay URLs from user's configuration (read from both read and write relays)
       const relayUrls = config.relayMetadata.relays
         .filter(r => r.read || r.write)
         .map(r => r.url);
 
-      console.log('Querying bookmarks from relays:', relayUrls);
-
       // Create a relay group to query from user's relays
       const relayGroup = relayUrls.length > 0 
         ? nostr.group(relayUrls)
         : nostr;
 
-      // Fetch bookmark lists (kind 10003) - replaceable event
+      // Fetch bookmark list (kind 10003) - replaceable event, get latest
       const bookmarkLists = await relayGroup.query([
         {
           kinds: [10003],
           authors: [user.pubkey],
-          limit: 10, // Fetch more to ensure we get the latest
+          limit: 10,
         },
       ]);
 
@@ -113,17 +106,8 @@ export function useBookmarks() {
 
       const bookmarkItems: BookmarkItem[] = [];
 
-      console.log('Found', bookmarkLists.length, 'bookmark lists');
       if (bookmarkLists.length > 0) {
-        console.log('Latest bookmark list created_at:', new Date(bookmarkLists[0].created_at * 1000).toISOString());
-        console.log('Latest bookmark list tags count:', bookmarkLists[0].tags.length);
-      }
-
-      if (bookmarkLists.length > 0) {
-        const list = bookmarkLists[0];
-        console.log('Bookmark list:', list);
-
-        const parsedItems = await parseBookmarkList(list, user);
+        const parsedItems = await parseBookmarkList(bookmarkLists[0], user);
         bookmarkItems.push(...parsedItems);
       }
 
@@ -144,10 +128,6 @@ export function useBookmarks() {
         events.push(...bookmarkedEvents);
       }
 
-      // TODO: Fetch articles (kind 30023) if needed
-      // For now, just return events
-
-      console.log('Returning', bookmarkItems.length, 'bookmark items and', events.length, 'events');
       return { items: bookmarkItems, events };
     },
     enabled: !!user,
@@ -181,8 +161,6 @@ export function useBookmarks() {
       ],
       {
         onevent: async (event: NostrEvent) => {
-          console.log('Received realtime bookmark update:', event.id, 'created_at:', event.created_at);
-
           // Parse the new bookmark list
           const bookmarkItems = await parseBookmarkList(event, user);
 
@@ -208,12 +186,8 @@ export function useBookmarks() {
             ['bookmarks', user.pubkey, config.relayMetadata.updatedAt],
             { items: bookmarkItems, events }
           );
-
-          console.log('Updated bookmark cache with', bookmarkItems.length, 'items and', events.length, 'events');
         },
-        oneose: () => {
-          console.log('Bookmark subscription EOSE received');
-        },
+        oneose: () => {},
       }
     );
 
@@ -222,7 +196,6 @@ export function useBookmarks() {
     // Cleanup subscription on unmount
     return () => {
       if (subscriptionRef.current) {
-        console.log('Closing bookmark subscription');
         subscriptionRef.current.close();
         subscriptionRef.current = null;
       }
