@@ -12,21 +12,40 @@ import { useNostr } from '@nostrify/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useToast } from '@/hooks/useToast';
+import { useAppContext } from '@/hooks/useAppContext';
+
+// Use the same broad fallback relay set as useFollows so the contact list
+// is reliably fetched even before NostrSync has updated the user's relay list.
+const FALLBACK_RELAYS = [
+  'wss://relay.ditto.pub',
+  'wss://relay.primal.net',
+  'wss://relay.damus.io',
+  'wss://nos.lol',
+  'wss://relay.nostr.band',
+];
 
 export function useFollowUser(targetPubkey: string) {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { toast } = useToast();
+  const { config } = useAppContext();
   const queryClient = useQueryClient();
 
-  // Fetch the current user's contact list (kind 3)
+  // Fetch the current user's contact list (kind 3).
+  // Merge user's configured relays with the fallback set — same strategy as
+  // useFollows — so we reliably get the contact list even on first load.
   const { data: contactList } = useQuery({
     queryKey: ['contact-list', user?.pubkey],
     queryFn: async () => {
       if (!user?.pubkey) return null;
-      const events = await nostr.query([
+      const configuredUrls = config.relayMetadata.relays
+        .filter(r => r.read)
+        .map(r => r.url);
+      const allRelayUrls = Array.from(new Set([...configuredUrls, ...FALLBACK_RELAYS]));
+      const relayGroup = nostr.group(allRelayUrls);
+      const events = await relayGroup.query([
         { kinds: [3], authors: [user.pubkey], limit: 1 },
-      ]);
+      ], { signal: AbortSignal.timeout(10_000) });
       return events[0] ?? null;
     },
     enabled: !!user?.pubkey,

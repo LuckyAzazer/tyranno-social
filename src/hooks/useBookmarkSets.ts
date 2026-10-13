@@ -114,8 +114,6 @@ export function useBookmarkSets() {
 
           const events = await Promise.race([queryPromise, timeoutPromise]);
 
-          console.log('Found', events.length, 'remote bookmark sets');
-
           // Parse all bookmark sets
           remoteSets = await Promise.all(
             events.map(event => parseBookmarkSet(event, user))
@@ -158,8 +156,6 @@ export function useBookmarkSets() {
 
       // Sort by most recent
       allSets.sort((a, b) => b.createdAt - a.createdAt);
-
-      console.log('Total bookmark sets (local + remote):', allSets.length);
 
       return allSets;
     },
@@ -253,10 +249,7 @@ export function useCreateBookmarkSet() {
             .filter(r => r.write)
             .map(r => r.url);
 
-          console.log('Background sync: Creating bookmark set with write relays:', writeRelayUrls);
-
           if (writeRelayUrls.length === 0) {
-            console.warn('No write relays configured, keeping local only');
             return;
           }
 
@@ -270,8 +263,6 @@ export function useCreateBookmarkSet() {
           if (description) tags.push(['description', description]);
           if (image) tags.push(['image', image]);
 
-          console.log('Background sync: Publishing bookmark set event...');
-
           // Add timeout to prevent hanging
           const publishPromise = writeRelayGroup.event({
             kind: 30003,
@@ -280,12 +271,10 @@ export function useCreateBookmarkSet() {
           });
 
           const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('Publishing timeout')), 15000); // 15 second timeout
+            setTimeout(() => reject(new Error('Publishing timeout')), 15000);
           });
 
-          const event = await Promise.race([publishPromise, timeoutPromise]);
-
-          console.log('Background sync: Bookmark set created successfully:', event.id);
+          await Promise.race([publishPromise, timeoutPromise]);
 
           // Update local storage to mark as synced
           const currentSets = JSON.parse(localStorage.getItem(getLocalStorageKey(user.pubkey)) || '{}');
@@ -369,8 +358,6 @@ export function useDeleteBookmarkSet() {
 
           const writeRelayGroup = nostr.group(writeRelayUrls);
 
-          console.log('Background sync: Publishing deletion event...');
-
           const publishPromise = writeRelayGroup.event({
             kind: 5,
             content: 'Deleted bookmark list',
@@ -383,9 +370,7 @@ export function useDeleteBookmarkSet() {
             setTimeout(() => reject(new Error('Publishing timeout')), 15000);
           });
 
-          const event = await Promise.race([publishPromise, timeoutPromise]);
-
-          console.log('Background sync: Deletion event published successfully:', event.id);
+          await Promise.race([publishPromise, timeoutPromise]);
         } catch (error) {
           console.error('Background sync (deletion) failed:', error);
         }
@@ -477,7 +462,6 @@ export function useAddToBookmarkSet() {
             .map(r => r.url);
 
           if (writeRelayUrls.length === 0) {
-            console.warn('No write relays configured, keeping local only');
             return;
           }
 
@@ -500,8 +484,6 @@ export function useAddToBookmarkSet() {
             content = await user.signer.nip44.encrypt(user.pubkey, JSON.stringify(privateItems));
           }
 
-          console.log('Background sync: Publishing updated bookmark set...');
-
           const publishPromise = writeRelayGroup.event({
             kind: 30003,
             content,
@@ -512,9 +494,7 @@ export function useAddToBookmarkSet() {
             setTimeout(() => reject(new Error('Publishing timeout')), 15000);
           });
 
-          const event = await Promise.race([publishPromise, timeoutPromise]);
-
-          console.log('Background sync: Bookmark set updated successfully:', event.id);
+          await Promise.race([publishPromise, timeoutPromise]);
 
           // Update local storage to mark as synced
           const currentSets = JSON.parse(localStorage.getItem(getLocalStorageKey(user.pubkey)) || '{}');
@@ -632,8 +612,6 @@ export function useRemoveFromBookmarkSet() {
             content = await user.signer.nip44.encrypt(user.pubkey, JSON.stringify(privateItems));
           }
 
-          console.log('Background sync: Publishing updated bookmark set (remove)...');
-
           const publishPromise = writeRelayGroup.event({
             kind: 30003,
             content,
@@ -644,9 +622,7 @@ export function useRemoveFromBookmarkSet() {
             setTimeout(() => reject(new Error('Publishing timeout')), 15000);
           });
 
-          const event = await Promise.race([publishPromise, timeoutPromise]);
-
-          console.log('Background sync: Bookmark set updated (removed item) successfully:', event.id);
+          await Promise.race([publishPromise, timeoutPromise]);
 
           // Update local storage to mark as synced
           const currentSets = JSON.parse(localStorage.getItem(getLocalStorageKey(user.pubkey)) || '{}');

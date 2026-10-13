@@ -2,12 +2,16 @@ import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '@/hooks/useAppContext';
 
+export function reactionsQueryKey(eventId: string, updatedAt: number) {
+  return ['reactions', eventId, updatedAt] as const;
+}
+
 export function useReactions(eventId: string) {
   const { nostr } = useNostr();
   const { config } = useAppContext();
 
   return useQuery({
-    queryKey: ['reactions', eventId, config.relayMetadata.updatedAt],
+    queryKey: reactionsQueryKey(eventId, config.relayMetadata.updatedAt),
     queryFn: async () => {
       // Get relay URLs from user's configuration
       const relayUrls = config.relayMetadata.relays

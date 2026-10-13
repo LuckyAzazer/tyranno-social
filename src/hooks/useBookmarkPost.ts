@@ -122,8 +122,6 @@ export function useBookmarkPost() {
         throw new Error('Must be logged in to bookmark');
       }
 
-      console.log('Toggling bookmark for event:', eventId, 'isPrivate:', isPrivate);
-
       const relayUrls = config.relayMetadata.relays
         .filter(r => r.read)
         .map(r => r.url);
@@ -146,7 +144,10 @@ export function useBookmarkPost() {
       let privateTags: string[][] = [];
 
       // Parse existing bookmarks
+      // Preserve non-item tags (e.g. 't', 'title') so they aren't stripped on update
+      let metaTags: string[][] = [];
       if (existingList) {
+        metaTags = existingList.tags.filter(tag => tag[0] !== 'e' && tag[0] !== 'a');
         publicTags = existingList.tags.filter(tag => tag[0] === 'e' || tag[0] === 'a');
         
         if (existingList.content && user.signer.nip44) {
@@ -190,10 +191,6 @@ export function useBookmarkPost() {
         );
       }
 
-      // Publish updated bookmark list to all write relays
-      console.log('Publishing bookmark list with', publicTags.length, 'public tags and', privateTags.length, 'private tags');
-      console.log('Write relays:', config.relayMetadata.relays.filter(r => r.write).map(r => r.url));
-      
       const writeRelayUrls = config.relayMetadata.relays
         .filter(r => r.write)
         .map(r => r.url);
@@ -202,14 +199,17 @@ export function useBookmarkPost() {
         ? nostr.group(writeRelayUrls)
         : nostr;
 
-      const publishedEvent = await writeRelayGroup.event({
-        kind: 10003,
+      // Sign the event before publishing
+      const unsignedEvent = {
+        kind: 10003 as const,
         content: encryptedContent,
-        tags: publicTags,
-      });
+        // Restore preserved meta tags alongside the updated bookmark item tags
+        tags: [...metaTags, ...publicTags],
+        created_at: Math.floor(Date.now() / 1000),
+      };
+      const signedEvent = await user.signer.signEvent(unsignedEvent);
+      const publishedEvent = await writeRelayGroup.event(signedEvent);
 
-      console.log('Bookmark event published:', publishedEvent.id, 'created_at:', publishedEvent.created_at);
-      console.log('Action:', action);
       return { action, event: publishedEvent };
     },
     onSuccess: async (result, variables) => {

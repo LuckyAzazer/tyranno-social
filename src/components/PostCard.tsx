@@ -72,12 +72,12 @@ export function PostCard({ event, onClick }: PostCardProps) {
   const username = metadata?.name || genUserName(displayEvent.pubkey);
   const profileImage = metadata?.picture;
 
-  const npub = nip19.npubEncode(displayEvent.pubkey);
-  const noteId = nip19.noteEncode(displayEvent.id);
+  const npub = displayEvent.pubkey ? nip19.npubEncode(displayEvent.pubkey) : '';
+  const noteId = displayEvent.id ? nip19.noteEncode(displayEvent.id) : '';
   const timeAgo = formatEventTime(displayEvent.created_at);
 
   const reposterMetadata: NostrMetadata | undefined = reposter.data?.metadata;
-  const reposterName = reposterMetadata?.display_name || reposterMetadata?.name || genUserName(event.pubkey);
+  const reposterName = reposterMetadata?.display_name || reposterMetadata?.name || genUserName(event.pubkey ?? '');
 
   const replyCount = replies?.length || 0;
   
@@ -123,6 +123,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
   return (
     <Card
       className="group overflow-hidden transition-all duration-150 hover:shadow-md active:scale-[0.99] active:brightness-95 border-border/50 hover:border-primary/20 dark:border-transparent cursor-pointer bg-gradient-to-br from-card via-card to-rose-50/20 dark:from-card dark:via-card dark:to-card"
+      style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 300px' }}
       onClick={() => onClick?.(displayEvent)}
     >
       {isRepost && repostedEvent && (
@@ -181,7 +182,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
 
       <CardContent className="pb-4">
         {/* Post text — only render wrapper when there's actual content */}
-        {displayEvent.content.trim() && (
+        {(displayEvent.content ?? '').trim() && (
           <div className="mb-3 break-words whitespace-pre-wrap">
             <NoteContent event={displayEvent} className="text-sm leading-relaxed" />
           </div>

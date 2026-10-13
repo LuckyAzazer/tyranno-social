@@ -96,9 +96,9 @@ export function EmbeddedAddressableEvent({ kind, pubkey, identifier }: EmbeddedA
   });
 
   // Extract title from tags if available
-  const title = event.tags.find(([name]) => name === 'title')?.[1];
-  const summary = event.tags.find(([name]) => name === 'summary')?.[1];
-  const image = event.tags.find(([name]) => name === 'image')?.[1];
+  const title = event.tags?.find(([name]) => name === 'title')?.[1];
+  const summary = event.tags?.find(([name]) => name === 'summary')?.[1];
+  const image = event.tags?.find(([name]) => name === 'image')?.[1];
 
   // Get kind name for display
   const getKindName = (k: number): string => {

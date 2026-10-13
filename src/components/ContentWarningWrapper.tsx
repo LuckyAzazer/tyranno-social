@@ -17,7 +17,7 @@ export function ContentWarningWrapper({ event, children, mediaOnly = false }: Co
   const [showContent, setShowContent] = useState(false);
 
   // Check if event has content warning
-  const contentWarningTag = event.tags.find(([name]) => name === 'content-warning');
+  const contentWarningTag = event.tags?.find(([name]) => name === 'content-warning');
   const warningText = contentWarningTag?.[1] || 'Sensitive Content';
 
   // If no content warning tag, or user has warnings disabled, show content normally

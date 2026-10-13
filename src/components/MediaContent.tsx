@@ -40,7 +40,7 @@ export function MediaContent({ event }: MediaContentProps) {
     const items: MediaItem[] = [];
     
     // Extract URLs from imeta tags (NIP-94)
-    const imetaUrls = event.tags
+    const imetaUrls = (event.tags ?? [])
       .filter(([name]) => name === 'imeta')
       .map(tag => {
         const urlTag = tag.find(item => item.startsWith('url '));
@@ -58,7 +58,7 @@ export function MediaContent({ event }: MediaContentProps) {
         items.push({ type: 'image', url });
       } else if (mime?.startsWith('video/')) {
         // Try to find a thumb or image tag in the same imeta entry for poster
-        const imetaTag = event.tags.find(tag => tag.some(item => item === `url ${url}`));
+        const imetaTag = event.tags?.find(tag => tag.some(item => item === `url ${url}`));
         const thumbEntry = imetaTag?.find(item => item.startsWith('thumb ') || item.startsWith('image '));
         const poster = thumbEntry ? thumbEntry.replace(/^(thumb|image) /, '') : undefined;
         items.push({ type: 'video', url, poster });
@@ -74,10 +74,11 @@ export function MediaContent({ event }: MediaContentProps) {
     }
 
     // Use shared regexes — fresh instances each time (global flag is stateful)
-    const imageMatches = event.content.matchAll(imageUrlRe());
-    const videoMatches = event.content.matchAll(videoUrlRe());
-    const audioMatches = event.content.matchAll(audioUrlRe());
-    const linkMatches = event.content.matchAll(/https?:\/\/[^\s]+/gi);
+    const content = event.content ?? '';
+    const imageMatches = content.matchAll(imageUrlRe());
+    const videoMatches = content.matchAll(videoUrlRe());
+    const audioMatches = content.matchAll(audioUrlRe());
+    const linkMatches = content.matchAll(/https?:\/\/[^\s]+/gi);
 
     // Add images
     for (const match of imageMatches) {
