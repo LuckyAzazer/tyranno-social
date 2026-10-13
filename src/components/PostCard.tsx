@@ -123,6 +123,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
   return (
     <Card
       className="group overflow-hidden transition-all duration-150 hover:shadow-md active:scale-[0.99] active:brightness-95 border-border/50 hover:border-primary/20 dark:border-transparent cursor-pointer bg-gradient-to-br from-card via-card to-rose-50/20 dark:from-card dark:via-card dark:to-card"
+      style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 300px' }}
       onClick={() => onClick?.(displayEvent)}
     >
       {isRepost && repostedEvent && (
