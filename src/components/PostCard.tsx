@@ -42,9 +42,11 @@ import {
 interface PostCardProps {
   event: NostrEvent;
   onClick?: (displayEvent: NostrEvent) => void;
+  /** Estimated render height from MasonryGrid — used for contentVisibility placeholder */
+  estimatedHeight?: number;
 }
 
-export function PostCard({ event, onClick }: PostCardProps) {
+export function PostCard({ event, onClick, estimatedHeight }: PostCardProps) {
   const [bookmarkDialogOpen, setBookmarkDialogOpen] = useState(false);
   const [repostDialogOpen, setRepostDialogOpen] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
@@ -123,6 +125,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
   return (
     <Card
       className="group overflow-hidden transition-all duration-150 hover:shadow-md active:scale-[0.99] active:brightness-95 border-border/50 hover:border-primary/20 dark:border-transparent cursor-pointer bg-gradient-to-br from-card via-card to-rose-50/20 dark:from-card dark:via-card dark:to-card"
+      style={estimatedHeight ? { contentVisibility: 'auto', containIntrinsicSize: `0px ${estimatedHeight}px` } : undefined}
       onClick={() => onClick?.(displayEvent)}
     >
       {isRepost && repostedEvent && (
