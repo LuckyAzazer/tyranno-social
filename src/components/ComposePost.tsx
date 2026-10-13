@@ -72,9 +72,7 @@ export function ComposePost({ onPostPublished }: ComposePostProps = {}) {
     setAttachedMedia(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const publishPost = () => {
     if (!content.trim() && attachedMedia.length === 0) {
       toast({
         title: 'Empty post',
@@ -136,6 +134,11 @@ export function ComposePost({ onPostPublished }: ComposePostProps = {}) {
         },
       }
     );
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    publishPost();
   };
 
   if (!user) return null;
@@ -348,9 +351,9 @@ export function ComposePost({ onPostPublished }: ComposePostProps = {}) {
               Back to Edit
             </Button>
             <Button
-              onClick={(e) => {
+              onClick={() => {
                 setShowPreview(false);
-                handleSubmit(e as any);
+                publishPost();
               }}
               disabled={isPending}
               className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all"

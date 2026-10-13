@@ -167,11 +167,11 @@ export function useInfinitePosts(category: FeedCategory = 'following') {
         return undefined;
       }
       
-      // Get the oldest timestamp from the last page
+      // Subtract 1 from the oldest timestamp so the next page starts *before*
+      // this one, preventing duplicate events at page boundaries when multiple
+      // events share the same created_at second.
       const oldestTimestamp = Math.min(...lastPage.map((event: NostrEvent) => event.created_at));
-      
-      // Return the timestamp to use as 'until' for the next page
-      return oldestTimestamp;
+      return oldestTimestamp - 1;
     },
     initialPageParam: undefined as number | undefined,
     staleTime: 1000 * 60 * 5,         // Show cached feed instantly; refresh after 5 min

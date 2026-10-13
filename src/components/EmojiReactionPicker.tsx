@@ -6,6 +6,8 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAppContext } from '@/hooks/useAppContext';
+import { reactionsQueryKey } from '@/hooks/useReactions';
 
 interface EmojiReactionPickerProps {
   eventId: string;
@@ -19,6 +21,7 @@ export function EmojiReactionPicker({ eventId, className }: EmojiReactionPickerP
   const { mutate: publishEvent } = useNostrPublish();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { config } = useAppContext();
   const [open, setOpen] = useState(false);
 
   const handleReaction = (emoji: string) => {
@@ -31,11 +34,14 @@ export function EmojiReactionPicker({ eventId, className }: EmojiReactionPickerP
       return;
     }
 
+    // Use the same query key as useReactions to ensure cache hits
+    const qKey = reactionsQueryKey(eventId, config.relayMetadata.updatedAt);
+
     // Optimistically update the UI before publishing
-    const previousData = queryClient.getQueryData(['reactions', eventId]);
+    const previousData = queryClient.getQueryData(qKey);
     
     // Optimistic update
-    queryClient.setQueryData(['reactions', eventId], (old: any) => {
+    queryClient.setQueryData(qKey, (old: any) => {
       if (!old) {
         return { [emoji]: { count: 1, pubkeys: [user.pubkey] } };
       }
@@ -76,7 +82,7 @@ export function EmojiReactionPicker({ eventId, className }: EmojiReactionPickerP
         },
         onError: () => {
           // Rollback optimistic update on error
-          queryClient.setQueryData(['reactions', eventId], previousData);
+          queryClient.setQueryData(qKey, previousData);
           
           toast({
             title: 'Failed to react',
