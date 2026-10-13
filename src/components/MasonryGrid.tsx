@@ -17,7 +17,7 @@ interface MasonryGridProps {
 
 // A column item is either a post or a suggestion card
 type ColumnItem =
-  | { type: 'post'; post: NostrEvent }
+  | { type: 'post'; post: NostrEvent; estimatedHeight: number }
   | { type: 'suggestion'; batchIndex: number };
 
 export function MasonryGrid({ posts, columns: columnsProp, onPostClick }: MasonryGridProps) {
@@ -58,8 +58,9 @@ export function MasonryGrid({ posts, columns: columnsProp, onPostClick }: Masonr
         ? index
         : heights.indexOf(Math.min(...heights));
 
-      newColumns[col].push({ type: 'post', post });
-      heights[col] += estimatePostHeight(post) + 16;
+      const estimatedHeight = estimatePostHeight(post);
+      newColumns[col].push({ type: 'post', post, estimatedHeight });
+      heights[col] += estimatedHeight + 16;
       postsSinceLastSuggestion++;
 
       // After every SUGGESTION_INTERVAL posts, inject a suggestion card
@@ -117,6 +118,7 @@ export function MasonryGrid({ posts, columns: columnsProp, onPostClick }: Masonr
                 <PostCard
                   key={item.post.id}
                   event={item.post}
+                  estimatedHeight={item.estimatedHeight}
                   onClick={(displayEvent) => onPostClick?.(displayEvent)}
                 />
               ) : (
