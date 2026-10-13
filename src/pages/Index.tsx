@@ -22,6 +22,8 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useEventById } from '@/hooks/useEventById';
 import type { NotificationEvent } from '@/hooks/useNotifications';
 import { SidebarDrawer } from '@/components/SidebarDrawer';
+import { SidebarContent } from '@/components/Sidebar';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { ColumnSelector } from '@/components/ColumnSelector';
 import { ColorPickerButton } from '@/components/ColorPickerButton';
 import { ScrollToTop } from '@/components/ScrollToTop';
@@ -59,7 +61,7 @@ import type { NostrEvent } from '@nostrify/nostrify';
 
 const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<FeedCategory>('following');
-  const [columns, setColumns] = useLocalStorage<number>('masonry-columns', 3);
+  const [columns, setColumns] = useLocalStorage<number>('masonry-columns', 2);
   const [selectedPost, setSelectedPost] = useState<NostrEvent | null>(null);
   const [pendingEventId, setPendingEventId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -713,6 +715,39 @@ const Index = () => {
       {/* Main Content */}
       <main className="px-4 py-6 lg:pb-8" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6rem)' }}>
         <div className="flex gap-6">
+          {/* Permanent Left Sidebar — visible on xl+ screens */}
+          <aside className="w-72 shrink-0 hidden xl:block">
+            <div className="sticky top-24 space-y-4">
+              <ScrollArea className="h-[calc(100vh-7rem)] pr-1">
+                <SidebarContent
+                  selectedCategory={selectedCategory}
+                  onCategoryChange={(cat) => {
+                    setSelectedCategory(cat);
+                    setSelectedCircleDTag(null);
+                    setSelectedCirclePubkeys(null);
+                    setSelectedCircleLabel(null);
+                    setIsMutualFeed(false);
+                    setIsConversationsFeed(false);
+                    setSelectedRelay(null);
+                  }}
+                  onCircleSelect={(pubkeys, label) => {
+                    if (pubkeys === null) {
+                      setSelectedCircleDTag(null);
+                      setSelectedCirclePubkeys(null);
+                      setSelectedCircleLabel(null);
+                    } else {
+                      setSelectedCircleDTag(label?.toLowerCase().replace(/\s+/g, '-') ?? null);
+                      setSelectedCirclePubkeys(pubkeys);
+                      setSelectedCircleLabel(label);
+                    }
+                  }}
+                  selectedCircleDTag={selectedCircleDTag}
+                />
+                <div className="h-8" />
+              </ScrollArea>
+            </div>
+          </aside>
+
           {/* Feed Section */}
           <div className="flex-1 min-w-0 space-y-6">
 

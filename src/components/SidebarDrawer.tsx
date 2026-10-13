@@ -57,13 +57,13 @@ export function SidebarDrawer({
 
   return (
     <>
-      {/* Hamburger trigger button — always visible in the header */}
+      {/* Hamburger trigger button — hidden on xl+ where the permanent sidebar is shown */}
       <Button
         variant="ghost"
         size="icon"
         onClick={() => setOpen(true)}
         aria-label="Open menu"
-        className="shrink-0"
+        className="shrink-0 xl:hidden"
       >
         <Menu className="h-5 w-5" />
       </Button>
