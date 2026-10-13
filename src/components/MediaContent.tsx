@@ -74,10 +74,11 @@ export function MediaContent({ event }: MediaContentProps) {
     }
 
     // Use shared regexes — fresh instances each time (global flag is stateful)
-    const imageMatches = event.content.matchAll(imageUrlRe());
-    const videoMatches = event.content.matchAll(videoUrlRe());
-    const audioMatches = event.content.matchAll(audioUrlRe());
-    const linkMatches = event.content.matchAll(/https?:\/\/[^\s]+/gi);
+    const content = event.content ?? '';
+    const imageMatches = content.matchAll(imageUrlRe());
+    const videoMatches = content.matchAll(videoUrlRe());
+    const audioMatches = content.matchAll(audioUrlRe());
+    const linkMatches = content.matchAll(/https?:\/\/[^\s]+/gi);
 
     // Add images
     for (const match of imageMatches) {
