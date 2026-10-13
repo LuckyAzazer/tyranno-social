@@ -63,7 +63,7 @@ export function SidebarDrawer({
         size="icon"
         onClick={() => setOpen(true)}
         aria-label="Open menu"
-        className="shrink-0 xl:hidden"
+        className="shrink-0 lg:hidden"
       >
         <Menu className="h-5 w-5" />
       </Button>

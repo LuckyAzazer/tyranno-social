@@ -715,8 +715,8 @@ const Index = () => {
       {/* Main Content */}
       <main className="px-4 py-6 lg:pb-8" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6rem)' }}>
         <div className="flex gap-6">
-          {/* Permanent Left Sidebar — visible on xl+ screens */}
-          <aside className="w-72 shrink-0 hidden xl:block">
+          {/* Permanent Left Sidebar — visible on lg+ screens */}
+          <aside className="w-72 shrink-0 hidden lg:block">
             <div className="sticky top-24 space-y-4">
               <ScrollArea className="h-[calc(100vh-7rem)] pr-1">
                 <SidebarContent
@@ -965,8 +965,8 @@ const Index = () => {
           </div>
           </div>
 
-          {/* Right Sidebar — visible on desktop only (lg+), hidden on tablet/mobile */}
-          <aside className="w-96 shrink-0 hidden lg:block">
+          {/* Right Sidebar — visible on xl+ screens when left sidebar is also showing */}
+          <aside className="w-96 shrink-0 hidden xl:block">
             <div className="sticky top-4 space-y-4">
               {user ? (
                 <ComposePost onPostPublished={handleRefresh} />
