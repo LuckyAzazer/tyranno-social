@@ -33,14 +33,15 @@ export function MasonryGrid({ posts, columns: columnsProp, onPostClick }: Masonr
 
   const estimatePostHeight = useCallback((post: NostrEvent): number => {
     let height = 150;
-    const textLines = Math.ceil(post.content.length / 50);
+    const content = post.content ?? '';
+    const textLines = Math.ceil(content.length / 50);
     height += Math.min(textLines * 20, 300);
     const imageUrlPattern = /https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|bmp)/gi;
-    const imageUrls = post.content.match(imageUrlPattern) || [];
-    const hasImeta = post.tags.some(([name]) => name === 'imeta');
+    const imageUrls = content.match(imageUrlPattern) || [];
+    const hasImeta = post.tags?.some(([name]) => name === 'imeta') ?? false;
     if (imageUrls.length > 0 || hasImeta) height += 300;
     const videoUrlPattern = /https?:\/\/[^\s]+\.(mp4|webm|mov)/gi;
-    if (videoUrlPattern.test(post.content)) height += 300;
+    if (videoUrlPattern.test(content)) height += 300;
     return height;
   }, []);
 

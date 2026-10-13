@@ -181,7 +181,7 @@ export function PostCard({ event, onClick }: PostCardProps) {
 
       <CardContent className="pb-4">
         {/* Post text — only render wrapper when there's actual content */}
-        {displayEvent.content.trim() && (
+        {(displayEvent.content ?? '').trim() && (
           <div className="mb-3 break-words whitespace-pre-wrap">
             <NoteContent event={displayEvent} className="text-sm leading-relaxed" />
           </div>

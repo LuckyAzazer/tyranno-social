@@ -29,7 +29,7 @@ export function NoteContent({
 
   // Check if content is JSON and try to parse it
   const jsonData = useMemo(() => {
-    const trimmed = event.content.trim();
+    const trimmed = (event.content ?? '').trim();
     if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
       try {
         return JSON.parse(trimmed);
@@ -51,7 +51,7 @@ export function NoteContent({
 
   // Check if content is mostly hexadecimal hash data
   const isHashData = useMemo(() => {
-    const cleaned = event.content.replace(/\s+/g, '');
+    const cleaned = (event.content ?? '').replace(/\s+/g, '');
     // Consider it hash data if:
     // - It's all hex characters
     // - It's longer than 64 characters (minimum for a hash)
@@ -99,7 +99,7 @@ export function NoteContent({
   const processedContent = useMemo(() => {
     // Trim leading/trailing whitespace and collapse runs of 3+ newlines to 2
     // so posts that are just "\n\n\n\n#hashtag" don't create a wall of empty space.
-    const text = event.content.trim().replace(/\n{3,}/g, '\n\n');
+    const text = (event.content ?? '').trim().replace(/\n{3,}/g, '\n\n');
     
     // Regex to find Nostr references (with or without nostr: prefix), URLs, hashtags, and indexed mentions (#[0], #[1], etc.)
     // Put Nostr references BEFORE URLs to prevent nostr:nevent1 from being treated as a URL
@@ -353,7 +353,7 @@ export function NoteContent({
 // Helper component to display user mentions
 function NostrMention({ pubkey }: { pubkey: string }) {
   const author = useAuthor(pubkey);
-  const npub = nip19.npubEncode(pubkey);
+  const npub = pubkey ? nip19.npubEncode(pubkey) : '';
   const hasRealName = !!author.data?.metadata?.name;
   const displayName = author.data?.metadata?.name ?? genUserName(pubkey);
 
