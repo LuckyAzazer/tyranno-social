@@ -78,16 +78,16 @@ export function MobileBottomNav() {
             onClick={() => setProfileOpen(true)}
           >
             {user && meta?.picture ? (
-              <Avatar className="h-[26px] w-[26px]">
+              <Avatar className="h-[26px] w-[26px] ring-2 ring-offset-1 ring-offset-background ring-transparent data-[active=true]:ring-primary transition-all"
+                data-active={profileOpen}
+              >
                 <AvatarImage src={meta.picture} alt={displayName} />
                 <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
                   {displayName[0]?.toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             ) : (
-              <div className={`h-[22px] w-[22px] rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${profileOpen ? 'border-primary bg-primary/10 text-primary' : 'border-muted-foreground/40 bg-muted text-muted-foreground'}`}>
-                {user ? (displayName[0]?.toUpperCase() ?? '?') : '?'}
-              </div>
+              <ProfileIcon active={profileOpen} />
             )}
           </NavBtn>
 
@@ -96,6 +96,32 @@ export function MobileBottomNav() {
 
       <MobileProfileSheet open={profileOpen} onOpenChange={setProfileOpen} />
     </>
+  );
+}
+
+// ─── ProfileIcon ─────────────────────────────────────────────────────────────
+
+/** Clean person-silhouette icon matching the weight of Home / Bell / Flame. */
+function ProfileIcon({ active }: { active: boolean }) {
+  const sw = active ? 2.25 : 1.8;
+  const color = 'currentColor';
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={sw}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {/* Head */}
+      <circle cx="12" cy="8" r="4" />
+      {/* Shoulders / body */}
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
   );
 }
 
