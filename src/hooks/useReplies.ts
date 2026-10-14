@@ -2,12 +2,13 @@ import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '@/hooks/useAppContext';
 
-export function useReplies(eventId: string) {
+export function useReplies(eventId: string, enabled = true) {
   const { nostr } = useNostr();
   const { config } = useAppContext();
 
   return useQuery({
     queryKey: ['replies', eventId, config.relayMetadata.updatedAt],
+    enabled,
     queryFn: async () => {
       // Get relay URLs from user's configuration
       const relayUrls = config.relayMetadata.relays

@@ -30,6 +30,8 @@ import { RepostDialog } from '@/components/RepostDialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
+import { useIsVisible } from '@/hooks/useIsVisible';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { Link } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -55,16 +57,22 @@ export function PostCard({ event, onClick, estimatedHeight }: PostCardProps) {
   const { mutate: publish, isPending: isReplying } = useNostrPublish();
   const { mute, unmute, isMuted } = useMutedUsers();
   const { pinnedEventId, pinPost, unpinPost } = usePinnedPost(user?.pubkey ?? '');
-  
+
+  // On mobile, defer heavy queries until the card scrolls into view.
+  // On desktop, load everything immediately (no behavioural change).
+  const isMobile = useIsMobile();
+  const [visibilityRef, isVisible] = useIsVisible('200px');
+  const shouldLoad = !isMobile || isVisible;
+
   const isRepost = event.kind === 6 || event.kind === 16;
-  const { data: repostedEvent } = useRepostedEvent(event);
+  const { data: repostedEvent } = useRepostedEvent(event, shouldLoad);
   const displayEvent = isRepost && repostedEvent ? repostedEvent : event;
   const reposter = useAuthor(event.pubkey);
-  
+
   const author = useAuthor(displayEvent.pubkey);
   const metadata: NostrMetadata | undefined = author.data?.metadata;
-  const { data: reactions } = useReactions(displayEvent.id);
-  const { data: replies } = useReplies(displayEvent.id);
+  const { data: reactions } = useReactions(displayEvent.id, shouldLoad);
+  const { data: replies } = useReplies(displayEvent.id, shouldLoad);
 
   const { toggleBookmark, useIsBookmarked } = useBookmarkPost();
   const { data: isBookmarked } = useIsBookmarked(displayEvent.id);
@@ -124,6 +132,7 @@ export function PostCard({ event, onClick, estimatedHeight }: PostCardProps) {
 
   return (
     <Card
+      ref={visibilityRef}
       className="group overflow-hidden transition-all duration-150 hover:shadow-md active:scale-[0.99] active:brightness-95 border-border/50 hover:border-primary/20 dark:border-transparent cursor-pointer bg-gradient-to-br from-card via-card to-rose-50/20 dark:from-card dark:via-card dark:to-card"
       style={estimatedHeight ? { contentVisibility: 'auto', containIntrinsicSize: `0px ${estimatedHeight}px` } : undefined}
       onClick={() => onClick?.(displayEvent)}
@@ -193,7 +202,7 @@ export function PostCard({ event, onClick, estimatedHeight }: PostCardProps) {
         {/* Media */}
         <div className="mb-4" onClick={(e) => e.stopPropagation()}>
           <ContentWarningWrapper event={displayEvent} mediaOnly={true}>
-            <MediaContent event={displayEvent} />
+            <MediaContent event={displayEvent} linkPreviewEnabled={shouldLoad} />
           </ContentWarningWrapper>
         </div>
 
@@ -262,6 +271,7 @@ export function PostCard({ event, onClick, estimatedHeight }: PostCardProps) {
               target={displayEvent as any}
               className="h-8 px-1.5 text-muted-foreground hover:text-orange-500 hover:bg-orange-500/10 transition-colors flex items-center justify-center gap-1"
               showCount={true}
+              enabled={shouldLoad}
             />
             <Button
               variant="ghost"
@@ -446,6 +456,7 @@ export function PostCard({ event, onClick, estimatedHeight }: PostCardProps) {
           <FollowRepliesPreview
             event={displayEvent}
             onReplyClick={(reply) => onClick?.(reply)}
+            enabled={shouldLoad}
           />
         </div>
       </CardContent>

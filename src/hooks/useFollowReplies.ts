@@ -8,7 +8,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
  * Fetches replies to an event that were authored by people the current user follows.
  * Returns at most `limit` replies sorted oldest-first so they read naturally.
  */
-export function useFollowReplies(eventId: string, limit = 3) {
+export function useFollowReplies(eventId: string, limit = 3, enabled = true) {
   const { nostr } = useNostr();
   const { config } = useAppContext();
   const { user } = useCurrentUser();
@@ -47,6 +47,6 @@ export function useFollowReplies(eventId: string, limit = 3) {
         .sort((a, b) => a.created_at - b.created_at)
         .slice(0, limit);
     },
-    enabled: !!user && followPubkeys.length > 0,
+    enabled: enabled && !!user && followPubkeys.length > 0,
   });
 }
