@@ -18,6 +18,31 @@ import { Home, Flame, Bell } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { genUserName } from '@/lib/genUserName';
 
+// ─── ProfileIcon ─────────────────────────────────────────────────────────────
+
+/** Clean person-silhouette icon matching the weight of Home / Bell / Flame. */
+function ProfileIcon({ active }: { active: boolean }) {
+  const sw = active ? 2.25 : 1.8;
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={sw}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {/* Head */}
+      <circle cx="12" cy="8" r="4" />
+      {/* Shoulders */}
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  );
+}
+
 export function MobileBottomNav() {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
@@ -96,32 +121,6 @@ export function MobileBottomNav() {
 
       <MobileProfileSheet open={profileOpen} onOpenChange={setProfileOpen} />
     </>
-  );
-}
-
-// ─── ProfileIcon ─────────────────────────────────────────────────────────────
-
-/** Clean person-silhouette icon matching the weight of Home / Bell / Flame. */
-function ProfileIcon({ active }: { active: boolean }) {
-  const sw = active ? 2.25 : 1.8;
-  const color = 'currentColor';
-  return (
-    <svg
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth={sw}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {/* Head */}
-      <circle cx="12" cy="8" r="4" />
-      {/* Shoulders / body */}
-      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-    </svg>
   );
 }
 
