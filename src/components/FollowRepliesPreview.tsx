@@ -12,6 +12,7 @@ import { MessageCircle } from 'lucide-react';
 interface FollowRepliesPreviewProps {
   event: NostrEvent;
   onReplyClick: (reply: NostrEvent) => void;
+  enabled?: boolean;
 }
 
 function ReplyRow({ reply, onReplyClick }: { reply: NostrEvent; onReplyClick: (reply: NostrEvent) => void }) {
@@ -61,8 +62,8 @@ function ReplyRow({ reply, onReplyClick }: { reply: NostrEvent; onReplyClick: (r
   );
 }
 
-export function FollowRepliesPreview({ event, onReplyClick }: FollowRepliesPreviewProps) {
-  const { data: replies, isLoading } = useFollowReplies(event.id);
+export function FollowRepliesPreview({ event, onReplyClick, enabled = true }: FollowRepliesPreviewProps) {
+  const { data: replies, isLoading } = useFollowReplies(event.id, 3, enabled);
 
   if (isLoading || !replies || replies.length === 0) return null;
 

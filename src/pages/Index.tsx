@@ -29,7 +29,7 @@ import { ColorPickerButton } from '@/components/ColorPickerButton';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { InstallPWA } from '@/components/InstallPWA';
 
-import { MobileComposeFAB } from '@/components/MobileComposeFAB';
+
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -41,7 +41,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Sparkles, FileText, Image, Music, Video, Users, UserCheck, MessagesSquare, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit, CircleDot, X as XIcon, List, Check, User } from 'lucide-react';
+import { Sparkles, FileText, Image, Music, Video, Users, UserCheck, MessagesSquare, Loader2, ChevronDown, Wifi, MessageCircle, ShieldCheck, AlertTriangle, RefreshCw, Zap, Bell, Edit, CircleDot, X as XIcon, List, Check, User, PenSquare } from 'lucide-react';
 import { useFollowSets } from '@/hooks/useFollowSets';
 import { EditProfileForm } from '@/components/EditProfileForm';
 import { WalletBalance } from '@/components/WalletBalance';
@@ -287,11 +287,36 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-rose-50/30 to-pink-50/40 dark:from-background dark:via-background dark:to-primary/5">
 
       {/* Hero Header - Sticky */}
-      <header className={`sticky top-0 z-40 isolate relative border-b border-border/50 bg-background/95 backdrop-blur-lg shadow-sm transition-transform duration-300 md:translate-y-0 ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+      <header className={`sticky top-0 z-40 isolate relative border-b border-border/50 bg-background/95 backdrop-blur-lg shadow-sm transition-transform duration-300 lg:translate-y-0 ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-rose-500/5 to-primary/10 -z-10 pointer-events-none" />
-        <div className="px-4 py-4">
+
+        {/* ── Mobile header (< lg) — bare minimum ─────────────────────────── */}
+        <div className="lg:hidden flex items-center justify-between px-4 py-3 gap-3">
+          {/* Logo */}
+          <div className="flex items-center gap-2 shrink-0">
+            <img
+              src="/icon-512.png"
+              alt="Tyrannosocial"
+              className="h-8 w-8 rounded-full"
+            />
+            <span className="text-base font-bold">Tyrannosocial</span>
+          </div>
+
+          {/* Right: search + compose */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="w-36">
+              <SearchBar onSearch={setSearchQuery} />
+            </div>
+            {user && (
+              <MobileComposeButton onPostPublished={handleRefresh} />
+            )}
+          </div>
+        </div>
+
+        {/* ── Desktop header (lg+) ─────────────────────────────────────────── */}
+        <div className="hidden lg:block px-4 py-4">
           <div className="flex items-center justify-between gap-3">
-            {/* Hamburger menu — opens sidebar drawer on all screen sizes */}
+            {/* Hamburger menu */}
             <SidebarDrawer
               selectedCategory={selectedCategory}
               onCategoryChange={(cat) => {
@@ -317,23 +342,21 @@ const Index = () => {
               selectedCircleDTag={selectedCircleDTag}
             />
 
-            {/* Logo and Title */}
+            {/* Logo */}
             <div className="flex items-center gap-3 shrink-0">
               <div className="relative shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 blur-xl opacity-60 animate-pulse dark:from-yellow-600 dark:via-red-900 dark:to-yellow-700 dark:opacity-50" />
                 <div className="relative p-1 bg-gradient-to-br from-rose-100/50 to-pink-100/30 rounded-full dark:from-transparent dark:to-transparent">
-                  <img 
-                    src={`${import.meta.env.BASE_URL}icon-512.png`} 
-                    alt="Tyrannosocial Logo" 
-                    className="h-10 w-10 sm:h-12 sm:w-12 drop-shadow-2xl filter brightness-110 rounded-full transition-transform group-hover:scale-105"
+                  <img
+                    src="/icon-512.png"
+                    alt="Tyrannosocial Logo"
+                    className="h-12 w-12 drop-shadow-2xl filter brightness-110 rounded-full"
                   />
                 </div>
               </div>
               <div>
-                <h1 className="text-lg sm:text-2xl font-bold text-foreground">
-                  Tyrannosocial
-                </h1>
-                <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
+                <h1 className="text-2xl font-bold text-foreground">Tyrannosocial</h1>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Sparkles className="h-3 w-3" />
                     Powered by Nostr
@@ -352,21 +375,14 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Search Bar - Desktop (hidden on mobile, shown below) */}
-            <div className="hidden md:block flex-1 max-w-sm lg:max-w-lg">
+            <div className="flex-1 max-w-sm lg:max-w-lg">
               <SearchBar onSearch={setSearchQuery} />
             </div>
 
-            {/* Login/Avatar — always visible */}
             <div className="shrink-0 flex items-center gap-2">
               {user && <WalletBalance />}
               <LoginArea className="max-w-60" />
             </div>
-          </div>
-
-          {/* Search Bar - Mobile (below header on small screens) */}
-          <div className="md:hidden mt-3">
-            <SearchBar onSearch={setSearchQuery} />
           </div>
 
           {/* Toolbar row — feed selector, refresh, colors, columns */}
@@ -698,7 +714,7 @@ const Index = () => {
               <ColumnSelector columns={columns} onColumnsChange={setColumns} />
             </div>
           </div>
-        </div>
+        </div>{/* end hidden lg:block */}
       </header>
 
       {/* Pull-to-refresh indicator (mobile only) */}
@@ -1081,8 +1097,8 @@ const Index = () => {
 
 
 
-      {/* Mobile Floating Compose Button */}
-      <MobileComposeFAB onPostPublished={handleRefresh} />
+      {/* Mobile Floating Compose Button — only shown on mobile and only when user is logged in */}
+      {user && <MobileComposeFABSimple onPostPublished={handleRefresh} />}
 
       {/* Edit Profile Dialog */}
       <Dialog open={editProfileOpen} onOpenChange={setEditProfileOpen}>
@@ -1240,6 +1256,69 @@ function FeedLoadingProgress({ isLoadingFollows, followCount }: { isLoadingFollo
         />
       </div>
     </div>
+  );
+}
+
+// ─── Mobile compose button (in header) ───────────────────────────────────────
+function MobileComposeButton({ onPostPublished }: { onPostPublished: () => void }) {
+  const [open, setComposeOpen] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => setComposeOpen(true)}
+        className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md active:scale-90 transition-transform shrink-0"
+        aria-label="Compose new post"
+      >
+        <PenSquare className="h-4 w-4" />
+      </button>
+      <Dialog open={open} onOpenChange={setComposeOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto p-0 gap-0">
+          <DialogHeader className="px-5 pt-5 pb-3 border-b border-border/50">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <PenSquare className="h-4 w-4 text-primary" />
+              New Post
+            </DialogTitle>
+          </DialogHeader>
+          <div className="px-5 py-4">
+            <ComposePost onPostPublished={() => { setComposeOpen(false); onPostPublished(); }} />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+// ─── Mobile floating compose FAB (bottom-right, above nav) ────────────────────
+function MobileComposeFABSimple({ onPostPublished }: { onPostPublished: () => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <div
+        className="lg:hidden fixed right-4 z-[60]"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)' }}
+      >
+        <button
+          onClick={() => setOpen(true)}
+          className="h-13 w-13 h-[52px] w-[52px] rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 flex items-center justify-center active:scale-90 transition-transform border-2 border-background/30"
+          aria-label="Compose new post"
+        >
+          <PenSquare className="h-5 w-5" />
+        </button>
+      </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto p-0 gap-0">
+          <DialogHeader className="px-5 pt-5 pb-3 border-b border-border/50">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <PenSquare className="h-4 w-4 text-primary" />
+              New Post
+            </DialogTitle>
+          </DialogHeader>
+          <div className="px-5 py-4">
+            <ComposePost onPostPublished={() => { setOpen(false); onPostPublished(); }} />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

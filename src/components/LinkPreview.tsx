@@ -5,6 +5,8 @@ import { TwitterEmbed } from './TwitterEmbed';
 
 interface LinkPreviewProps {
   url: string;
+  /** When false the fetch is deferred — use for lazy-loading on mobile */
+  enabled?: boolean;
 }
 
 interface PreviewData {
@@ -35,7 +37,7 @@ function resolveImageUrl(imageUrl: string, pageUrl: string): string {
   }
 }
 
-export function LinkPreview({ url }: LinkPreviewProps) {
+export function LinkPreview({ url, enabled = true }: LinkPreviewProps) {
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -52,6 +54,7 @@ export function LinkPreview({ url }: LinkPreviewProps) {
   }, [url]);
 
   useEffect(() => {
+    if (!enabled) return; // defer until visible
     let cancelled = false;
 
     const fetchPreview = async () => {
@@ -124,6 +127,8 @@ export function LinkPreview({ url }: LinkPreviewProps) {
     e.stopPropagation();
     window.open(url, '_blank', 'noopener,noreferrer');
   };
+
+  if (!enabled) return null;
 
   if (isTwitterLink) return <TwitterEmbed url={url} />;
 

@@ -6,12 +6,13 @@ export function reactionsQueryKey(eventId: string, updatedAt: number) {
   return ['reactions', eventId, updatedAt] as const;
 }
 
-export function useReactions(eventId: string) {
+export function useReactions(eventId: string, enabled = true) {
   const { nostr } = useNostr();
   const { config } = useAppContext();
 
   return useQuery({
     queryKey: reactionsQueryKey(eventId, config.relayMetadata.updatedAt),
+    enabled,
     queryFn: async () => {
       // Get relay URLs from user's configuration
       const relayUrls = config.relayMetadata.relays

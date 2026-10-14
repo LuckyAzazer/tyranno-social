@@ -18,6 +18,8 @@ function downloadImage(url: string) {
 
 interface MediaContentProps {
   event: NostrEvent;
+  /** When false, link preview fetches are deferred (mobile lazy-load) */
+  linkPreviewEnabled?: boolean;
 }
 
 interface MediaItem {
@@ -26,7 +28,7 @@ interface MediaItem {
   poster?: string;
 }
 
-export function MediaContent({ event }: MediaContentProps) {
+export function MediaContent({ event, linkPreviewEnabled = true }: MediaContentProps) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
@@ -321,7 +323,7 @@ export function MediaContent({ event }: MediaContentProps) {
       {links.length > 0 && (
         <div className="space-y-2">
           {links.slice(0, 3).map((item, index) => (
-            <LinkPreview key={`link-${index}`} url={item.url} />
+            <LinkPreview key={`link-${index}`} url={item.url} enabled={linkPreviewEnabled} />
           ))}
           {links.length > 3 && (
             <div className="text-center text-sm text-muted-foreground">

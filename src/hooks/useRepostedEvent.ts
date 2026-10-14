@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '@/hooks/useAppContext';
 import type { NostrEvent } from '@nostrify/nostrify';
 
-export function useRepostedEvent(event: NostrEvent) {
+export function useRepostedEvent(event: NostrEvent, enabled = true) {
   const { nostr } = useNostr();
   const { config } = useAppContext();
 
@@ -58,6 +58,6 @@ export function useRepostedEvent(event: NostrEvent) {
 
       return events[0] || null;
     },
-    enabled: isRepost && (!!embeddedEvent || !!repostedEventId),
+    enabled: enabled && isRepost && (!!embeddedEvent || !!repostedEventId),
   });
 }

@@ -11,21 +11,24 @@ interface ZapButtonProps {
   className?: string;
   showCount?: boolean;
   zapData?: { count: number; totalSats: number; isLoading?: boolean };
+  /** Defers the zap count fetch until true — for mobile lazy-loading */
+  enabled?: boolean;
 }
 
 export function ZapButton({
   target,
   className = "text-xs ml-1",
   showCount = true,
-  zapData: externalZapData
+  zapData: externalZapData,
+  enabled = true,
 }: ZapButtonProps) {
   const { user } = useCurrentUser();
   const { data: author } = useAuthor(target?.pubkey || '');
   const { webln, activeNWC } = useWallet();
 
-  // Only fetch data if not provided externally
+  // Only fetch data if not provided externally and enabled (visible on mobile)
   const { totalSats: fetchedTotalSats, isLoading } = useZaps(
-    externalZapData ? [] : target ?? [], // Empty array prevents fetching if external data provided
+    externalZapData || !enabled ? [] : target ?? [],
     webln,
     activeNWC
   );
