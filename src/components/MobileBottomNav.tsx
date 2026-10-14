@@ -1,94 +1,107 @@
+/**
+ * MobileBottomNav — 4-tab minimal bar for mobile.
+ *
+ * Tabs: Home · Explore · Notifications · Profile
+ *
+ * Profile tab opens MobileProfileSheet (account switch + wallpaper + dark mode).
+ * No heavy hooks beyond what's needed for badge counts.
+ */
+
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { useUnreadDMCount } from '@/hooks/useUnreadDMCount';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useAuthor } from '@/hooks/useAuthor';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { MobileProfileSheet } from '@/components/MobileProfileSheet';
+import { Home, Flame, Bell } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Home, Bell, Settings, MessageCircle, Flame } from 'lucide-react';
+import { genUserName } from '@/lib/genUserName';
 
 export function MobileBottomNav() {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
-  const unreadDMCount = useUnreadDMCount();
   const { data: notifications } = useNotifications(50);
+  const author = useAuthor(user?.pubkey ?? '');
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const meta = author.data?.metadata;
+  const displayName = meta?.display_name ?? meta?.name ?? (user ? genUserName(user.pubkey) : '');
+
+  const unreadNotifCount = notifications?.length ?? 0;
+
+  const isActive = (path: string) => location.pathname === path;
 
   const handleHome = () => {
     if (location.pathname === '/') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
       queryClient.invalidateQueries({ queryKey: ['infinite-posts'] });
     } else {
       navigate('/');
     }
   };
 
-  const isActive = (path: string) => location.pathname === path;
-
-  const unreadNotifCount = notifications?.length ?? 0;
-
   return (
-    <div
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-background shadow-[0_-1px_0_0_hsl(var(--border)/0.3)]"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-    >
-      <div className="flex items-stretch justify-around">
+    <>
+      <nav
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-lg border-t border-border/40"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
+        <div className="flex items-stretch justify-around h-[52px]">
 
-        {/* Home */}
-        <NavButton
-          label="Home"
-          active={isActive('/')}
-          onClick={handleHome}
-        >
-          <Home className="h-[22px] w-[22px]" />
-        </NavButton>
+          {/* Home */}
+          <NavBtn label="Home" active={isActive('/')} onClick={handleHome}>
+            <Home className="h-[22px] w-[22px]" strokeWidth={isActive('/') ? 2.5 : 1.8} />
+          </NavBtn>
 
-        {/* Messages */}
-        <NavButton
-          label="Messages"
-          active={isActive('/messages')}
-          onClick={() => navigate('/messages')}
-          badge={unreadDMCount > 0 ? (unreadDMCount > 9 ? '9+' : String(unreadDMCount)) : undefined}
-        >
-          <MessageCircle className="h-[22px] w-[22px]" />
-        </NavButton>
+          {/* Explore */}
+          <NavBtn label="Explore" active={isActive('/explore')} onClick={() => navigate('/explore')}>
+            <Flame className={`h-[22px] w-[22px] ${isActive('/explore') ? '' : 'text-orange-500'}`} strokeWidth={isActive('/explore') ? 2.5 : 1.8} />
+          </NavBtn>
 
-        {/* Explore */}
-        <NavButton
-          label="Explore"
-          active={isActive('/explore')}
-          onClick={() => navigate('/explore')}
-        >
-          <Flame className={`h-[22px] w-[22px] ${isActive('/explore') ? '' : 'text-orange-500'}`} />
-        </NavButton>
+          {/* Notifications */}
+          <NavBtn
+            label="Alerts"
+            active={isActive('/notifications')}
+            onClick={() => navigate('/notifications')}
+            badge={unreadNotifCount > 0 ? (unreadNotifCount > 9 ? '9+' : String(unreadNotifCount)) : undefined}
+          >
+            <Bell className="h-[22px] w-[22px]" strokeWidth={isActive('/notifications') ? 2.5 : 1.8} />
+          </NavBtn>
 
-        {/* Notifications */}
-        <NavButton
-          label="Alerts"
-          active={isActive('/notifications')}
-          onClick={() => navigate('/notifications')}
-          badge={unreadNotifCount > 0 ? (unreadNotifCount > 9 ? '9+' : String(unreadNotifCount)) : undefined}
-        >
-          <Bell className="h-[22px] w-[22px]" />
-        </NavButton>
+          {/* Profile / Account */}
+          <NavBtn
+            label="Profile"
+            active={profileOpen}
+            onClick={() => setProfileOpen(true)}
+          >
+            {user && meta?.picture ? (
+              <Avatar className="h-[26px] w-[26px]">
+                <AvatarImage src={meta.picture} alt={displayName} />
+                <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                  {displayName[0]?.toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            ) : (
+              <div className={`h-[22px] w-[22px] rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${profileOpen ? 'border-primary bg-primary/10 text-primary' : 'border-muted-foreground/40 bg-muted text-muted-foreground'}`}>
+                {user ? (displayName[0]?.toUpperCase() ?? '?') : '?'}
+              </div>
+            )}
+          </NavBtn>
 
-        {/* Settings */}
-        <NavButton
-          label="Settings"
-          active={isActive('/settings')}
-          onClick={() => navigate('/settings')}
-        >
-          <Settings className="h-[22px] w-[22px]" />
-        </NavButton>
+        </div>
+      </nav>
 
-      </div>
-    </div>
+      <MobileProfileSheet open={profileOpen} onOpenChange={setProfileOpen} />
+    </>
   );
 }
 
-// ─── Sub-component ────────────────────────────────────────────────────────────
+// ─── NavBtn ───────────────────────────────────────────────────────────────────
 
-interface NavButtonProps {
+interface NavBtnProps {
   label: string;
   active: boolean;
   onClick: () => void;
@@ -96,28 +109,20 @@ interface NavButtonProps {
   children: React.ReactNode;
 }
 
-function NavButton({ label, active, onClick, badge, children }: NavButtonProps) {
+function NavBtn({ label, active, onClick, badge, children }: NavBtnProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
       className={[
-        // Full-height flex column for easy centering
         'relative flex flex-col items-center justify-center gap-[3px]',
-        // Generous tap target — min 48px tall, flex-1 wide
-        'flex-1 min-h-[52px] py-2',
-        // Snappy press effect (no hover jank on mobile)
+        'flex-1 py-2',
         'transition-all duration-100 active:scale-90 active:opacity-70',
-        // Colour
-        active
-          ? 'text-primary'
-          : 'text-muted-foreground',
-        // Remove browser tap highlight — we have our own feedback
+        active ? 'text-primary' : 'text-muted-foreground',
         'outline-none select-none',
       ].join(' ')}
     >
-      {/* Icon wrapper — relative for badge positioning */}
       <span className="relative">
         {children}
         {badge && (
@@ -126,15 +131,11 @@ function NavButton({ label, active, onClick, badge, children }: NavButtonProps) 
           </span>
         )}
       </span>
-
-      {/* Label */}
       <span className={`text-[10px] font-medium leading-none ${active ? 'text-primary' : 'text-muted-foreground'}`}>
         {label}
       </span>
-
-      {/* Active dot indicator */}
       {active && (
-        <span className="absolute bottom-1 left-1/2 -translate-x-1/2 h-[3px] w-[3px] rounded-full bg-primary" />
+        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-6 rounded-full bg-primary" />
       )}
     </button>
   );
