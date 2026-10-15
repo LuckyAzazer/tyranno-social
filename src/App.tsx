@@ -129,12 +129,32 @@ const queryClient = new QueryClient({
 // Hydrate from localStorage before first render
 hydrateQueryCache(queryClient);
 
-// Persist to localStorage whenever the cache updates (debounced 1 s)
-let persistTimer: ReturnType<typeof setTimeout> | null = null;
+// Persist the cache periodically rather than on every cache mutation.
+// Serialising the whole cache is expensive, and on an active feed the cache
+// changes many times per second — debouncing on every change still fired
+// constant JSON.stringify work on the main thread. A gentle interval (plus a
+// flush on unload, below) keeps persistence cheap without the UI jank.
+//
+// We also only write when the tab is idle (via requestIdleCallback when
+// available) so serialisation never competes with scrolling/navigation.
+const PERSIST_INTERVAL_MS = 15000;
+type IdleWindow = Window & {
+  requestIdleCallback?: (cb: () => void) => number;
+};
+const scheduleIdle = (cb: () => void) => {
+  const ric = (window as IdleWindow).requestIdleCallback;
+  if (ric) ric(cb);
+  else setTimeout(cb, 0);
+};
+let cacheDirty = false;
 queryClient.getQueryCache().subscribe(() => {
-  if (persistTimer) clearTimeout(persistTimer);
-  persistTimer = setTimeout(() => persistQueryCache(queryClient), 1000);
+  cacheDirty = true;
 });
+setInterval(() => {
+  if (!cacheDirty) return;
+  cacheDirty = false;
+  scheduleIdle(() => persistQueryCache(queryClient));
+}, PERSIST_INTERVAL_MS);
 
 // ---------------------------------------------------------------------------
 // App config

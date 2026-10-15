@@ -1,7 +1,8 @@
-import { type NostrEvent, type NostrMetadata, NSchema as n } from '@nostrify/nostrify';
+import type { NostrEvent, NostrMetadata } from '@nostrify/nostrify';
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '@/hooks/useAppContext';
+import { getAuthorBatcher } from '@/lib/authorBatcher';
 
 export function useAuthor(pubkey: string | undefined) {
   const { nostr } = useNostr();
@@ -14,34 +15,18 @@ export function useAuthor(pubkey: string | undefined) {
         return {};
       }
 
-      // Get relay URLs from user's configuration
       const relayUrls = config.relayMetadata.relays
         .filter(r => r.read)
         .map(r => r.url);
 
-      // Create a relay group to query from user's relays
-      const relayGroup = relayUrls.length > 0 
-        ? nostr.group(relayUrls)
-        : nostr;
-
-      const [event] = await relayGroup.query(
-        [{ kinds: [0], authors: [pubkey!], limit: 1 }],
-        { signal: AbortSignal.timeout(1500) },
-      );
-
-      if (!event) {
-        throw new Error('No event found');
-      }
-
-      try {
-        const metadata = n.json().pipe(n.metadata()).parse(event.content);
-        return { metadata, event };
-      } catch {
-        return { event };
-      }
+      // Route every profile lookup through the shared batcher so that many
+      // simultaneous useAuthor() calls collapse into a single relay query.
+      const batcher = getAuthorBatcher(nostr, relayUrls);
+      return batcher.fetch(pubkey);
     },
-    staleTime: 1000 * 60 * 10, // 10 minutes — profiles rarely change
-    gcTime: 1000 * 60 * 60 * 24, // 24 hours — keep profiles in cache
-    retry: 1, // One retry is enough; avoid blocking renders with 3× retries
+    enabled: !!pubkey,
+    staleTime: 1000 * 60 * 15,       // 15 min — profiles rarely change
+    gcTime: 1000 * 60 * 60 * 24,     // 24 h — keep profiles in cache
+    retry: 1,
   });
 }

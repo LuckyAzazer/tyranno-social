@@ -46,5 +46,7 @@ export function useReactions(eventId: string, enabled = true) {
 
       return reactionCounts;
     },
+    staleTime: 1000 * 60 * 2,   // 2 min — don't refetch reactions on every render
+    gcTime: 1000 * 60 * 30,
   });
 }
