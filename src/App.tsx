@@ -4,7 +4,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createHead, UnheadProvider } from '@unhead/react/client';
 import { InferSeoMetaPlugin } from '@unhead/addons';
-import { Suspense, useEffect } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import NostrProvider from '@/components/NostrProvider';
 import { NostrSync } from '@/components/NostrSync';
 import { Toaster } from "@/components/ui/toaster";
@@ -186,6 +186,53 @@ const defaultConfig: AppConfig = {
   showContentWarnings: true,
 };
 
+/**
+ * Mounts the DM + WebRTC-call machinery but defers their heavy startup work
+ * (persistent relay subscriptions, DM history decryption, incoming-call
+ * listener) until the browser is idle after first paint. The providers are
+ * always mounted so their context stays available to consumers — only the
+ * expensive background work is delayed, keeping initial load fast.
+ */
+function useDeferredReady(timeout = 2500): boolean {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (ready) return;
+    type IdleWindow = Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    const win = window as IdleWindow;
+    let idleHandle: number | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const mark = () => setReady(true);
+
+    if (win.requestIdleCallback) {
+      idleHandle = win.requestIdleCallback(mark, { timeout });
+    } else {
+      timer = setTimeout(mark, timeout);
+    }
+    return () => {
+      if (idleHandle !== undefined && win.cancelIdleCallback) win.cancelIdleCallback(idleHandle);
+      if (timer) clearTimeout(timer);
+    };
+  }, [ready, timeout]);
+
+  return ready;
+}
+
+function DeferredRealtimeProviders({ children }: { children: React.ReactNode }) {
+  const ready = useDeferredReady();
+
+  return (
+    <DMProvider config={{ enabled: ready, protocolMode: PROTOCOL_MODE.NIP04_OR_NIP17 }}>
+      <WebRTCCallProvider enabled={ready}>
+        {children}
+      </WebRTCCallProvider>
+    </DMProvider>
+  );
+}
+
 export function App() {
   // Also persist when the user leaves / closes the tab
   useEffect(() => {
@@ -202,16 +249,14 @@ export function App() {
             <NostrProvider>
               <NostrSync />
               <NWCProvider>
-                <DMProvider config={{ enabled: true, protocolMode: PROTOCOL_MODE.NIP04_OR_NIP17 }}>
-                  <WebRTCCallProvider>
-                    <TooltipProvider>
-                      <Toaster />
-                      <Suspense>
-                        <AppRouter />
-                      </Suspense>
-                    </TooltipProvider>
-                  </WebRTCCallProvider>
-                </DMProvider>
+                <DeferredRealtimeProviders>
+                  <TooltipProvider>
+                    <Toaster />
+                    <Suspense>
+                      <AppRouter />
+                    </Suspense>
+                  </TooltipProvider>
+                </DeferredRealtimeProviders>
               </NWCProvider>
             </NostrProvider>
           </NostrLoginProvider>

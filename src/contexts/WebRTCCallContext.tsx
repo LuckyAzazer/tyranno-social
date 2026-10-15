@@ -36,8 +36,8 @@ const WebRTCCallContext = createContext<WebRTCCallContextValue | null>(null);
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
-export function WebRTCCallProvider({ children }: { children: ReactNode }) {
-  const call = useWebRTCCall();
+export function WebRTCCallProvider({ children, enabled = true }: { children: ReactNode; enabled?: boolean }) {
+  const call = useWebRTCCall(enabled);
 
   const callActive = call.callState !== 'idle' && call.callState !== 'ended';
   const showCallUI  = callActive && call.callState !== 'receiving';

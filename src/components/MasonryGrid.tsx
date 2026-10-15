@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import { PostCard } from '@/components/PostCard';
 import { InlineSuggestions } from '@/components/InlineSuggestions';
@@ -8,6 +8,14 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 const SUGGESTION_INTERVAL = 22;
 // Estimated height of the suggestion card for column-balance purposes
 const SUGGESTION_CARD_HEIGHT = 280;
+// Vertical gap between stacked cards (Tailwind gap-4 = 16px)
+const GAP = 16;
+// How far above/below the viewport to keep cards mounted. Generous so fast
+// scrolling never reveals a blank gap before cards mount.
+const OVERSCAN = 2000;
+// Only start windowing once a column has more than this many items — small
+// feeds render in full (no spacer overhead, no measurement cost).
+const VIRTUALIZE_THRESHOLD = 40;
 
 interface MasonryGridProps {
   posts: NostrEvent[];
@@ -180,6 +188,125 @@ export function MasonryGrid({ posts, columns: columnsProp, onPostClick }: Masonr
     appendNew(posts);
   }, [posts, columns, rebuild, appendNew]);
 
+  // ── Virtualization (windowing) ─────────────────────────────────────────────
+  // For long feeds we only render the cards whose estimated vertical range
+  // overlaps a window around the viewport. Skipped cards are replaced by a
+  // single spacer div per run so the scrollbar height (and every card's
+  // position) stays exactly the same. This caps the live DOM node count during
+  // marathon scrolling sessions, keeping reconciliation and memory in check.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [viewport, setViewport] = useState({ top: 0, bottom: 0 });
+
+  const totalItems = useMemo(
+    () => columnItems.reduce((n, col) => n + col.length, 0),
+    [columnItems],
+  );
+  const virtualize = totalItems > VIRTUALIZE_THRESHOLD;
+
+  useEffect(() => {
+    if (!virtualize) return;
+
+    let raf = 0;
+    const recompute = () => {
+      raf = 0;
+      const el = containerRef.current;
+      if (!el) return;
+      // Position of the grid's top relative to the document.
+      const gridTop = el.getBoundingClientRect().top + window.scrollY;
+      const top = window.scrollY - gridTop - OVERSCAN;
+      const bottom = window.scrollY - gridTop + window.innerHeight + OVERSCAN;
+      setViewport({ top, bottom });
+    };
+
+    const onScroll = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(recompute);
+    };
+
+    recompute();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [virtualize]);
+
+  const itemHeight = (item: ColumnItem) =>
+    (item.type === 'post' ? item.estimatedHeight : SUGGESTION_CARD_HEIGHT) + GAP;
+
+  /**
+   * For a single column, return the rendered children with top/bottom spacers
+   * replacing the off-window runs.
+   */
+  const renderColumn = (items: ColumnItem[]) => {
+    if (!virtualize) {
+      return items.map((item) =>
+        item.type === 'post' ? (
+          <PostCard
+            key={item.post.id}
+            event={item.post}
+            estimatedHeight={item.estimatedHeight}
+            onClick={onPostClick}
+          />
+        ) : (
+          <InlineSuggestions key={item.key} batchIndex={item.batchIndex} />
+        ),
+      );
+    }
+
+    const nodes: React.ReactNode[] = [];
+    let offset = 0;        // running top offset of the current item
+    let topSpacer = 0;     // accumulated height of skipped items above window
+    let bottomSpacer = 0;  // accumulated height of skipped items below window
+
+    for (const item of items) {
+      const h = itemHeight(item);
+      const itemTop = offset;
+      const itemBottom = offset + h;
+      offset += h;
+
+      const inWindow = itemBottom >= viewport.top && itemTop <= viewport.bottom;
+
+      if (inWindow) {
+        // Flush any pending top spacer before the first visible item.
+        if (topSpacer > 0) {
+          nodes.push(
+            <div key="spacer-top" style={{ height: topSpacer - GAP }} aria-hidden />,
+          );
+          topSpacer = 0;
+        }
+        nodes.push(
+          item.type === 'post' ? (
+            <PostCard
+              key={item.post.id}
+              event={item.post}
+              estimatedHeight={item.estimatedHeight}
+              onClick={onPostClick}
+            />
+          ) : (
+            <InlineSuggestions key={item.key} batchIndex={item.batchIndex} />
+          ),
+        );
+      } else if (nodes.length === 0) {
+        // Still above the window.
+        topSpacer += h;
+      } else {
+        // Below the window.
+        bottomSpacer += h;
+      }
+    }
+
+    if (bottomSpacer > 0) {
+      nodes.push(
+        <div key="spacer-bottom" style={{ height: bottomSpacer - GAP }} aria-hidden />,
+      );
+    }
+
+    return nodes;
+  };
+
   const gridClasses = {
     1: 'grid-cols-1',
     2: 'grid-cols-1 sm:grid-cols-2',
@@ -193,28 +320,14 @@ export function MasonryGrid({ posts, columns: columnsProp, onPostClick }: Masonr
     '';
 
   return (
-    <div className={containerClasses}>
+    <div className={containerClasses} ref={containerRef}>
       <div className={`grid ${gridClasses} gap-4`}>
         {columnItems.map((items, colIndex) => (
           <div
             key={colIndex}
             className="flex flex-col gap-4"
           >
-            {items.map((item) =>
-              item.type === 'post' ? (
-                <PostCard
-                  key={item.post.id}
-                  event={item.post}
-                  estimatedHeight={item.estimatedHeight}
-                  onClick={onPostClick}
-                />
-              ) : (
-                <InlineSuggestions
-                  key={item.key}
-                  batchIndex={item.batchIndex}
-                />
-              )
-            )}
+            {renderColumn(items)}
           </div>
         ))}
       </div>
