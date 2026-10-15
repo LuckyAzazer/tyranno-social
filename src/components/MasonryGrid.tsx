@@ -18,79 +18,167 @@ interface MasonryGridProps {
 // A column item is either a post or a suggestion card
 type ColumnItem =
   | { type: 'post'; post: NostrEvent; estimatedHeight: number }
-  | { type: 'suggestion'; batchIndex: number };
+  | { type: 'suggestion'; batchIndex: number; key: string };
+
+function estimatePostHeight(post: NostrEvent): number {
+  let height = 150;
+  const content = post.content ?? '';
+  const textLines = Math.ceil(content.length / 50);
+  height += Math.min(textLines * 20, 300);
+  const imageUrlPattern = /https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|bmp)/gi;
+  const imageUrls = content.match(imageUrlPattern) || [];
+  const hasImeta = post.tags?.some(([name]) => name === 'imeta') ?? false;
+  if (imageUrls.length > 0 || hasImeta) height += 300;
+  const videoUrlPattern = /https?:\/\/[^\s]+\.(mp4|webm|mov)/gi;
+  if (videoUrlPattern.test(content)) height += 300;
+  return height;
+}
 
 export function MasonryGrid({ posts, columns: columnsProp, onPostClick }: MasonryGridProps) {
   const columns = Math.max(1, Math.min(4, Number(columnsProp) || 3));
-  const columnRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [columnItems, setColumnItems] = useState<ColumnItem[][]>([]);
-  const redistributeTimeoutRef = useRef<number>();
   const { user } = useCurrentUser();
 
-  useEffect(() => {
-    columnRefs.current = columnRefs.current.slice(0, columns);
-  }, [columns]);
+  const [columnItems, setColumnItems] = useState<ColumnItem[][]>(
+    () => Array.from({ length: columns }, () => []),
+  );
 
-  const estimatePostHeight = useCallback((post: NostrEvent): number => {
-    let height = 150;
-    const content = post.content ?? '';
-    const textLines = Math.ceil(content.length / 50);
-    height += Math.min(textLines * 20, 300);
-    const imageUrlPattern = /https?:\/\/[^\s]+\.(jpg|jpeg|png|gif|webp|bmp)/gi;
-    const imageUrls = content.match(imageUrlPattern) || [];
-    const hasImeta = post.tags?.some(([name]) => name === 'imeta') ?? false;
-    if (imageUrls.length > 0 || hasImeta) height += 300;
-    const videoUrlPattern = /https?:\/\/[^\s]+\.(mp4|webm|mov)/gi;
-    if (videoUrlPattern.test(content)) height += 300;
-    return height;
-  }, []);
+  // Track distribution state across renders so that appending new posts does
+  // NOT reshuffle the posts already on screen. This is the key to smooth,
+  // jank-free infinite scroll: existing cards stay exactly where they are and
+  // only brand-new posts flow into the shortest column.
+  const stateRef = useRef({
+    columns,
+    heights: Array.from({ length: columns }, () => 0),
+    placedIds: new Set<string>(),
+    placedCount: 0,
+    suggestionBatch: 0,
+    postsSinceLastSuggestion: 0,
+    items: Array.from({ length: columns }, () => [] as ColumnItem[]),
+  });
 
-  const distributeItems = useCallback(() => {
-    const newColumns: ColumnItem[][] = Array.from({ length: columns }, () => []);
-    const heights: number[] = Array.from({ length: columns }, () => 0);
-
+  // Full rebuild — used only when the column count changes or the feed is
+  // replaced/refreshed (e.g. switching categories, pull-to-refresh).
+  const rebuild = useCallback((sourcePosts: NostrEvent[], colCount: number) => {
+    const items: ColumnItem[][] = Array.from({ length: colCount }, () => []);
+    const heights: number[] = Array.from({ length: colCount }, () => 0);
+    const placedIds = new Set<string>();
     let suggestionBatch = 0;
     let postsSinceLastSuggestion = 0;
 
-    posts.forEach((post, index) => {
-      // Place post in the shortest column
-      const col = index < columns
+    sourcePosts.forEach((post, index) => {
+      if (placedIds.has(post.id)) return;
+      placedIds.add(post.id);
+
+      const col = index < colCount
         ? index
         : heights.indexOf(Math.min(...heights));
 
       const estimatedHeight = estimatePostHeight(post);
-      newColumns[col].push({ type: 'post', post, estimatedHeight });
+      items[col].push({ type: 'post', post, estimatedHeight });
       heights[col] += estimatedHeight + 16;
       postsSinceLastSuggestion++;
 
-      // After every SUGGESTION_INTERVAL posts, inject a suggestion card
-      // into the shortest column (only for logged-in users)
-      if (user && postsSinceLastSuggestion >= SUGGESTION_INTERVAL && index < posts.length - 1) {
+      if (user && postsSinceLastSuggestion >= SUGGESTION_INTERVAL && index < sourcePosts.length - 1) {
         const shortestCol = heights.indexOf(Math.min(...heights));
-        newColumns[shortestCol].push({ type: 'suggestion', batchIndex: suggestionBatch++ });
+        items[shortestCol].push({
+          type: 'suggestion',
+          batchIndex: suggestionBatch,
+          key: `suggestion-${suggestionBatch}`,
+        });
         heights[shortestCol] += SUGGESTION_CARD_HEIGHT + 16;
+        suggestionBatch++;
         postsSinceLastSuggestion = 0;
       }
     });
 
-    setColumnItems(newColumns);
-  }, [posts, columns, estimatePostHeight, user]);
+    stateRef.current = {
+      columns: colCount,
+      heights,
+      placedIds,
+      placedCount: placedIds.size,
+      suggestionBatch,
+      postsSinceLastSuggestion,
+      items,
+    };
+
+    // Clone the inner arrays so React sees a new reference and re-renders.
+    setColumnItems(items.map((c) => [...c]));
+  }, [user]);
+
+  // Append only the posts that haven't been placed yet. Existing columns are
+  // mutated in place (then shallow-cloned for React), so on-screen cards never
+  // change position.
+  const appendNew = useCallback((sourcePosts: NostrEvent[]) => {
+    const state = stateRef.current;
+    const { heights, placedIds, items } = state;
+    let { suggestionBatch, postsSinceLastSuggestion } = state;
+    let placedCount = state.placedCount;
+    let added = false;
+
+    for (let index = 0; index < sourcePosts.length; index++) {
+      const post = sourcePosts[index];
+      if (placedIds.has(post.id)) continue;
+
+      placedIds.add(post.id);
+      added = true;
+
+      const col = placedCount < items.length
+        ? placedCount
+        : heights.indexOf(Math.min(...heights));
+
+      const estimatedHeight = estimatePostHeight(post);
+      items[col].push({ type: 'post', post, estimatedHeight });
+      heights[col] += estimatedHeight + 16;
+      placedCount++;
+      postsSinceLastSuggestion++;
+
+      if (user && postsSinceLastSuggestion >= SUGGESTION_INTERVAL && index < sourcePosts.length - 1) {
+        const shortestCol = heights.indexOf(Math.min(...heights));
+        items[shortestCol].push({
+          type: 'suggestion',
+          batchIndex: suggestionBatch,
+          key: `suggestion-${suggestionBatch}`,
+        });
+        heights[shortestCol] += SUGGESTION_CARD_HEIGHT + 16;
+        suggestionBatch++;
+        postsSinceLastSuggestion = 0;
+      }
+    }
+
+    state.placedCount = placedCount;
+    state.suggestionBatch = suggestionBatch;
+    state.postsSinceLastSuggestion = postsSinceLastSuggestion;
+
+    if (added) {
+      setColumnItems(items.map((c) => [...c]));
+    }
+  }, [user]);
 
   useEffect(() => {
-    distributeItems();
-  }, [distributeItems]);
+    const state = stateRef.current;
 
-  useEffect(() => {
-    const handleResize = () => {
-      if (redistributeTimeoutRef.current) clearTimeout(redistributeTimeoutRef.current);
-      redistributeTimeoutRef.current = window.setTimeout(distributeItems, 300);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (redistributeTimeoutRef.current) clearTimeout(redistributeTimeoutRef.current);
-    };
-  }, [distributeItems]);
+    // Column count changed → must rebuild everything.
+    if (state.columns !== columns) {
+      rebuild(posts, columns);
+      return;
+    }
+
+    // Feed was replaced/cleared, or the first post changed (new content
+    // prepended on refresh, or category switch). Detect by checking whether the
+    // first already-placed post is still the first incoming post.
+    const firstPlaced = state.items.flat().find((i): i is Extract<ColumnItem, { type: 'post' }> => i.type === 'post');
+    const feedReset =
+      posts.length < state.placedCount ||
+      (posts.length > 0 && firstPlaced && firstPlaced.post.id !== posts[0].id);
+
+    if (feedReset) {
+      rebuild(posts, columns);
+      return;
+    }
+
+    // Otherwise just append the newly-arrived posts without reflowing.
+    appendNew(posts);
+  }, [posts, columns, rebuild, appendNew]);
 
   const gridClasses = {
     1: 'grid-cols-1',
@@ -110,20 +198,19 @@ export function MasonryGrid({ posts, columns: columnsProp, onPostClick }: Masonr
         {columnItems.map((items, colIndex) => (
           <div
             key={colIndex}
-            ref={(el) => (columnRefs.current[colIndex] = el)}
             className="flex flex-col gap-4"
           >
-            {items.map((item, itemIndex) =>
+            {items.map((item) =>
               item.type === 'post' ? (
                 <PostCard
                   key={item.post.id}
                   event={item.post}
                   estimatedHeight={item.estimatedHeight}
-                  onClick={(displayEvent) => onPostClick?.(displayEvent)}
+                  onClick={onPostClick}
                 />
               ) : (
                 <InlineSuggestions
-                  key={`suggestion-${colIndex}-${itemIndex}`}
+                  key={item.key}
                   batchIndex={item.batchIndex}
                 />
               )

@@ -29,7 +29,7 @@ import { MutualFollowBadge } from '@/components/MutualFollowBadge';
 import { RepostDialog } from '@/components/RepostDialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { useIsVisible } from '@/hooks/useIsVisible';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { Link } from 'react-router-dom';
@@ -48,7 +48,7 @@ interface PostCardProps {
   estimatedHeight?: number;
 }
 
-export function PostCard({ event, onClick, estimatedHeight }: PostCardProps) {
+function PostCardImpl({ event, onClick, estimatedHeight }: PostCardProps) {
   const [bookmarkDialogOpen, setBookmarkDialogOpen] = useState(false);
   const [repostDialogOpen, setRepostDialogOpen] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
@@ -474,3 +474,17 @@ export function PostCard({ event, onClick, estimatedHeight }: PostCardProps) {
     </Card>
   );
 }
+
+/**
+ * Memoized PostCard. Existing cards in the masonry feed should never re-render
+ * when new pages are appended — they only re-render when their own event,
+ * estimated height, or click handler actually changes. This keeps the feed
+ * buttery-smooth during infinite scroll.
+ */
+export const PostCard = memo(PostCardImpl, (prev, next) => {
+  return (
+    prev.event.id === next.event.id &&
+    prev.estimatedHeight === next.estimatedHeight &&
+    prev.onClick === next.onClick
+  );
+});
