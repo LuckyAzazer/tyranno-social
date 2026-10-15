@@ -224,27 +224,21 @@ const Index = () => {
     enabled: !searchQuery.trim() && isMobile,
   });
 
-  // Intersection observer for infinite scroll — aggressively preloads pages
+  // Intersection observer for infinite scroll — scroll-driven prefetch.
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  // Auto-queue multiple pages: once the observer fires, keep fetching until
-  // we're 3 pages ahead of where the user currently is.
+  // Load the next page when the user scrolls near the bottom. This is purely
+  // scroll-driven (no unbounded background fetching) which keeps memory low and
+  // the feed feeling light and fast.
   const prefetchAhead = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage && !searchQuery.trim()) {
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, searchQuery]);
 
-  // Fire again shortly after each page lands to stay 3 pages ahead
   useEffect(() => {
-    if (!isFetchingNextPage && hasNextPage && !searchQuery.trim()) {
-      const timer = window.setTimeout(prefetchAhead, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [isFetchingNextPage, hasNextPage, prefetchAhead, searchQuery]);
-
-  useEffect(() => {
-    if (!loadMoreRef.current || searchQuery.trim()) return;
+    const el = loadMoreRef.current;
+    if (!el || searchQuery.trim()) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -254,11 +248,13 @@ const Index = () => {
       },
       {
         threshold: 0,
-        rootMargin: '2000px', // Start fetching 2000px before the bottom
+        // Start fetching well before the sentinel is visible so the next page
+        // is ready by the time the user reaches the current bottom — no "cut".
+        rootMargin: '1600px 0px',
       }
     );
 
-    observer.observe(loadMoreRef.current);
+    observer.observe(el);
 
     return () => observer.disconnect();
   }, [prefetchAhead, searchQuery]);
