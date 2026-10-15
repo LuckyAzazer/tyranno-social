@@ -1,6 +1,7 @@
 import { useNostr } from '@nostrify/react';
 import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '@/hooks/useAppContext';
+import { getEventTagBatcher } from '@/lib/eventTagBatcher';
 
 export function reactionsQueryKey(eventId: string, updatedAt: number) {
   return ['reactions', eventId, updatedAt] as const;
@@ -14,27 +15,18 @@ export function useReactions(eventId: string, enabled = true) {
     queryKey: reactionsQueryKey(eventId, config.relayMetadata.updatedAt),
     enabled,
     queryFn: async () => {
-      // Get relay URLs from user's configuration
       const relayUrls = config.relayMetadata.relays
         .filter(r => r.read)
         .map(r => r.url);
 
-      // Create a relay group to query from user's relays
-      const relayGroup = relayUrls.length > 0 
-        ? nostr.group(relayUrls)
-        : nostr;
-
-      const events = await relayGroup.query([
-        {
-          kinds: [7], // Reaction events
-          '#e': [eventId],
-          limit: 500,
-        },
-      ]);
+      // Route through the shared kind-7 batcher so many posts' reactions are
+      // fetched in a single relay query instead of one query per post.
+      const batcher = getEventTagBatcher(nostr, relayUrls, 7, 50);
+      const events = await batcher.fetch(eventId);
 
       // Group reactions by emoji
       const reactionCounts: Record<string, { count: number; pubkeys: string[] }> = {};
-      
+
       events.forEach((event) => {
         const emoji = event.content || '❤️';
         if (!reactionCounts[emoji]) {

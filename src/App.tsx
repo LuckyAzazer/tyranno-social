@@ -163,12 +163,15 @@ setInterval(() => {
 const defaultConfig: AppConfig = {
   theme: "dark",
   relayMetadata: {
+    // Every read query fans out to ALL read relays, so reading from fewer,
+    // fast, well-connected aggregating relays keeps the feed snappy. We still
+    // WRITE to all of them so posts propagate as widely as possible.
     relays: [
-      { url: 'wss://relay.ditto.pub', read: true, write: true },
       { url: 'wss://relay.primal.net', read: true, write: true },
       { url: 'wss://relay.damus.io', read: true, write: true },
-      { url: 'wss://nos.lol', read: true, write: true },
-      { url: 'wss://relay.nostr.band', read: true, write: true },
+      { url: 'wss://relay.ditto.pub', read: true, write: true },
+      { url: 'wss://nos.lol', read: false, write: true },
+      { url: 'wss://relay.nostr.band', read: false, write: true },
     ],
     updatedAt: 0,
   },
