@@ -291,9 +291,12 @@ const Index = () => {
           {/* Logo */}
           <div className="flex items-center gap-2 shrink-0">
             <img
-              src="/icon-512.png"
+              src="/icon.webp"
               alt="Tyrannosocial"
-              className="h-8 w-8 rounded-full"
+              width={32}
+              height={32}
+              loading="eager"
+              className="h-8 w-8 object-cover rounded-full"
             />
             <span className="text-base font-bold">Tyrannosocial</span>
           </div>
@@ -310,71 +313,43 @@ const Index = () => {
         </div>
 
         {/* ── Desktop header (lg+) ─────────────────────────────────────────── */}
-        <div className="hidden lg:block px-4 py-4">
-          <div className="flex items-center justify-between gap-3">
-            {/* Hamburger menu */}
-            <SidebarDrawer
-              selectedCategory={selectedCategory}
-              onCategoryChange={(cat) => {
-                setSelectedCategory(cat);
-                setSelectedCircleDTag(null);
-                setSelectedCirclePubkeys(null);
-                setSelectedCircleLabel(null);
-                setIsMutualFeed(false);
-                setIsConversationsFeed(false);
-                setSelectedRelay(null);
-              }}
-              onCircleSelect={(pubkeys, label) => {
-                if (pubkeys === null) {
-                  setSelectedCircleDTag(null);
-                  setSelectedCirclePubkeys(null);
-                  setSelectedCircleLabel(null);
-                } else {
-                  setSelectedCircleDTag(label?.toLowerCase().replace(/\s+/g, '-') ?? null);
-                  setSelectedCirclePubkeys(pubkeys);
-                  setSelectedCircleLabel(label);
-                }
-              }}
-              selectedCircleDTag={selectedCircleDTag}
-            />
-
-            {/* Logo */}
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="relative shrink-0">
-                <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 blur-xl opacity-60 animate-pulse dark:from-yellow-600 dark:via-red-900 dark:to-yellow-700 dark:opacity-50" />
-                <div className="relative p-1 bg-gradient-to-br from-rose-100/50 to-pink-100/30 rounded-full dark:from-transparent dark:to-transparent">
-                  <img
-                    src="/icon-512.png"
-                    alt="Tyrannosocial Logo"
-                    className="h-12 w-12 drop-shadow-2xl filter brightness-110 rounded-full"
-                  />
-                </div>
+        <div className="hidden lg:block px-6 py-3">
+          <div className="flex items-center gap-6">
+            {/* Brand — logo + wordmark */}
+            <div className="flex items-center gap-2.5 shrink-0">
+              <div className="relative shrink-0 h-10 w-10">
+                <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 blur-md opacity-50 dark:from-yellow-600 dark:via-red-900 dark:to-yellow-700 dark:opacity-40 rounded-full" />
+                <img
+                  src="/icon.webp"
+                  alt="Tyrannosocial"
+                  width={40}
+                  height={40}
+                  loading="eager"
+                  className="relative h-10 w-10 object-cover rounded-full ring-1 ring-border/60 drop-shadow"
+                />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Tyrannosocial</h1>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Sparkles className="h-3 w-3" />
-                    Powered by Nostr
-                  </span>
-                  <span className="opacity-30">·</span>
-                  <a
-                    href="https://shakespeare.diy"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 hover:text-primary transition-colors"
-                  >
-                    <Sparkles className="h-3 w-3 text-rose-500 dark:text-primary" />
-                    Vibed with Shakespeare
-                  </a>
-                </div>
+              <div className="leading-none">
+                <h1 className="text-xl font-bold tracking-tight text-foreground">Tyrannosocial</h1>
+                <a
+                  href="https://shakespeare.diy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <Sparkles className="h-2.5 w-2.5" />
+                  Vibed with Shakespeare
+                </a>
               </div>
             </div>
 
-            <div className="flex-1 max-w-sm lg:max-w-lg">
-              <SearchBar onSearch={setSearchQuery} />
+            {/* Search — grows to fill, centered feel */}
+            <div className="flex-1 flex justify-center">
+              <div className="w-full max-w-xl">
+                <SearchBar onSearch={setSearchQuery} />
+              </div>
             </div>
 
+            {/* Account cluster */}
             <div className="shrink-0 flex items-center gap-2">
               {user && <WalletBalance />}
               <LoginArea className="max-w-60" />
@@ -675,26 +650,13 @@ const Index = () => {
                 </DropdownMenu>
               )}
 
-              {/* Refresh + post/result count */}
+              {/* Post / result count */}
               {!searchQuery ? (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefresh}
-                    disabled={isRefetching}
-                    className="gap-2 shrink-0"
-                    title="Refresh feed"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
-                    <span className="hidden sm:inline">Refresh</span>
-                  </Button>
-                  {posts && (
-                    <span className="text-sm text-muted-foreground shrink-0">
-                      {posts.length} {posts.length === 1 ? 'post' : 'posts'}
-                    </span>
-                  )}
-                </>
+                posts && (
+                  <span className="text-sm text-muted-foreground shrink-0 tabular-nums">
+                    {posts.length} {posts.length === 1 ? 'post' : 'posts'}
+                  </span>
+                )
               ) : (
                 posts && (
                   <span className="text-sm text-muted-foreground truncate">
@@ -704,8 +666,22 @@ const Index = () => {
               )}
             </div>
 
-            {/* Right side: Colors + Columns */}
-            <div className="flex items-center gap-2 shrink-0">
+            {/* Right side: Refresh · Colors · Columns */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {!searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={isRefetching}
+                  className="h-9 gap-2"
+                  title="Refresh feed"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+                  <span className="hidden xl:inline">Refresh</span>
+                </Button>
+              )}
+              <div className="h-5 w-px bg-border/60 mx-1 hidden sm:block" />
               <ColorPickerButton />
               <ColumnSelector columns={columns} onColumnsChange={setColumns} />
             </div>
