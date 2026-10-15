@@ -59,7 +59,7 @@ interface SignalPayload {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useWebRTCCall() {
+export function useWebRTCCall(enabled = true) {
   const { nostr } = useNostr();
   const { user } = useCurrentUser();
   const { config } = useAppContext();
@@ -168,7 +168,9 @@ export function useWebRTCCall() {
   // ── Subscription for incoming signals ────────────────────────────────────
 
   useEffect(() => {
-    if (!user) return;
+    // Don't open the incoming-call listener until the app has deferred-started
+    // its realtime work. Keeps initial load light.
+    if (!enabled || !user) return;
     const relayGroup = relayUrls.length > 0 ? nostr.group(relayUrls) : nostr;
     let active = true;
 
@@ -251,7 +253,7 @@ export function useWebRTCCall() {
       subCleanupRef.current?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.pubkey]);
+  }, [user?.pubkey, enabled]);
 
   // ── Public API ────────────────────────────────────────────────────────────
 

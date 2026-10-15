@@ -31,7 +31,6 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useState, memo } from 'react';
 import { useIsVisible } from '@/hooks/useIsVisible';
-import { useIsMobile } from '@/hooks/useIsMobile';
 import { Link } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -58,11 +57,14 @@ function PostCardImpl({ event, onClick, estimatedHeight }: PostCardProps) {
   const { mute, unmute, isMuted } = useMutedUsers();
   const { pinnedEventId, pinPost, unpinPost } = usePinnedPost(user?.pubkey ?? '');
 
-  // On mobile, defer heavy queries until the card scrolls into view.
-  // On desktop, load everything immediately (no behavioural change).
-  const isMobile = useIsMobile();
-  const [visibilityRef, isVisible] = useIsVisible('200px');
-  const shouldLoad = !isMobile || isVisible;
+  // Defer heavy queries (profile, reactions, replies, reposted event) until the
+  // card is near the viewport — on BOTH mobile and desktop. Previously desktop
+  // fired every query for every post up-front, meaning a 100-post feed kicked
+  // off 400+ simultaneous relay subscriptions and saturated the main thread.
+  // Now only cards near the viewport load, which is the biggest desktop win.
+  // A generous rootMargin preloads just-ahead cards so there's no flicker.
+  const [visibilityRef, isVisible] = useIsVisible('600px');
+  const shouldLoad = isVisible;
 
   const isRepost = event.kind === 6 || event.kind === 16;
   const { data: repostedEvent } = useRepostedEvent(event, shouldLoad);
