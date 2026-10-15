@@ -649,7 +649,7 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="px-4 space-y-3">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/40 border border-border/50">
-              <img src="/icon-512.png" alt="Tyrannosocial" className="h-12 w-12 rounded-xl shrink-0" />
+              <img src="/icon.webp" alt="Tyrannosocial" width={48} height={48} className="h-12 w-12 object-cover rounded-xl shrink-0" />
               <div className="min-w-0">
                 <p className="font-semibold text-sm">Tyrannosocial</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">

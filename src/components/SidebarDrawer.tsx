@@ -76,9 +76,11 @@ export function SidebarDrawer({
           <SheetHeader className="px-5 pt-5 pb-3 border-b border-border/50 shrink-0">
             <div className="flex items-center gap-3">
               <img
-                src="/icon-512.png"
+                src="/icon.webp"
                 alt="Tyrannosocial"
-                className="h-8 w-8 rounded-full"
+                width={32}
+                height={32}
+                className="h-8 w-8 object-cover rounded-full"
               />
               <SheetTitle className="text-lg font-bold">Tyrannosocial</SheetTitle>
             </div>

@@ -291,9 +291,12 @@ const Index = () => {
           {/* Logo */}
           <div className="flex items-center gap-2 shrink-0">
             <img
-              src="/icon-512.png"
+              src="/icon.webp"
               alt="Tyrannosocial"
-              className="h-8 w-8 rounded-full"
+              width={32}
+              height={32}
+              loading="eager"
+              className="h-8 w-8 object-cover rounded-full"
             />
             <span className="text-base font-bold">Tyrannosocial</span>
           </div>
@@ -317,7 +320,7 @@ const Index = () => {
               <div className="relative shrink-0 h-10 w-10">
                 <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 blur-md opacity-50 dark:from-yellow-600 dark:via-red-900 dark:to-yellow-700 dark:opacity-40 rounded-full" />
                 <img
-                  src="/icon-512.png"
+                  src="/icon.webp"
                   alt="Tyrannosocial"
                   width={40}
                   height={40}
